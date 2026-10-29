@@ -1,4 +1,4 @@
-import type { NightCityApi } from '../shared/ipc'
+import type { NightCityApi } from '@shared/ipc'
 
 declare global {
   interface Window {

@@ -1,6 +1,6 @@
 import { app, ipcMain, BrowserWindow, dialog } from 'electron'
-import { IpcChannels, type AppInfo } from '../shared/ipc'
-import type { DetectedGame, Settings, Result } from '../shared/types'
+import { IpcChannels, type AppInfo } from '@shared/ipc'
+import type { DetectedGame, Settings, Result } from '@shared/types'
 import type { SettingsStore } from './services/settings'
 import { detectGames, isGameFolder } from './services/gameDetector'
 

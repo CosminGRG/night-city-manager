@@ -1,6 +1,6 @@
 import { mkdir, readFile, rename, writeFile } from 'fs/promises'
 import { dirname } from 'path'
-import { DEFAULT_SETTINGS, type Settings } from '../../shared/types'
+import { DEFAULT_SETTINGS, type Settings } from '@shared/types'
 
 export class SettingsStore {
   private readonly filePath: string

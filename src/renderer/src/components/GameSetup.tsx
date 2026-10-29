@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import type { DetectedGame, Result, Settings } from '../../../shared/types'
+import type { DetectedGame, Result, Settings } from '@shared/types'
 
 interface GameSetupProps {
   onSelected: (settings: Settings) => void

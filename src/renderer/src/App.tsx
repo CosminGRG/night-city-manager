@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
-import type { AppInfo } from 'src/shared/ipc'
-import type { Settings } from 'src/shared/types'
+import type { AppInfo } from '@shared/ipc'
+import type { Settings } from '@shared/types'
 import { GameSetup } from './components/GameSetup'
 
 function App(): React.JSX.Element {

@@ -1,6 +1,6 @@
 import { readdir, readFile, stat } from 'fs/promises'
 import { join, resolve } from 'path'
-import type { DetectedGame, GameStore } from '../../shared/types'
+import type { DetectedGame, GameStore } from '@shared/types'
 import { readRegistryValue } from './registry'
 
 const GAME_EXE = join('bin', 'x64', 'Cyberpunk2077.exe')

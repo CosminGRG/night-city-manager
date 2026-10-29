@@ -1,5 +1,5 @@
-appId: com.electron.app
-productName: app
+appId: com.cosmingrg.nightcitymanager
+productName: NightCityModManager
 directories:
   buildResources: build
 files:

@@ -23,7 +23,9 @@ async function steamCandidates(): Promise<string[]> {
     for (const match of vdf.matchAll(/"path"\s+"(.+?)"/g)) {
       libraries.push(match[1].replace(/\\\\/g, '\\'))
     }
-  } catch {}
+  } catch {
+    // no libraryfolders.vdf: only the main Steam folder is checked
+  }
 
   return libraries.map((library) => join(library, 'steamapps', 'common', 'Cyberpunk 2077'))
 }
@@ -52,7 +54,9 @@ async function epicCandidates(): Promise<string[]> {
     try {
       const manifest = JSON.parse(await readFile(join(manifestsDir, file), 'utf8'))
       if (typeof manifest.InstallLocation === 'string') candidates.push(manifest.InstallLocation)
-    } catch {}
+    } catch {
+      // unreadable manifest: skip it
+    }
   }
 
   return candidates

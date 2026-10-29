@@ -20,3 +20,26 @@ export interface DetectedGame {
 }
 
 export type Result<T> = { ok: true; value: T } | { ok: false; error: string }
+
+export type ModType =
+ | 'archive'
+ | 'redmod'
+ | 'cet'
+ | 'red4ext'
+ | 'redscript'
+ | 'tweakxl'
+ | 'input'
+ | 'config'
+
+export interface PlannedFile {
+  source: string
+  target: string
+}
+
+export interface InstallPlan {
+  files: PlannedFile[]
+  types: ModType[]
+  ignored: string[]
+  unmatched: string[]
+  warnings: string[]
+}

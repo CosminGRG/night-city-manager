@@ -3,7 +3,10 @@ import { IpcChannels, type NightCityApi } from '../shared/ipc'
 
 const api: NightCityApi = {
   getAppInfo: () => ipcRenderer.invoke(IpcChannels.getAppInfo),
-  getSettings: () => ipcRenderer.invoke(IpcChannels.getSettings)
+  getSettings: () => ipcRenderer.invoke(IpcChannels.getSettings),
+  detectGames: () => ipcRenderer.invoke(IpcChannels.detectGames),
+  selectGame: (path) => ipcRenderer.invoke(IpcChannels.selectGame, path),
+  browseGame: () => ipcRenderer.invoke(IpcChannels.browseGame)
 }
 
 contextBridge.exposeInMainWorld('api', api)

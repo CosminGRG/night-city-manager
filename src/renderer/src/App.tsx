@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import type { AppInfo } from 'src/shared/ipc'
 import type { Settings } from 'src/shared/types'
+import { GameSetup } from './components/GameSetup'
 
 function App(): React.JSX.Element {
   const [info, setInfo] = useState<AppInfo | null>(null)
@@ -21,7 +22,12 @@ function App(): React.JSX.Element {
       ) : (
         <p>Loading...</p>
       )}
-      <p>Game folder: {settings?.gamePath ?? 'not set'}</p>
+      {settings &&
+        (settings.gamePath ? (
+          <p>Game folder: {settings.gamePath}</p>
+        ) : (
+          <GameSetup onSelected={setSettings} />
+        ))}
     </main>
   )
 }

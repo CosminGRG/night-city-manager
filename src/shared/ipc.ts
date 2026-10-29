@@ -1,8 +1,11 @@
-import type { Settings } from './types'
+import type { DetectedGame, Settings, Result } from './types'
 
 export const IpcChannels = {
   getAppInfo: 'app:get-info',
-  getSettings: 'settings:get'
+  getSettings: 'settings:get',
+  detectGames: 'game:detect',
+  selectGame: 'game:select',
+  browseGame: 'game:browse'
 } as const
 
 export interface AppInfo {
@@ -14,4 +17,7 @@ export interface AppInfo {
 export interface NightCityApi {
   getAppInfo(): Promise<AppInfo>
   getSettings(): Promise<Settings>
+  detectGames(): Promise<DetectedGame[]>
+  selectGame(path: string): Promise<Result<Settings>>
+  browseGame(): Promise<Result<Settings> | null>
 }

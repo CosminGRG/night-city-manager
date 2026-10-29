@@ -1,11 +1,14 @@
 import React, { useEffect, useState } from 'react'
 import type { AppInfo } from 'src/shared/ipc'
+import type { Settings } from 'src/shared/types'
 
 function App(): React.JSX.Element {
   const [info, setInfo] = useState<AppInfo | null>(null)
+  const [settings, setSettings] = useState<Settings | null>(null)
 
   useEffect(() => {
     window.api.getAppInfo().then(setInfo)
+    window.api.getSettings().then(setSettings)
   }, [])
 
   return (
@@ -18,6 +21,7 @@ function App(): React.JSX.Element {
       ) : (
         <p>Loading...</p>
       )}
+      <p>Game folder: {settings?.gamePath ?? 'not set'}</p>
     </main>
   )
 }

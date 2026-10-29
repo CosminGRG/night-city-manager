@@ -1,5 +1,8 @@
+import type { Settings } from './types'
+
 export const IpcChannels = {
-  getAppInfo: 'app:get-info'
+  getAppInfo: 'app:get-info',
+  getSettings: 'settings:get'
 } as const
 
 export interface AppInfo {
@@ -10,4 +13,5 @@ export interface AppInfo {
 
 export interface NightCityApi {
   getAppInfo(): Promise<AppInfo>
+  getSettings(): Promise<Settings>
 }

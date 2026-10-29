@@ -16,6 +16,7 @@ coverage
 # Environment / secrets (e.g. Nexus API key later)
 .env
 .env.*
+.dev-data/
 
 # Claude
 CLAUDE.md

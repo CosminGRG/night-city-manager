@@ -2,7 +2,13 @@ import { app, shell, BrowserWindow } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
-import { registerIpcHandler } from './ipc'
+import { registerIpcHandlers } from './ipc'
+import { initPaths } from './services/paths'
+import { dialog } from 'electron'
+import { SettingsStore } from './services/settings'
+import { isWritable } from './services/paths'
+
+const paths = initPaths()
 
 function createWindow(): void {
   // Create the browser window.
@@ -45,7 +51,19 @@ function createWindow(): void {
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
+  if (!(await isWritable(paths.data))) {
+    dialog.showErrorBox(
+      'Cannot write to the app folder',
+      'Night City Mod Manager stores its data next to the exe, but it cannot write to:\n${paths.root}\n\nMove the app to a folder you own, e.g. D:\\Tools\\NightCityModManager.'
+    )
+    app.quit()
+    return
+  }
+
+  const settings = new SettingsStore(join(paths.data, 'settings.json'))
+  await settings.load()
+
   // Set app user model id for windows
   electronApp.setAppUserModelId('com.cosmingrg.nightcitymanager')
 
@@ -56,8 +74,7 @@ app.whenReady().then(() => {
     optimizer.watchWindowShortcuts(window)
   })
 
-  registerIpcHandler()
-
+  registerIpcHandlers(settings)
   createWindow()
 
   app.on('activate', function () {

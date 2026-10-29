@@ -1,0 +1,36 @@
+# Dependencies
+node_modules
+
+# Build output
+out
+dist
+*.tsbuildinfo
+
+# Tests
+coverage
+
+# Logs & caches
+*.log*
+.eslintcache
+
+# Environment / secrets (e.g. Nexus API key later)
+.env
+.env.*
+
+# Claude
+CLAUDE.md
+CLAUDE.local.md
+.claude/
+
+# Local app data (portable mode, test staging folders)
+NightCityManager-data/
+staging/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editors (.vscode is kept on purpose: the template ships shared settings)
+.idea/
+*.swp

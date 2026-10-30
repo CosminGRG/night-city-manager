@@ -31,7 +31,7 @@ const TYPE_PREFIXES: [string, ModType][] = [
 
 const ROOT_FOLDERS = new Set(['archive', 'bin', 'engine', 'mods', 'r6', 'red4ext'])
 
-const FRAMEWORK_FILES: [string, Framework][] = [
+export const FRAMEWORK_FILES: [string, Framework][] = [
   ['bin/x64/plugins/cyber_engine_tweaks.asi', 'cet'],
   ['red4ext/red4ext.dll', 'red4ext'],
   ['engine/tools/scc.exe', 'redscript'],
@@ -69,6 +69,8 @@ export function findRootPrefixes(files: string[]): Set<string> {
 
 export function detectType(target: string): ModType | null {
   const lower = target.toLowerCase()
+  if (lower.startsWith('archive/pc/mod/') && lower.endsWith('.xl')) return 'archivexl'
+
   const match = TYPE_PREFIXES.find(([prefix]) => lower.startsWith(prefix))
   return match ? match[1] : null
 }

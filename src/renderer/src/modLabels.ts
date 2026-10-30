@@ -2,6 +2,7 @@ import type { Framework, ModType } from '@shared/types'
 
 export const MOD_TYPE_LABELS: Record<ModType, string> = {
   archive: 'Archive',
+  archivexl: 'ArchiveXL',
   redmod: 'REDmod',
   cet: 'CET',
   red4ext: 'RED4ext',

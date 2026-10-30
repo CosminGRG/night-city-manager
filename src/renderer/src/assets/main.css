@@ -115,6 +115,10 @@ button:disabled {
   background: #2f4b7c;
 }
 
+.badge-archivexl {
+  background: #3f6fb0;
+}
+
 .badge-cet {
   background: #7c3f2f;
 }
@@ -133,4 +137,29 @@ button:disabled {
 
 .badge-tweakxl {
   background: #2f7c6b;
+}
+
+.badge-framework {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px #1b1b1f;
+}
+
+.dot-installed {
+  background: #2ecc71;
+}
+
+.dot-missing {
+  background: #e74c3c;
+}
+
+.mod-core {
+  border-left: 3px solid #f3e600;
 }

@@ -1,4 +1,4 @@
-import type { DetectedGame, Settings, Result, ModRecord } from './types'
+import type { DetectedGame, Settings, Result, ModRecord, Framework } from './types'
 
 export const IpcChannels = {
   getAppInfo: 'app:get-info',
@@ -7,7 +7,8 @@ export const IpcChannels = {
   selectGame: 'game:select',
   browseGame: 'game:browse',
   listMods: 'mod:list',
-  importMod: 'mod:import'
+  importMod: 'mod:import',
+  getInstalledFrameworks: 'frameworks:installed'
 } as const
 
 export interface AppInfo {
@@ -24,4 +25,5 @@ export interface NightCityApi {
   browseGame(): Promise<Result<Settings> | null>
   listMods(): Promise<ModRecord[]>
   importMod(): Promise<Result<ModRecord> | null>
+  getInstalledFrameworks(): Promise<Framework[]>
 }

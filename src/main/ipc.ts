@@ -1,11 +1,12 @@
 import { app, ipcMain, BrowserWindow, dialog } from 'electron'
 import { IpcChannels, type AppInfo } from '@shared/ipc'
-import type { DetectedGame, Settings, Result, ModRecord } from '@shared/types'
+import type { DetectedGame, Settings, Result, ModRecord, Framework } from '@shared/types'
 import type { SettingsStore } from './services/settings'
 import { detectGames, isGameFolder } from './services/gameDetector'
 import type { ModLibrary } from './services/modLibrary'
 import type { AppPaths } from './services/paths'
 import { importMod } from './services/importer'
+import { detectInstalledFrameworks } from './services/frameworks'
 
 interface IpcDependencies {
   settings: SettingsStore
@@ -74,5 +75,10 @@ export function registerIpcHandlers({ settings, library, paths }: IpcDependencie
     } catch (error) {
       return { ok: false, error: error instanceof Error ? error.message : String(error) }
     }
+  })
+
+  ipcMain.handle(IpcChannels.getInstalledFrameworks, (): Promise<Framework[]> => {
+    const { gamePath } = settings.get()
+    return gamePath ? detectInstalledFrameworks(gamePath) : Promise.resolve([])
   })
 }

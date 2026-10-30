@@ -22,7 +22,15 @@ export interface DetectedGame {
 export type Result<T> = { ok: true; value: T } | { ok: false; error: string }
 
 export type ModType =
-  'archive' | 'redmod' | 'cet' | 'red4ext' | 'redscript' | 'tweakxl' | 'input' | 'config'
+  | 'archive'
+  | 'archivexl'
+  | 'redmod'
+  | 'cet'
+  | 'red4ext'
+  | 'redscript'
+  | 'tweakxl'
+  | 'input'
+  | 'config'
 
 export interface PlannedFile {
   source: string

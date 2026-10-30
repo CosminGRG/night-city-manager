@@ -62,7 +62,10 @@ describe('detectType', () => {
     ['r6/input/foo.xml', 'input'],
     ['engine/config/platform/pc/foo.ini', 'config'],
     ['mods/Foo/info.json', 'redmod'],
-    ['Archive/PC/Mod/a.archive', 'archive']
+    ['Archive/PC/Mod/a.archive', 'archive'],
+    ['archive/pc/mod/a.archive.xl', 'archivexl'],
+    ['archive/pc/mod/UltraPlusFakeLightRemovals.xl', 'archivexl'],
+    ['Archive/PC/Mod/A.Archive.XL', 'archivexl']
   ])('%s → %s', (target, type) => {
     expect(detectType(target)).toBe(type)
   })
@@ -231,6 +234,20 @@ describe('real mods', () => {
     expect(plan.types).toEqual([])
     expect(plan.providers).toEqual(['cet'])
     expect(plan.files).toHaveLength(files.length)
+  })
+
+  it('Always First Equip: archive + ArchiveXL + Input Loader + redscript', () => {
+    const plan = classify({
+      files: [
+        'archive\\pc\\mod\\AlwaysFirstEquip.archive',
+        'archive\\pc\\mod\\AlwaysFirstEquip.archive.xl',
+        'r6\\input\\AlwaysFirstEquip.xml',
+        'r6\\scripts\\alwaysFirstEquip.reds'
+      ],
+      modName: 'Always First Equip'
+    })
+    expect(plan.types).toEqual(['archive', 'archivexl', 'input', 'redscript'])
+    expect(plan.unmatched).toEqual([])
   })
 })
 

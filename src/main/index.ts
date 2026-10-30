@@ -7,7 +7,6 @@ import { initPaths } from './services/paths'
 import { dialog } from 'electron'
 import { SettingsStore } from './services/settings'
 import { isWritable } from './services/paths'
-import { listArchive } from './services/sevenZip'
 
 const paths = initPaths()
 
@@ -83,13 +82,6 @@ app.whenReady().then(async () => {
     // dock icon is clicked and there are no other windows open.
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
-
-  console.log(
-    await listArchive(
-      paths.sevenZip,
-      'E:\\CP2077 - Mods\\Skip Radio Song - CET 6170 2.4.1 2026-09-16T11-39Z 6ZNKZcNBA.7z'
-    )
-  )
 })
 
 // Quit when all windows are closed, except on macOS. There, it's common

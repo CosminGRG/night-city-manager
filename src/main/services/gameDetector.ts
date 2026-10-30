@@ -1,5 +1,5 @@
 import { readdir, readFile, stat } from 'fs/promises'
-import { join, resolve } from 'path'
+import { join, resolve, dirname } from 'path'
 import type { DetectedGame, GameStore } from '@shared/types'
 import { readRegistryValue } from './registry'
 
@@ -11,6 +11,14 @@ export async function isGameFolder(dir: string): Promise<boolean> {
   } catch {
     return false
   }
+}
+
+export async function findGameRoot(path: string): Promise<string | null> {
+  const candidates = [path, dirname(path), dirname(dirname(path))]
+  for (const candidate of candidates) {
+    if (await isGameFolder(candidate)) return candidate
+  }
+  return null
 }
 
 async function steamCandidates(): Promise<string[]> {

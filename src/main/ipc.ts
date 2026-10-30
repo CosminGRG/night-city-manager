@@ -2,7 +2,7 @@ import { app, ipcMain, BrowserWindow, dialog } from 'electron'
 import { IpcChannels, type AppInfo } from '@shared/ipc'
 import type { DetectedGame, Settings, Result, ModRecord, Framework } from '@shared/types'
 import type { SettingsStore } from './services/settings'
-import { detectGames, isGameFolder } from './services/gameDetector'
+import { detectGames, findGameRoot } from './services/gameDetector'
 import type { ModLibrary } from './services/modLibrary'
 import type { AppPaths } from './services/paths'
 import { importMod } from './services/importer'
@@ -24,14 +24,15 @@ export function registerIpcHandlers({ settings, library, paths }: IpcDependencie
   ipcMain.handle(IpcChannels.getSettings, (): Settings => settings.get())
 
   async function setGamePath(path: string): Promise<Result<Settings>> {
-    if (!(await isGameFolder(path))) {
+    const gamePath = await findGameRoot(path)
+    if (!gamePath) {
       return {
         ok: false,
-        error: `Cyberpunk2077.exe was not found in "${path}\\bin\\x64". Select the folder that contains "bin", "archive" and "r6".`
+        error: `"${path}" is not a Cyberpunk 2077 folder. Select the folder that contains "bin", "archive" and "r6".`
       }
     }
 
-    return { ok: true, value: await settings.update({ gamePath: path }) }
+    return { ok: true, value: await settings.update({ gamePath }) }
   }
 
   ipcMain.handle(IpcChannels.detectGames, (): Promise<DetectedGame[]> => detectGames())

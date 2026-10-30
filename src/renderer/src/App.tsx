@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import type { AppInfo } from '@shared/ipc'
 import type { Settings } from '@shared/types'
 import { GameSetup } from './components/GameSetup'
+import { ModList } from './components/ModList'
 
 function App(): React.JSX.Element {
   const [info, setInfo] = useState<AppInfo | null>(null)
@@ -24,7 +25,10 @@ function App(): React.JSX.Element {
       )}
       {settings &&
         (settings.gamePath ? (
-          <p>Game folder: {settings.gamePath}</p>
+          <>
+            <p className="muted">Game folder: {settings.gamePath}</p>
+            <ModList />
+          </>
         ) : (
           <GameSetup onSelected={setSettings} />
         ))}

@@ -58,7 +58,7 @@ describe('ManifestStore', () => {
   })
 
   it('refuses a modid that is not UUID', async () => {
-    await expect(store.read('..\\..\\evil')).rejects.toThrow(/Invaid mod id/)
+    await expect(store.read('..\\..\\evil')).rejects.toThrow(/Invalid mod id/)
     await expect(store.write(manifest('../evil', []))).rejects.toThrow(/Invalid mod id/)
   })
 })

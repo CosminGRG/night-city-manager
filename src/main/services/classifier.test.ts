@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { classify, detectType, findRootPrefixes, normalizePath } from './classifier'
+import {
+  classify,
+  detectType,
+  detectFramework,
+  findRootPrefixes,
+  normalizePath
+} from './classifier'
 
 describe('normalizePath', () => {
   it('converts backslashes to forward slashes', () => {
@@ -127,5 +133,92 @@ describe('classify', () => {
     expect(plan.files).toEqual([])
     expect(plan.unmatched).toHaveLength(2)
     expect(plan.warnings).toHaveLength(1)
+  })
+
+  it('places nothing and warns when the archive has bad folder structure', () => {
+    const plan = classify({
+      files: ['Mod/a.archive', 'Mod/b.reds', 'Mod/readme.txt'],
+      modName: 'MyMod'
+    })
+    expect(plan.files).toEqual([])
+    expect(plan.unmatched).toEqual(['Mod/a.archive', 'Mod/b.reds'])
+    expect(plan.ignored).toEqual(['Mod/readme.txt'])
+    expect(plan.warnings).toHaveLength(1)
+  })
+})
+
+describe('detectFramework', () => {
+  it.each([
+    ['bin/x64/plugins/cyber_engine_tweaks.asi', 'cet'],
+    ['red4ext/RED4ext.dll', 'red4ext'],
+    ['engine/tools/scc.exe', 'redscript'],
+    ['red4ext/plugins/ArchiveXL/ArchiveXL.dll', 'archivexl'],
+    ['red4ext/plugins/TweakXL/TweakXL.dll', 'tweakxl'],
+    ['red4ext/plugins/Codeware/Codeware.dll', 'codeware']
+  ])('%s → %s', (target, framework) => {
+    expect(detectFramework(target)).toBe(framework)
+  })
+
+  it('does not treat other files in a framework folder as the framework', () => {
+    expect(detectFramework('red4ext/plugins/ArchiveXL/LICENSE')).toBeNull()
+  })
+})
+
+describe('real mods', () => {
+  it('Relentless Live Dismember: archive + redscript', () => {
+    const plan = classify({
+      files: [
+        'archive/pc/mod/RelentlessLiveDismember.archive',
+        'r6/scripts/CazanuLimbSurvival/ArmCombat.reds',
+        'r6/scripts/CazanuLimbSurvival/WoundedPriority.reds'
+      ],
+      modName: 'Relentless Live Dismember'
+    })
+    expect(plan.types).toEqual(['archive', 'redscript'])
+    expect(plan.unmatched).toEqual([])
+    expect(plan.files.map((file) => detectType(file.target))).not.toContain(null)
+  })
+
+  it('Night City Alive: REDmod tweaks are not TweakXL', () => {
+    const plan = classify({
+      files: [
+        'archive/pc/mod/bike_fix.archive',
+        'mods/NIGHT CITY ALIVE/info.json',
+        'mods/NIGHT CITY ALIVE/tweaks/base/gameplay/static_data/database/ai/aigeneralsettings.tweak'
+      ],
+      modName: 'Night City Alive'
+    })
+    expect(plan.types).toEqual(['archive', 'redmod'])
+  })
+
+  it('RadioExt: CET + RED4ext, including the empty radios/.keep', () => {
+    const plan = classify({
+      files: [
+        'bin/x64/plugins/cyber_engine_tweaks/mods/radioExt/init.lua',
+        'bin/x64/plugins/cyber_engine_tweaks/mods/radioExt/radios/.keep',
+        'red4ext/plugins/RadioExt/fmod.dll',
+        'red4ext/plugins/RadioExt/RadioExt.dll'
+      ],
+      modName: 'RadioExt'
+    })
+    expect(plan.types).toEqual(['cet', 'red4ext'])
+    expect(plan.files.map((file) => file.target)).toContain(
+      'bin/x64/plugins/cyber_engine_tweaks/mods/radioExt/radios/.keep'
+    )
+  })
+
+  it('Cyber Engine Tweaks core: provides CET needs nothing', () => {
+    const files = [
+      'bin/x64/global.ini',
+      'bin/x64/LICENSE',
+      'bin/x64/plugins/cyber_engine_tweaks/scripts/json/README.md',
+      'bin/x64/plugins/cyber_engine_tweaks/tweakdb/usedhashes.kark',
+      'bin/x64/plugins/cyber_engine_tweaks.asi',
+      'bin/x64/version.dll'
+    ]
+    const plan = classify({ files, modName: 'Cyber Engine Tweaks' })
+    expect(plan.types).toEqual([])
+    expect(plan.providers).toEqual(['cet'])
+    expect(plan.files).toHaveLength(files.length)
   })
 })

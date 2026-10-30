@@ -1,5 +1,5 @@
 import { posix } from 'path'
-import type { InstallPlan, ModType } from '@shared/types'
+import type { InstallPlan, ModType, Framework } from '@shared/types'
 
 const JUNK = /(^|\/)(__MACOSX\/|\.DS_Store$|Thumbs\.db$|desktop\.ini$)/i
 
@@ -28,6 +28,15 @@ const TYPE_PREFIXES: [string, ModType][] = [
 ]
 
 const ROOT_FOLDERS = new Set(['archive', 'bin', 'engine', 'mods', 'r6', 'red4ext'])
+
+const FRAMEWORK_FILES: [string, Framework][] = [
+  ['bin/x64/plugins/cyber_engine_tweaks.asi', 'cet'],
+  ['red4ext/red4ext.dll', 'red4ext'],
+  ['engine/tools/scc.exe', 'redscript'],
+  ['red4ext/plugins/archivexl/archivexl.dll', 'archivexl'],
+  ['red4ext/plugins/tweakxl/tweakxl.dll', 'tweakxl'],
+  ['red4ext/plugins/codeware/codeware.dll', 'codeware']
+]
 
 export interface ClassifyInput {
   files: string[]
@@ -58,6 +67,12 @@ export function detectType(target: string): ModType | null {
   return match ? match[1] : null
 }
 
+export function detectFramework(target: string): Framework | null {
+  const lower = target.toLowerCase()
+  const match = FRAMEWORK_FILES.find(([file]) => lower === file)
+  return match ? match[1] : null
+}
+
 function stripPrefix(file: string, prefix: string): string | null {
   if (prefix === '') return file
   return file.startsWith(`${prefix}/`) ? file.slice(prefix.length + 1) : null
@@ -69,7 +84,14 @@ function isUnderGameRoot(path: string): boolean {
 }
 
 export function classify({ files }: ClassifyInput): InstallPlan {
-  const plan: InstallPlan = { files: [], types: [], ignored: [], unmatched: [], warnings: [] }
+  const plan: InstallPlan = {
+    providers: [],
+    files: [],
+    types: [],
+    ignored: [],
+    unmatched: [],
+    warnings: []
+  }
   const sources = files.map(normalizePath).filter((file) => !JUNK.test(file))
   const prefixes = findRootPrefixes(sources)
 
@@ -83,14 +105,19 @@ export function classify({ files }: ClassifyInput): InstallPlan {
 
   const prefix: string | null = prefixes.size === 1 ? [...prefixes][0] : null
   const types = new Set<ModType>()
+  const providers = new Set<Framework>()
 
   for (const source of sources) {
     const target = prefix === null ? null : stripPrefix(source, prefix)
 
     if (target !== null && isUnderGameRoot(target)) {
       plan.files.push({ source, target })
+
       const type = detectType(target)
       if (type) types.add(type)
+
+      const framework = detectFramework(target)
+      if (framework) providers.add(framework)
     } else if (DOC_EXTENSIONS.has(posix.extname(source).toLowerCase())) {
       plan.ignored.push(source)
     } else {
@@ -98,6 +125,13 @@ export function classify({ files }: ClassifyInput): InstallPlan {
     }
   }
 
+  if (prefix === null && plan.unmatched.length > 0) {
+    plan.warnings.push(
+      'Bad folder structure. (archive/, bin/, r6/, ...) not found. Install the mod manually.'
+    )
+  }
+
   plan.types = [...types]
+  plan.providers = [...providers]
   return plan
 }

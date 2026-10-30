@@ -30,9 +30,12 @@ export interface PlannedFile {
 }
 
 export interface InstallPlan {
+  providers: Framework[]
   files: PlannedFile[]
   types: ModType[]
   ignored: string[]
   unmatched: string[]
   warnings: string[]
 }
+
+export type Framework = 'cet' | 'red4ext' | 'redscript' | 'archivexl' | 'tweakxl' | 'codeware'

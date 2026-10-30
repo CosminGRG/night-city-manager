@@ -7,6 +7,7 @@ import { initPaths } from './services/paths'
 import { dialog } from 'electron'
 import { SettingsStore } from './services/settings'
 import { isWritable } from './services/paths'
+import { ModLibrary } from './services/modLibrary'
 
 const paths = initPaths()
 
@@ -64,6 +65,9 @@ app.whenReady().then(async () => {
   const settings = new SettingsStore(join(paths.data, 'settings.json'))
   await settings.load()
 
+  const library = new ModLibrary(join(paths.data, 'mods.json'))
+  await library.load()
+
   // Set app user model id for windows
   electronApp.setAppUserModelId('com.cosmingrg.nightcitymanager')
 
@@ -74,7 +78,7 @@ app.whenReady().then(async () => {
     optimizer.watchWindowShortcuts(window)
   })
 
-  registerIpcHandlers(settings)
+  registerIpcHandlers({ settings, library, paths })
   createWindow()
 
   app.on('activate', function () {

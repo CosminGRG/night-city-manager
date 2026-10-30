@@ -1,13 +1,9 @@
-import { execFile } from 'child_process'
-import { mkdir, mkdtemp, readdir, rm, writeFile } from 'fs/promises'
+import { mkdtemp, readdir, rm, writeFile } from 'fs/promises'
 import { tmpdir } from 'os'
-import { dirname, join } from 'path'
-import { promisify } from 'util'
+import { join } from 'path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { stageArchive } from './staging'
-
-const execFileAsync = promisify(execFile)
-const SEVEN_ZIP = join(process.cwd(), 'resources', '7zip', '7z.exe')
+import { makeZip, SEVEN_ZIP } from './testArchives'
 
 let work: string
 let mods: string
@@ -21,26 +17,12 @@ afterEach(async () => {
   await rm(work, { recursive: true, force: true })
 })
 
-async function makeZip(
-  name: string,
-  files: Record<string, string>,
-  password?: string
-): Promise<string> {
-  const src = join(work, `src-${name}`)
-  for (const [path, content] of Object.entries(files)) {
-    await mkdir(dirname(join(src, path)), { recursive: true })
-    await writeFile(join(src, path), content)
-  }
-
-  const zip = join(work, name)
-  const passwordArgs = password ? [`-p${password}`] : []
-  await execFileAsync(SEVEN_ZIP, ['a', '-tzip', '-bso0', ...passwordArgs, zip, '*'], { cwd: src })
-  return zip
-}
-
 describe('stageArchive', () => {
   it('extracts everything into the mod folder and leaves not temp folder', async () => {
-    const zip = await makeZip('ok.zip', { 'archive/pc/mod/a.archive': 'x', 'readme.txt': 'r' })
+    const zip = await makeZip(work, 'ok.zip', {
+      'archive/pc/mod/a.archive': 'x',
+      'readme.txt': 'r'
+    })
 
     const folder = await stageArchive(SEVEN_ZIP, zip, mods, 'Faster Elevators')
 
@@ -52,7 +34,7 @@ describe('stageArchive', () => {
   })
 
   it('fails fast on an excrypted archive and cleans up', async () => {
-    const zip = await makeZip('enc.zip', { 'a.archive': 'x' }, 'secret')
+    const zip = await makeZip(work, 'enc.zip', { 'a.archive': 'x' }, 'secret')
     await expect(stageArchive(SEVEN_ZIP, zip, mods, 'Enc')).rejects.toThrow(/Wrong password/)
     expect(await readdir(mods)).toEqual([])
   })

@@ -6,7 +6,9 @@ const api: NightCityApi = {
   getSettings: () => ipcRenderer.invoke(IpcChannels.getSettings),
   detectGames: () => ipcRenderer.invoke(IpcChannels.detectGames),
   selectGame: (path) => ipcRenderer.invoke(IpcChannels.selectGame, path),
-  browseGame: () => ipcRenderer.invoke(IpcChannels.browseGame)
+  browseGame: () => ipcRenderer.invoke(IpcChannels.browseGame),
+  listMods: () => ipcRenderer.invoke(IpcChannels.listMods),
+  importMod: () => ipcRenderer.invoke(IpcChannels.importMod)
 }
 
 contextBridge.exposeInMainWorld('api', api)

@@ -4,7 +4,8 @@ import {
   detectType,
   detectFramework,
   findRootPrefixes,
-  normalizePath
+  normalizePath,
+  isSafePath
 } from './classifier'
 
 describe('normalizePath', () => {
@@ -145,6 +146,16 @@ describe('classify', () => {
     expect(plan.ignored).toEqual(['Mod/readme.txt'])
     expect(plan.warnings).toHaveLength(1)
   })
+
+  it('places nothing when any path seems unsafe', () => {
+    const plan = classify({
+      files: ['archive/pc/mod/a.archive', 'archive\\..\\..\\bad.dll'],
+      modName: 'A'
+    })
+    expect(plan.files).toEqual([])
+    expect(plan.unmatched).toHaveLength(2)
+    expect(plan.warnings).toHaveLength(1)
+  })
 })
 
 describe('detectFramework', () => {
@@ -220,5 +231,28 @@ describe('real mods', () => {
     expect(plan.types).toEqual([])
     expect(plan.providers).toEqual(['cet'])
     expect(plan.files).toHaveLength(files.length)
+  })
+})
+
+describe('isSafePath', () => {
+  it.each([
+    'archive/pc/mod/a.archive',
+    'mods/Mod/info.json',
+    'bin/x64/plugins/cyber_engine_tweaks/mods/radioExt/radio/.keep',
+    'archive/pc/mod/a.b.archie'
+  ])('accepts %s', (path) => {
+    expect(isSafePath(path)).toBe(true)
+  })
+
+  it.each([
+    'archive/../../Windows/virus.dll',
+    '../bad.dll',
+    'archive/./a.archive',
+    'r6/.. /evil.dll',
+    'C:/Windows/virus.dll',
+    'archive/pc/mod/a.archive:hidden',
+    'r6/scripts/Mod./a.reds'
+  ])('rejects %s', (path) => {
+    expect(isSafePath(path)).toBe(false)
   })
 })

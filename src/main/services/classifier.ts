@@ -3,6 +3,8 @@ import type { InstallPlan, ModType, Framework } from '@shared/types'
 
 const JUNK = /(^|\/)(__MACOSX\/|\.DS_Store$|Thumbs\.db$|desktop\.ini$)/i
 
+const UNSAFE_SEGMENT = /:|[. ]$/
+
 const DOC_EXTENSIONS = new Set([
   '.txt',
   '.md',
@@ -45,6 +47,10 @@ export interface ClassifyInput {
 
 export function normalizePath(path: string): string {
   return path.replace(/\\/g, '/').replace(/^\.?\/+/, '')
+}
+
+export function isSafePath(path: string): boolean {
+  return path.split('/').every((segment) => !UNSAFE_SEGMENT.test(segment))
 }
 
 export function findRootPrefixes(files: string[]): Set<string> {
@@ -92,7 +98,18 @@ export function classify({ files }: ClassifyInput): InstallPlan {
     unmatched: [],
     warnings: []
   }
+
   const sources = files.map(normalizePath).filter((file) => !JUNK.test(file))
+
+  const unsafe = sources.filter((file) => !isSafePath(file))
+  if (unsafe.length > 0) {
+    plan.warnings.push(
+      `This archive contains unsafe paths (${unsafe.join(', ')}). It will not be installed.`
+    )
+    plan.unmatched = sources
+    return plan
+  }
+
   const prefixes = findRootPrefixes(sources)
 
   if (prefixes.size > 1) {

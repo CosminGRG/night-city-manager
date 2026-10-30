@@ -39,3 +39,14 @@ export interface InstallPlan {
 }
 
 export type Framework = 'cet' | 'red4ext' | 'redscript' | 'archivexl' | 'tweakxl' | 'codeware'
+
+export interface ModRecord {
+  id: string
+  name: string
+  version: string | null
+  nexusModId: number | null
+  archive: string
+  folder: string
+  plan: InstallPlan
+  importedAt: string
+}

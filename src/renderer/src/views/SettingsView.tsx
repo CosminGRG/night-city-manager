@@ -1,0 +1,62 @@
+import { useEffect, useState } from 'react'
+import type { AppInfo } from '@shared/ipc'
+import type { Settings } from '@shared/types'
+import './SettingsView.css'
+
+interface SettingsViewProps {
+  settings: Settings
+  onSettingsChange: (settings: Settings) => void
+}
+
+export function SettingsView({ settings, onSettingsChange }: SettingsViewProps): React.JSX.Element {
+  const [info, setInfo] = useState<AppInfo | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    window.api.getAppInfo().then(setInfo)
+  }, [])
+
+  async function handleChangeGame(): Promise<void> {
+    setError(null)
+    const result = await window.api.browseGame()
+    if (!result) return
+    if (result.ok) {
+      onSettingsChange(result.value)
+    } else {
+      setError(result.error)
+    }
+  }
+
+  return (
+    <section className="settings">
+      <h1>Settings</h1>
+
+      <div className="settings-group">
+        <h2>Game folder</h2>
+        <div className="settings-row">
+          <code className="settings-path">{settings.gamePath}</code>
+          <button onClick={handleChangeGame}>Change</button>
+        </div>
+        <p className="muted settings-hint">
+          Mods that are already deployed stay where they are until you undeploy them.
+        </p>
+        {error && (
+          <p role="alert" className="error">
+            {error}
+          </p>
+        )}
+      </div>
+
+      <div className="settings-group">
+        <h2>About</h2>
+        {info && (
+          <p className="muted">
+            Night City Mod Manager {info.version} · Electron {info.electronVersion}
+            <br />
+            Data folder: <code>{info.userDataPath}</code>
+          </p>
+        )}
+      </div>
+    </section>
+  )
+}

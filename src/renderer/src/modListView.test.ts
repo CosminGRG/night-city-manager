@@ -54,7 +54,7 @@ describe('paginate', () => {
   const twelve = Array.from({ length: 12 }, (_, index) => index + 1)
 
   it('returns the requested page with its range', () => {
-    expect(paginate(twelve, 2)).toEqual({
+    expect(paginate(twelve, 2, 5)).toEqual({
       items: [6, 7, 8, 9, 10],
       page: 2,
       pageCount: 3,
@@ -65,8 +65,8 @@ describe('paginate', () => {
   })
 
   it('clamps a page that no longer exists', () => {
-    expect(paginate(twelve, 9)).toMatchObject({ page: 3, items: [11, 12] })
-    expect(paginate(twelve, 0)).toMatchObject({ page: 1 })
+    expect(paginate(twelve, 9, 5)).toMatchObject({ page: 3, items: [11, 12] })
+    expect(paginate(twelve, 0, 5)).toMatchObject({ page: 1 })
   })
 
   it('handles an empty list', () => {

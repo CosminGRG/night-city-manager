@@ -1,12 +1,14 @@
-import { rm } from 'fs/promises'
+import { rm, unlink } from 'fs/promises'
 import { join, win32 } from 'path'
 import type { ModRecord } from '@shared/types'
 import { planDeploy, type DeployOperation } from './deployPlan'
 import { backUp, backupPathFor, restore } from './backups'
-import { missingFolders, removeEmptyFolders, removeEmptyTree } from './folders'
+import { missingFolders, removeEmptyFolders, removeEmptyTree, exists } from './folders'
 import type { ModLibrary } from './modLibrary'
 import { findConflicts, type Manifest, type ManifestEntry, type ManifestStore } from './manifests'
 import { linkOrCopy } from './place'
+import { isInside } from './deployPlan'
+import { isOurFile } from './ownership'
 
 export interface DeployContext {
   gamePath: string
@@ -14,6 +16,10 @@ export interface DeployContext {
   backupsDir: string
   manifests: ManifestStore
   library: ModLibrary
+}
+
+export interface UndeployResult {
+  kept: string[]
 }
 
 export async function deployMod(context: DeployContext, mod: ModRecord): Promise<void> {
@@ -63,6 +69,60 @@ export async function deployMod(context: DeployContext, mod: ModRecord): Promise
   }
 
   await manifests.write({ ...manifest, status: 'deployed' })
+}
+
+export async function undeployMod(context: DeployContext, mod: ModRecord): Promise<UndeployResult> {
+  const { modsDir, backupsDir, manifests } = context
+  const manifest = await manifests.read(mod.id)
+  if (!manifest) throw new Error(`${mod.name} is not deployed.`)
+
+  await manifests.write({ ...manifest, status: 'undeploying' })
+
+  const { gamePath } = manifest
+  const stagingDir = join(modsDir, mod.folder)
+  const backupDir = join(backupsDir, mod.id)
+  const entries = [...manifest.files].reverse()
+  const kept: string[] = []
+
+  for (const [index, entry] of entries.entries()) {
+    try {
+      if (await undeployFile(entry, gamePath, stagingDir, backupDir)) kept.push(entry.path)
+    } catch (error) {
+      const remaining = entries.slice(index).reverse()
+      await manifests.write({ ...manifest, status: 'undeploying', files: remaining })
+      throw error
+    }
+  }
+
+  await removeEmptyFolders(manifest.folders.map((folder) => gameFile(gamePath, folder)))
+  await removeEmptyTree(backupDir)
+  await manifests.remove(mod.id)
+  return { kept }
+}
+
+async function undeployFile(
+  entry: ManifestEntry,
+  gamePath: string,
+  stagingDir: string,
+  backupDir: string
+): Promise<boolean> {
+  const target = gameFile(gamePath, entry.path)
+  const source = win32.join(stagingDir, entry.source)
+
+  if (await isOurFile(target, source, entry.method)) {
+    await unlink(target)
+  } else if (await exists(target)) {
+    return true
+  }
+
+  await restore(backupPathFor(backupDir, entry.path), target)
+  return false
+}
+
+function gameFile(gamePath: string, path: string): string {
+  const file = win32.join(gamePath, path)
+  if (!isInside(gamePath, file)) throw new Error(`"${path}" is outside the game folder.`)
+  return file
 }
 
 async function refuseConflicts(

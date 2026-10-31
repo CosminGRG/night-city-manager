@@ -2,7 +2,7 @@ import { rmdir, lstat, readdir } from 'fs/promises'
 import { join, win32 } from 'path'
 import { isInside } from './deployPlan'
 
-async function exists(path: string): Promise<boolean> {
+export async function exists(path: string): Promise<boolean> {
   try {
     await lstat(path)
     return true

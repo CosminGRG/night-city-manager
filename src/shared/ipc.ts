@@ -19,7 +19,10 @@ export const IpcChannels = {
   getInstalledFrameworks: 'frameworks:installed',
   listDeployments: 'deploy:list',
   deployMod: 'mod:deploy',
-  undeployMod: 'mod:undeploy'
+  undeployMod: 'mod:undeploy',
+  removeMod: 'mod:remove',
+  revealMod: 'mod:reveal',
+  openNexusPage: 'mod:open-nexus'
 } as const
 
 export interface AppInfo {
@@ -40,4 +43,7 @@ export interface NightCityApi {
   listDeployments(): Promise<Record<string, DeployStatus>>
   deployMod(modId: string): Promise<Result<null>>
   undeployMod(modId: string): Promise<Result<UndeployResult>>
+  removeMod(modId: string): Promise<Result<UndeployResult>>
+  revealMod(modId: string): Promise<Result<null>>
+  openNexusPage(modId: string): Promise<Result<null>>
 }

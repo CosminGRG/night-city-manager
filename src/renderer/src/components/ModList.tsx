@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
-import { Circle, CircleCheck, TriangleAlert } from 'lucide-react'
+import { Circle, CircleCheck, TriangleAlert, Trash2 } from 'lucide-react'
 import type { DeployStatus, Framework, ModRecord } from '@shared/types'
 import { FRAMEWORK_LABELS, MOD_TYPE_LABELS } from '@renderer/modLabels'
 import { CoreModStatus } from './CoreModStatus'
 import { filterMods, isCoreMod, paginate, sortMods } from '@renderer/modListView'
 import { Pagination } from './Pagination'
 import { SearchBox } from './SearchBox'
+import { ConfirmDialog } from './ConfirmDialog'
 import './ModList.css'
 
 const dateFormat = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' })
@@ -42,6 +43,7 @@ export function ModList(): React.JSX.Element {
   const [notice, setNotice] = useState<string | null>(null)
   const [query, setQuery] = useState('')
   const [page, setPage] = useState(1)
+  const [pendingRemoval, setPendingRemoval] = useState<ModRecord | null>(null)
 
   function applyDeployState(state: DeployState): void {
     setDeployments(state.deployments)
@@ -109,6 +111,24 @@ export function ModList(): React.JSX.Element {
     }
   }
 
+  async function handleRemove(mod: ModRecord): Promise<void> {
+    setBusyId(mod.id)
+    setError(null)
+    setNotice(null)
+    try {
+      const result = await window.api.removeMod(mod.id)
+      if (!result.ok) {
+        setError(result.error)
+      } else if (result.value.kept.length > 0) {
+        setNotice(keptMessage(mod, result.value.kept))
+      }
+    } finally {
+      setMods(await window.api.listMods())
+      await refresh()
+      setBusyId(null)
+    }
+  }
+
   const visible = mods && paginate(filterMods(sortMods(mods), query), page)
   const locked = importing || busyId !== null
 
@@ -163,6 +183,7 @@ export function ModList(): React.JSX.Element {
                   locked={locked}
                   onDeploy={handleDeploy}
                   onUndeploy={handleUndeploy}
+                  onRemove={handleRemove}
                 />
               ))}
             </ul>
@@ -176,6 +197,22 @@ export function ModList(): React.JSX.Element {
             )}
           </footer>
         </>
+      )}
+      {pendingRemoval && (
+        <ConfirmDialog
+          title={`Remove ${pendingRemoval.name}?`}
+          confirmLabel="Remove"
+          onConfirm={() => handleRemove(pendingRemoval)}
+          onClose={() => setPendingRemoval(null)}
+        >
+          <p>
+            It will be taken off your mod list
+            {deployments[pendingRemoval.id] ? ' and out of your game' : ''}.
+          </p>
+          <p className="muted">
+            Your downloaded archive stays where it is, so you can import it again anytime.
+          </p>
+        </ConfirmDialog>
       )}
     </section>
   )
@@ -216,6 +253,7 @@ interface ModRowProps {
   locked: boolean
   onDeploy: (mod: ModRecord) => void
   onUndeploy: (mod: ModRecord) => void
+  onRemove: (mod: ModRecord) => void
 }
 
 function ModRow({
@@ -225,7 +263,8 @@ function ModRow({
   busy,
   locked,
   onDeploy,
-  onUndeploy
+  onUndeploy,
+  onRemove
 }: ModRowProps): React.JSX.Element {
   const interrupted = status === 'deploying' || status === 'undeploying'
   const nothingToDeploy = mod.plan.files.length === 0
@@ -296,6 +335,15 @@ function ModRow({
             {busy ? 'Deploying...' : 'Deploy'}
           </button>
         )}
+        <button
+          className="small"
+          onClick={() => onRemove(mod)}
+          disabled={locked}
+          aria-label={`Remove ${mod.name}`}
+          title="Remove"
+        >
+          <Trash2 size={14} aria-hidden="true" />
+        </button>
       </span>
     </li>
   )

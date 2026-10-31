@@ -81,4 +81,35 @@ describe('ModLibrary', () => {
     await expect(library.add(makeMod('A'))).rejects.toThrow()
     expect(library.list()).toEqual([])
   })
+
+  it('removes a mod and saves the change', async () => {
+    const a = makeMod('A')
+    const b = makeMod('B')
+    const library = new ModLibrary(file)
+    await library.add(a)
+    await library.add(b)
+
+    await library.remove(a.id)
+
+    const reloaded = new ModLibrary(file)
+    await reloaded.load()
+    expect(reloaded.list()).toEqual([b])
+  })
+
+  it('ignores an unknown id', async () => {
+    const library = new ModLibrary(file)
+    await library.add(makeMod('A'))
+    await library.remove('not-there')
+    expect(library.list()).toHaveLength(1)
+  })
+
+  it('keeps the mod in memory when saving the removal fails', async () => {
+    const library = new ModLibrary(file)
+    await library.add(makeMod('A'))
+    await rm(join(dir, 'data'), { recursive: true })
+    await writeFile(join(dir, 'data'), 'a file where the data folder should be')
+
+    await expect(library.remove(library.list()[0].id)).rejects.toThrow()
+    expect(library.list()).toHaveLength(1)
+  })
 })

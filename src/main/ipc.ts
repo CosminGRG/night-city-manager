@@ -1,4 +1,6 @@
-import { app, ipcMain, BrowserWindow, dialog } from 'electron'
+import { app, ipcMain, BrowserWindow, dialog, shell } from 'electron'
+import { stat } from 'fs/promises'
+import { join } from 'path'
 import { IpcChannels, type AppInfo } from '@shared/ipc'
 import type {
   DetectedGame,
@@ -18,7 +20,8 @@ import { detectInstalledFrameworks } from './services/frameworks'
 import type { ManifestStore } from './services/manifests'
 import { createQueue } from './services/queue'
 import { type DeployContext, deployMod, undeployMod } from './services/deployer'
-import { join } from 'path'
+import { removeMod } from './services/removal'
+import { stagingFolderFor } from './services/staging'
 
 interface IpcDependencies {
   settings: SettingsStore
@@ -150,5 +153,38 @@ export function registerIpcHandlers({
     IpcChannels.undeployMod,
     (_event, modId: unknown): Promise<Result<UndeployResult>> =>
       runExclusive(() => toResult(() => undeployMod(deployContext(), findMod(modId))))
+  )
+
+  ipcMain.handle(IpcChannels.removeMod, (_event, modId: unknown): Promise<Result<UndeployResult>> =>
+    runExclusive(() =>
+      toResult(async () => {
+        const mod = findMod(modId)
+        const deployed = (await manifests.read(mod.id)) !== null
+        const result = deployed ? await undeployMod(deployContext(), mod) : { kept: [] }
+        await removeMod(deployContext(), mod)
+        return result
+      })
+    )
+  )
+
+  ipcMain.handle(IpcChannels.revealMod, (_event, modId: unknown): Promise<Result<null>> =>
+    toResult(async () => {
+      const folder = stagingFolderFor(deployContext().modsDir, findMod(modId))
+      if (!(await stat(folder)).isDirectory()) throw new Error('The mod folder is missing.')
+      const error = await shell.openPath(folder)
+      if (error) throw new Error(error)
+      return null
+    })
+  )
+
+  ipcMain.handle(IpcChannels.openNexusPage, (_event, modId: unknown): Promise<Result<null>> =>
+    toResult(async () => {
+      const { nexusModId } = findMod(modId)
+      if (!Number.isSafeInteger(nexusModId) || nexusModId === null || nexusModId <= 0) {
+        throw new Error('This mod has no Nexus page.')
+      }
+      await shell.openExternal(`https://www.nexusmods.com/cyberpunk2077/mods/${nexusModId}`)
+      return null
+    })
   )
 }

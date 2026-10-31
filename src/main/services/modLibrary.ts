@@ -37,6 +37,20 @@ export class ModLibrary {
     }
   }
 
+  async remove(modId: string): Promise<void> {
+    const index = this.mods.findIndex((mod) => mod.id === modId)
+    if (index === -1) return
+
+    const [removed] = this.mods.splice(index, 1)
+
+    try {
+      await this.save()
+    } catch (error) {
+      this.mods.splice(index, 0, removed)
+      throw error
+    }
+  }
+
   private save(): Promise<void> {
     const file: LibraryFile = { version: 1, mods: this.mods }
     return writeJsonFile(this.filePath, file)

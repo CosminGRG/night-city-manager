@@ -13,7 +13,8 @@ function manifest(modId: string, paths: string[], gamePath = GAME): Manifest {
     modId,
     gamePath,
     status: 'deployed',
-    files: paths.map((path) => ({ path, method: 'link', backedUp: true }))
+    files: paths.map((path) => ({ path, source: path, method: 'link', backedUp: true })),
+    folders: []
   }
 }
 

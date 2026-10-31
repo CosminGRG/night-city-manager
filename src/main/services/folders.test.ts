@@ -2,7 +2,7 @@ import { mkdir, mkdtemp, stat, rm, writeFile } from 'fs/promises'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { removeEmptyFolders } from './folders'
+import { removeEmptyFolders, missingFolders, removeEmptyTree } from './folders'
 
 let dir: string
 
@@ -47,5 +47,39 @@ describe('removeEmptyFolders', () => {
 
   it('ignores folders that are already gone', async () => {
     await expect(removeEmptyFolders([join(dir, 'gone')])).resolves.toBeUndefined()
+  })
+})
+
+describe('missingFolders', () => {
+  it('lists each folder that does not exist yet, once, deepest first', async () => {
+    const game = join(dir, 'game')
+    await mkdir(join(game, 'archive', 'pc'), { recursive: true })
+
+    const missing = await missingFolders(game, [
+      join(game, 'archive', 'pc', 'mod', 'a.archive'),
+      join(game, 'archive', 'pc', 'mod', 'b.archive'),
+      join(game, 'r6', 'scripts', 'M', 'a.reds')
+    ])
+
+    expect(missing).toEqual([
+      join(game, 'archive', 'pc', 'mod'),
+      join(game, 'r6', 'scripts', 'M'),
+      join(game, 'r6', 'scripts'),
+      join(game, 'r6')
+    ])
+  })
+})
+
+describe('removeEmptyTree', () => {
+  it('removes empty folders and keeps any that still hold files', async () => {
+    const backups = join(dir, 'backups')
+    await mkdir(join(backups, 'bin', 'x64'), { recursive: true })
+    await mkdir(join(backups, 'r6', 'scripts'), { recursive: true })
+    await writeFile(join(backups, 'r6', 'scripts', 'kept.reds'), 'x')
+
+    await removeEmptyTree(backups)
+
+    expect(await exists(join(backups, 'bin'))).toBe(false)
+    expect(await exists(join(backups, 'r6', 'scripts', 'kept.reds'))).toBe(true)
   })
 })

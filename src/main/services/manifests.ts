@@ -7,6 +7,7 @@ export type DeployStatus = 'deploying' | 'deployed' | 'undeploying'
 
 export interface ManifestEntry {
   path: string
+  source: string
   method: PlaceMethod | null
   backedUp: boolean
 }
@@ -17,6 +18,7 @@ export interface Manifest {
   gamePath: string
   status: DeployStatus
   files: ManifestEntry[]
+  folders: string[]
 }
 
 export interface Conflict {
@@ -33,7 +35,8 @@ function isManifest(data: unknown): data is Manifest {
     manifest.version === 1 &&
     typeof manifest.modId === 'string' &&
     typeof manifest.gamePath === 'string' &&
-    Array.isArray(manifest.files)
+    Array.isArray(manifest.files) &&
+    Array.isArray(manifest.folders)
   )
 }
 

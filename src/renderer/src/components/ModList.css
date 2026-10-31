@@ -6,7 +6,30 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: var(--space-4);
   margin: var(--space-6) 0 var(--space-3);
+}
+
+.mods-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.mods-count {
+  margin-left: 6px;
+  color: var(--text-muted);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.mods-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 34px;
+  margin-top: var(--space-3);
+  font-size: 12px;
 }
 
 .mods-message {

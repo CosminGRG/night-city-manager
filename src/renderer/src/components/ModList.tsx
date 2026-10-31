@@ -3,6 +3,9 @@ import { Circle, CircleCheck, TriangleAlert } from 'lucide-react'
 import type { DeployStatus, Framework, ModRecord } from '@shared/types'
 import { FRAMEWORK_LABELS, MOD_TYPE_LABELS } from '@renderer/modLabels'
 import { CoreModStatus } from './CoreModStatus'
+import { filterMods, isCoreMod, paginate, sortMods } from '@renderer/modListView'
+import { Pagination } from './Pagination'
+import { SearchBox } from './SearchBox'
 import './ModList.css'
 
 const dateFormat = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' })
@@ -21,10 +24,6 @@ async function loadDeployState(): Promise<DeployState> {
   return { deployments, installed }
 }
 
-function isCoreMod(mod: ModRecord): boolean {
-  return mod.plan.providers.length > 0
-}
-
 function keptMessage(mod: ModRecord, kept: string[]): string {
   const files = kept.join(', ')
   if (kept.length === mod.plan.files.length) {
@@ -41,6 +40,8 @@ export function ModList(): React.JSX.Element {
   const [busyId, setBusyId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
+  const [query, setQuery] = useState('')
+  const [page, setPage] = useState(1)
 
   function applyDeployState(state: DeployState): void {
     setDeployments(state.deployments)
@@ -49,6 +50,11 @@ export function ModList(): React.JSX.Element {
 
   async function refresh(): Promise<void> {
     applyDeployState(await loadDeployState())
+  }
+
+  function handleSearch(value: string): void {
+    setQuery(value)
+    setPage(1)
   }
 
   useEffect(() => {
@@ -103,18 +109,24 @@ export function ModList(): React.JSX.Element {
     }
   }
 
-  const sorted = mods && [...mods].sort((a, b) => Number(isCoreMod(b)) - Number(isCoreMod(a)))
+  const visible = mods && paginate(filterMods(sortMods(mods), query), page)
   const locked = importing || busyId !== null
 
   return (
     <section className="mods">
       <CoreModStatus installed={installed} />
       <header className="mods-header">
-        <h2>Mods</h2>
-        <button onClick={handleImport} disabled={locked}>
-          {importing ? 'Importing...' : 'Import archive'}
-        </button>
+        <div className="mods-title">
+          <h2>
+            Mods <span className="mods-count">{mods?.length ?? 0}</span>
+          </h2>
+          <button onClick={handleImport} disabled={locked}>
+            {importing ? 'Importing...' : 'Import archive'}
+          </button>
+        </div>
+        <SearchBox value={query} onChange={handleSearch} />
       </header>
+
       {error && (
         <p role="alert" className="error mods-message">
           {error}
@@ -127,30 +139,43 @@ export function ModList(): React.JSX.Element {
       )}
       {mods === null && <p className="muted">Loading...</p>}
       {mods?.length === 0 && <p className="muted">No mods yet. Import an archive to start.</p>}
-      {sorted && sorted.length > 0 && (
-        <div className="mod-table">
-          <div className="mod-row mod-head" aria-hidden="true">
-            <span />
-            <span>Name</span>
-            <span>Type</span>
-            <span>Imported</span>
-            <span />
+      {visible && mods && mods.length > 0 && visible.total === 0 && (
+        <p className="muted">No mods match &quot;{query}&quot;.</p>
+      )}
+      {visible && visible.total > 0 && (
+        <>
+          <div className="mod-table">
+            <div className="mod-row mod-head" aria-hidden="true">
+              <span />
+              <span>Name</span>
+              <span>Type</span>
+              <span>Imported</span>
+              <span />
+            </div>
+            <ul className="mod-list">
+              {visible.items.map((mod) => (
+                <ModRow
+                  key={mod.id}
+                  mod={mod}
+                  status={deployments[mod.id]}
+                  installed={installed}
+                  busy={busyId === mod.id}
+                  locked={locked}
+                  onDeploy={handleDeploy}
+                  onUndeploy={handleUndeploy}
+                />
+              ))}
+            </ul>
           </div>
-          <ul className="mod-list">
-            {sorted.map((mod) => (
-              <ModRow
-                key={mod.id}
-                mod={mod}
-                status={deployments[mod.id]}
-                installed={installed}
-                busy={busyId === mod.id}
-                locked={locked}
-                onDeploy={handleDeploy}
-                onUndeploy={handleUndeploy}
-              />
-            ))}
-          </ul>
-        </div>
+          <footer className="mods-footer">
+            <span className="muted">
+              {visible.first}–{visible.last} of {visible.total}
+            </span>
+            {visible.pageCount > 1 && (
+              <Pagination page={visible.page} pageCount={visible.pageCount} onChange={setPage} />
+            )}
+          </footer>
+        </>
       )}
     </section>
   )

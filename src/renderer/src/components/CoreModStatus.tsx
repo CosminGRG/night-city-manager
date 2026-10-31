@@ -1,5 +1,6 @@
 import type { Framework } from '@shared/types'
 import { FRAMEWORK_LABELS, FRAMEWORKS } from '@renderer/modLabels'
+import './CoreModStatus.css'
 
 export function CoreModStatus({ installed }: { installed: Framework[] }): React.JSX.Element {
   return (
@@ -10,7 +11,7 @@ export function CoreModStatus({ installed }: { installed: Framework[] }): React.
           ? 'Installed in the game folder'
           : 'Not installed in the game folder'
         return (
-          <span key={framework} className="badge badge-framework" title="status">
+          <span key={framework} className="core-chip" title="status">
             <span
               className={isInstalled ? 'dot dot-installed' : 'dot dot-missing'}
               aria-label={status}

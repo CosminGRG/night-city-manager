@@ -1,9 +1,25 @@
 import { useEffect, useState } from 'react'
+import { Circle, CircleCheck, TriangleAlert } from 'lucide-react'
 import type { DeployStatus, Framework, ModRecord } from '@shared/types'
 import { FRAMEWORK_LABELS, MOD_TYPE_LABELS } from '@renderer/modLabels'
 import { CoreModStatus } from './CoreModStatus'
+import './ModList.css'
 
 const dateFormat = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' })
+const INTERRUPTED = 'The last deploy or undeploy was interrupted. Undeploy to clean up.'
+
+interface DeployState {
+  deployments: Record<string, DeployStatus>
+  installed: Framework[]
+}
+
+async function loadDeployState(): Promise<DeployState> {
+  const [deployments, installed] = await Promise.all([
+    window.api.listDeployments(),
+    window.api.getInstalledFrameworks()
+  ])
+  return { deployments, installed }
+}
 
 function isCoreMod(mod: ModRecord): boolean {
   return mod.plan.providers.length > 0
@@ -26,18 +42,18 @@ export function ModList(): React.JSX.Element {
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
 
+  function applyDeployState(state: DeployState): void {
+    setDeployments(state.deployments)
+    setInstalled(state.installed)
+  }
+
   async function refresh(): Promise<void> {
-    const [statuses, frameworks] = await Promise.all([
-      window.api.listDeployments(),
-      window.api.getInstalledFrameworks()
-    ])
-    setDeployments(statuses)
-    setInstalled(frameworks)
+    applyDeployState(await loadDeployState())
   }
 
   useEffect(() => {
     window.api.listMods().then(setMods)
-    refresh()
+    loadDeployState().then(applyDeployState)
   }, [])
 
   async function handleImport(): Promise<void> {
@@ -100,36 +116,74 @@ export function ModList(): React.JSX.Element {
         </button>
       </header>
       {error && (
-        <p role="alert" className="error">
+        <p role="alert" className="error mods-message">
           {error}
         </p>
       )}
       {notice && (
-        <p role="status" className="notice">
+        <p role="status" className="notice mods-message">
           {notice}
         </p>
       )}
-      {mods === null && <p>Loading...</p>}
+      {mods === null && <p className="muted">Loading...</p>}
       {mods?.length === 0 && <p className="muted">No mods yet. Import an archive to start.</p>}
-      <ul className="mod-list">
-        {sorted?.map((mod) => (
-          <ModItem
-            key={mod.id}
-            mod={mod}
-            status={deployments[mod.id]}
-            installed={installed}
-            busy={busyId === mod.id}
-            locked={locked}
-            onDeploy={handleDeploy}
-            onUndeploy={handleUndeploy}
-          />
-        ))}
-      </ul>
+      {sorted && sorted.length > 0 && (
+        <div className="mod-table">
+          <div className="mod-row mod-head" aria-hidden="true">
+            <span />
+            <span>Name</span>
+            <span>Type</span>
+            <span>Imported</span>
+            <span />
+          </div>
+          <ul className="mod-list">
+            {sorted.map((mod) => (
+              <ModRow
+                key={mod.id}
+                mod={mod}
+                status={deployments[mod.id]}
+                installed={installed}
+                busy={busyId === mod.id}
+                locked={locked}
+                onDeploy={handleDeploy}
+                onUndeploy={handleUndeploy}
+              />
+            ))}
+          </ul>
+        </div>
+      )}
     </section>
   )
 }
 
-interface ModItemProps {
+function StatusIcon({ status }: { status: DeployStatus | undefined }): React.JSX.Element {
+  if (status === 'deployed') {
+    return (
+      <span className="status status-deployed" role="img" aria-label="Deployed" title="Deployed">
+        <CircleCheck size={16} aria-hidden="true" />
+      </span>
+    )
+  }
+  if (status) {
+    return (
+      <span
+        className="status status-interrupted"
+        role="img"
+        aria-label="Interrupted"
+        title="Interrupted"
+      >
+        <TriangleAlert size={16} aria-hidden="true" />
+      </span>
+    )
+  }
+  return (
+    <span className="status status-idle" role="img" aria-label="Not deployed" title="Not deployed">
+      <Circle size={16} aria-hidden="true" />
+    </span>
+  )
+}
+
+interface ModRowProps {
   mod: ModRecord
   status: DeployStatus | undefined
   installed: Framework[]
@@ -139,7 +193,7 @@ interface ModItemProps {
   onUndeploy: (mod: ModRecord) => void
 }
 
-function ModItem({
+function ModRow({
   mod,
   status,
   installed,
@@ -147,35 +201,35 @@ function ModItem({
   locked,
   onDeploy,
   onUndeploy
-}: ModItemProps): React.JSX.Element {
+}: ModRowProps): React.JSX.Element {
   const interrupted = status === 'deploying' || status === 'undeploying'
   const nothingToDeploy = mod.plan.files.length === 0
+  const warnings = interrupted ? [INTERRUPTED, ...mod.plan.warnings] : mod.plan.warnings
 
   return (
-    <li className={isCoreMod(mod) ? 'mod mod-core' : 'mod'}>
-      <div className="mod-title">
-        <span className="mod-name">{mod.name}</span>
+    <li className={isCoreMod(mod) ? 'mod-row core' : 'mod-row'}>
+      <span className="mod-cell mod-status">
+        <StatusIcon status={status} />
+      </span>
+
+      <span className="mod-cell">
+        <span className="mod-name" title={mod.name}>
+          {mod.name}
+        </span>
         {mod.version && <span className="mod-version">{mod.version}</span>}
-        {status === 'deployed' && <span className="badge badge-deployed">Deployed</span>}
-        <span className="mod-date">{dateFormat.format(new Date(mod.importedAt))}</span>
-        {status ? (
-          <button className="small" onClick={() => onUndeploy(mod)} disabled={locked}>
-            {busy ? 'Undeploying...' : 'Undeploy'}
-          </button>
-        ) : (
-          <button
-            className="small"
-            onClick={() => onDeploy(mod)}
-            disabled={locked || nothingToDeploy}
-            title={
-              nothingToDeploy ? 'This mod has no files that can be placed automatically' : undefined
-            }
+        {warnings.length > 0 && (
+          <span
+            className="mod-warning"
+            role="img"
+            aria-label={warnings.join(' ')}
+            title={warnings.join('\n')}
           >
-            {busy ? 'Deploying...' : 'Deploy'}
-          </button>
+            <TriangleAlert size={14} aria-hidden="true" />
+          </span>
         )}
-      </div>
-      <div className="badges">
+      </span>
+
+      <span className="mod-cell mod-badges">
         {mod.plan.providers.map((framework) => {
           const isInstalled = installed.includes(framework)
           const label = isInstalled
@@ -196,17 +250,28 @@ function ModItem({
             {MOD_TYPE_LABELS[type]}
           </span>
         ))}
-      </div>
-      {interrupted && (
-        <p className="warning">
-          The last deploy or undeploy was interrupted. Undeploy to clean up.
-        </p>
-      )}
-      {mod.plan.warnings.map((warning) => (
-        <p key={warning} className="warning">
-          {warning}
-        </p>
-      ))}
+      </span>
+
+      <span className="mod-cell mod-date">{dateFormat.format(new Date(mod.importedAt))}</span>
+
+      <span className="mod-cell mod-actions">
+        {status ? (
+          <button className="small" onClick={() => onUndeploy(mod)} disabled={locked}>
+            {busy ? 'Undeploying...' : 'Undeploy'}
+          </button>
+        ) : (
+          <button
+            className="small"
+            onClick={() => onDeploy(mod)}
+            disabled={locked || nothingToDeploy}
+            title={
+              nothingToDeploy ? 'This mod has no files that can be placed automatically' : undefined
+            }
+          >
+            {busy ? 'Deploying...' : 'Deploy'}
+          </button>
+        )}
+      </span>
     </li>
   )
 }

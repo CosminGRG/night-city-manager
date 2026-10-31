@@ -51,7 +51,7 @@ export function SettingsView({ settings, onSettingsChange }: SettingsViewProps):
         <h2>About</h2>
         {info && (
           <p className="muted">
-            Night City Mod Manager {info.version} · Electron {info.electronVersion}
+            Night City Mod Manager {info.version} by Cosmin G. · Electron {info.electronVersion}
             <br />
             Data folder: <code>{info.userDataPath}</code>
           </p>

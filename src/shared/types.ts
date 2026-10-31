@@ -58,3 +58,9 @@ export interface ModRecord {
   plan: InstallPlan
   importedAt: string
 }
+
+export type DeployStatus = 'deploying' | 'deployed' | 'undeploying'
+
+export interface UndeployResult {
+  kept: string[]
+}

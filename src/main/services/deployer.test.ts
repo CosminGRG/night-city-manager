@@ -29,6 +29,7 @@ const SAMPLE: [source: string, target: string][] = [
 
 let dir: string
 let context: DeployContext
+let gamePath: string
 
 async function put(path: string, content: string): Promise<void> {
   await mkdir(dirname(path), { recursive: true })
@@ -69,12 +70,12 @@ async function stage(mod: ModRecord, content: string): Promise<void> {
     await put(join(context.modsDir, mod.folder, source), content)
 }
 
-const game = (...parts: string[]): string => join(context.gamePath, ...parts)
+const game = (...parts: string[]): string => join(gamePath, ...parts)
 
 beforeEach(async () => {
   dir = await mkdtemp(join(tmpdir(), 'ncm-deploy-'))
+  gamePath = join(dir, 'game')
   context = {
-    gamePath: join(dir, 'game'),
     modsDir: join(dir, 'mods'),
     backupsDir: join(dir, 'data', 'backups'),
     manifests: new ManifestStore(join(dir, 'data', 'manifests')),
@@ -94,7 +95,7 @@ describe('deployMod', () => {
     ])
     await stage(mod, 'mod data')
 
-    await deployMod(context, mod)
+    await deployMod(context, gamePath, mod)
 
     expect(await readFile(game('archive', 'pc', 'mod', 'a.archive'), 'utf8')).toBe('mod data')
     expect(await context.manifests.read(mod.id)).toMatchObject({
@@ -109,7 +110,7 @@ describe('deployMod', () => {
     await stage(mod, 'ours')
     await put(game('bin', 'x64', 'version.dll'), 'manual install')
 
-    await deployMod(context, mod)
+    await deployMod(context, gamePath, mod)
 
     expect(
       await readFile(join(context.backupsDir, mod.id, 'bin', 'x64', 'version.dll'), 'utf8')
@@ -123,9 +124,9 @@ describe('deployMod', () => {
     await context.library.add(owner)
     await stage(owner, 'owner')
     await stage(second, 'second')
-    await deployMod(context, owner)
+    await deployMod(context, gamePath, owner)
 
-    await expect(deployMod(context, second)).rejects.toThrow(/Owner Mod/)
+    await expect(deployMod(context, gamePath, second)).rejects.toThrow(/Owner Mod/)
     expect(await readFile(game('archive', 'pc', 'mod', 'shared.archive'), 'utf8')).toBe('owner')
     expect(await context.manifests.read(second.id)).toBeNull()
   })
@@ -133,9 +134,9 @@ describe('deployMod', () => {
   it('refuses a mod that is already deployed', async () => {
     const mod = makeMod('A', [['a.archive', 'archive/pc/mod/a.archive']])
     await stage(mod, 'a')
-    await deployMod(context, mod)
+    await deployMod(context, gamePath, mod)
 
-    await expect(deployMod(context, mod)).rejects.toThrow(/already deployed/)
+    await expect(deployMod(context, gamePath, mod)).rejects.toThrow(/already deployed/)
   })
 
   it('undoes everything when a file fails halfway', async () => {
@@ -148,7 +149,7 @@ describe('deployMod', () => {
     await put(join(context.modsDir, mod.folder, 'r6', 'scripts', 'Broken', 'a.reds'), 'reds')
     await put(game('bin', 'x64', 'version.dll'), 'manual install')
 
-    await expect(deployMod(context, mod)).rejects.toThrow()
+    await expect(deployMod(context, gamePath, mod)).rejects.toThrow()
 
     expect(await readFile(game('bin', 'x64', 'version.dll'), 'utf8')).toBe('manual install')
     expect(await exists(game('r6'))).toBe(false)
@@ -164,14 +165,14 @@ describe('undeployMod', () => {
   })
 
   it('round trip: the game folder ends up exactly as before', async () => {
-    const before = await snapshot(context.gamePath)
+    const before = await snapshot(gamePath)
     const mod = makeMod('M', SAMPLE)
     await stage(mod, 'mod')
-    await deployMod(context, mod)
-    expect(await snapshot(context.gamePath)).not.toEqual(before)
+    await deployMod(context, gamePath, mod)
+    expect(await snapshot(gamePath)).not.toEqual(before)
 
     expect(await undeployMod(context, mod)).toEqual({ kept: [] })
-    expect(await snapshot(context.gamePath)).toEqual(before)
+    expect(await snapshot(gamePath)).toEqual(before)
     expect(await context.manifests.read(mod.id)).toBeNull()
     expect(await snapshot(context.backupsDir)).toEqual({})
   })
@@ -179,7 +180,7 @@ describe('undeployMod', () => {
   it('keeps a file that changed after deploy and a folder that gained files', async () => {
     const mod = makeMod('M', SAMPLE)
     await stage(mod, 'mod')
-    await deployMod(context, mod)
+    await deployMod(context, gamePath, mod)
     const settings = game(
       'bin',
       'x64',
@@ -201,10 +202,10 @@ describe('undeployMod', () => {
   })
 
   it('finishes a deploy that crashed halfway', async () => {
-    const before = await snapshot(context.gamePath)
+    const before = await snapshot(gamePath)
     const mod = makeMod('M', SAMPLE)
     await stage(mod, 'mod')
-    await deployMod(context, mod)
+    await deployMod(context, gamePath, mod)
     const manifest = await context.manifests.read(mod.id)
     if (!manifest) throw new Error('expected a manifest')
     await context.manifests.write({
@@ -214,17 +215,7 @@ describe('undeployMod', () => {
     })
 
     await undeployMod(context, mod)
-    expect(await snapshot(context.gamePath)).toEqual(before)
-  })
-
-  it('undeploys from the folder it was deployed to, not the current game folder', async () => {
-    const before = await snapshot(context.gamePath)
-    const mod = makeMod('M', SAMPLE)
-    await stage(mod, 'mod')
-    await deployMod(context, mod)
-
-    await undeployMod({ ...context, gamePath: join(dir, 'another-game') }, mod)
-    expect(await snapshot(context.gamePath)).toEqual(before)
+    expect(await snapshot(gamePath)).toEqual(before)
   })
 
   it('refuses a mod that is not deployed', async () => {

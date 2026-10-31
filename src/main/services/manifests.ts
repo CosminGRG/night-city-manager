@@ -2,8 +2,7 @@ import { readdir, rm } from 'fs/promises'
 import { join, win32 } from 'path'
 import { readJsonFile, writeJsonFile } from './jsonFile'
 import type { PlaceMethod } from './place'
-
-export type DeployStatus = 'deploying' | 'deployed' | 'undeploying'
+import type { DeployStatus } from '@shared/types'
 
 export interface ManifestEntry {
   path: string

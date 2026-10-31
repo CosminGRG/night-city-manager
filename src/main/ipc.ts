@@ -1,27 +1,39 @@
 import { app, ipcMain, BrowserWindow, dialog } from 'electron'
 import { IpcChannels, type AppInfo } from '@shared/ipc'
-import type { DetectedGame, Settings, Result, ModRecord, Framework } from '@shared/types'
+import type {
+  DetectedGame,
+  Settings,
+  Result,
+  ModRecord,
+  Framework,
+  DeployStatus,
+  UndeployResult
+} from '@shared/types'
 import type { SettingsStore } from './services/settings'
 import { detectGames, findGameRoot } from './services/gameDetector'
 import type { ModLibrary } from './services/modLibrary'
 import type { AppPaths } from './services/paths'
 import { importMod } from './services/importer'
 import { detectInstalledFrameworks } from './services/frameworks'
+import type { ManifestStore } from './services/manifests'
+import { createQueue } from './services/queue'
+import { type DeployContext, deployMod, undeployMod } from './services/deployer'
+import { join } from 'path'
 
 interface IpcDependencies {
   settings: SettingsStore
   library: ModLibrary
   paths: AppPaths
+  manifests: ManifestStore
 }
 
-export function registerIpcHandlers({ settings, library, paths }: IpcDependencies): void {
-  ipcMain.handle(IpcChannels.getAppInfo, (): AppInfo => ({
-    version: app.getVersion(),
-    electronVersion: process.versions.electron,
-    userDataPath: app.getPath('userData')
-  }))
-
-  ipcMain.handle(IpcChannels.getSettings, (): Settings => settings.get())
+export function registerIpcHandlers({
+  settings,
+  library,
+  paths,
+  manifests
+}: IpcDependencies): void {
+  const runExclusive = createQueue()
 
   async function setGamePath(path: string): Promise<Result<Settings>> {
     const gamePath = await findGameRoot(path)
@@ -34,6 +46,38 @@ export function registerIpcHandlers({ settings, library, paths }: IpcDependencie
 
     return { ok: true, value: await settings.update({ gamePath }) }
   }
+
+  function findMod(modId: unknown): ModRecord {
+    if (typeof modId !== 'string') throw new Error('modId must be a string')
+    const mod = library.list().find((candidate) => candidate.id === modId)
+    if (!mod) throw new Error('This mod is not in the library.')
+    return mod
+  }
+
+  function deployContext(): DeployContext {
+    return {
+      modsDir: settings.get().modsPath ?? paths.mods,
+      backupsDir: join(paths.data, 'backups'),
+      manifests,
+      library
+    }
+  }
+
+  async function toResult<T>(task: () => Promise<T>): Promise<Result<T>> {
+    try {
+      return { ok: true, value: await task() }
+    } catch (error) {
+      return { ok: false, error: error instanceof Error ? error.message : String(error) }
+    }
+  }
+
+  ipcMain.handle(IpcChannels.getAppInfo, (): AppInfo => ({
+    version: app.getVersion(),
+    electronVersion: process.versions.electron,
+    userDataPath: app.getPath('userData')
+  }))
+
+  ipcMain.handle(IpcChannels.getSettings, (): Settings => settings.get())
 
   ipcMain.handle(IpcChannels.detectGames, (): Promise<DetectedGame[]> => detectGames())
 
@@ -82,4 +126,29 @@ export function registerIpcHandlers({ settings, library, paths }: IpcDependencie
     const { gamePath } = settings.get()
     return gamePath ? detectInstalledFrameworks(gamePath) : Promise.resolve([])
   })
+
+  ipcMain.handle(IpcChannels.listDeployments, async (): Promise<Record<string, DeployStatus>> => {
+    const statuses: Record<string, DeployStatus> = {}
+    for (const manifest of await manifests.list()) {
+      statuses[manifest.modId] = manifest.status
+    }
+    return statuses
+  })
+
+  ipcMain.handle(IpcChannels.deployMod, (_event, modId: unknown): Promise<Result<null>> =>
+    runExclusive(() =>
+      toResult(async () => {
+        const { gamePath } = settings.get()
+        if (!gamePath) throw new Error('Choose your game folder first.')
+        await deployMod(deployContext(), gamePath, findMod(modId))
+        return null
+      })
+    )
+  )
+
+  ipcMain.handle(
+    IpcChannels.undeployMod,
+    (_event, modId: unknown): Promise<Result<UndeployResult>> =>
+      runExclusive(() => toResult(() => undeployMod(deployContext(), findMod(modId))))
+  )
 }

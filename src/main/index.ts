@@ -8,6 +8,7 @@ import { dialog } from 'electron'
 import { SettingsStore } from './services/settings'
 import { isWritable } from './services/paths'
 import { ModLibrary } from './services/modLibrary'
+import { ManifestStore } from './services/manifests'
 
 const paths = initPaths()
 
@@ -56,7 +57,7 @@ app.whenReady().then(async () => {
   if (!(await isWritable(paths.data))) {
     dialog.showErrorBox(
       'Cannot write to the app folder',
-      'Night City Mod Manager stores its data next to the exe, but it cannot write to:\n${paths.root}\n\nMove the app to a folder you own, e.g. D:\\Tools\\NightCityModManager.'
+      `Night City Mod Manager stores its data next to the exe, but it cannot write to:\n${paths.root}\n\nMove the app to a folder you own, e.g. D:\\Tools\\NightCityModManager.`
     )
     app.quit()
     return
@@ -68,6 +69,8 @@ app.whenReady().then(async () => {
   const library = new ModLibrary(join(paths.data, 'mods.json'))
   await library.load()
 
+  const manifests = new ManifestStore(join(paths.data, 'manifests'))
+
   // Set app user model id for windows
   electronApp.setAppUserModelId('com.cosmingrg.nightcitymanager')
 
@@ -78,7 +81,7 @@ app.whenReady().then(async () => {
     optimizer.watchWindowShortcuts(window)
   })
 
-  registerIpcHandlers({ settings, library, paths })
+  registerIpcHandlers({ settings, library, manifests, paths })
   createWindow()
 
   app.on('activate', function () {

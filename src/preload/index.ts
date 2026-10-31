@@ -9,7 +9,10 @@ const api: NightCityApi = {
   browseGame: () => ipcRenderer.invoke(IpcChannels.browseGame),
   listMods: () => ipcRenderer.invoke(IpcChannels.listMods),
   importMod: () => ipcRenderer.invoke(IpcChannels.importMod),
-  getInstalledFrameworks: () => ipcRenderer.invoke(IpcChannels.getInstalledFrameworks)
+  getInstalledFrameworks: () => ipcRenderer.invoke(IpcChannels.getInstalledFrameworks),
+  listDeployments: () => ipcRenderer.invoke(IpcChannels.listDeployments),
+  deployMod: (modId) => ipcRenderer.invoke(IpcChannels.deployMod, modId),
+  undeployMod: (modId) => ipcRenderer.invoke(IpcChannels.undeployMod, modId)
 }
 
 contextBridge.exposeInMainWorld('api', api)

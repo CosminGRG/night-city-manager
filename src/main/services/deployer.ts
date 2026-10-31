@@ -1,6 +1,6 @@
 import { rm, unlink } from 'fs/promises'
 import { join, win32 } from 'path'
-import type { ModRecord } from '@shared/types'
+import type { ModRecord, UndeployResult } from '@shared/types'
 import { planDeploy, type DeployOperation } from './deployPlan'
 import { backUp, backupPathFor, restore } from './backups'
 import { missingFolders, removeEmptyFolders, removeEmptyTree, exists } from './folders'
@@ -11,23 +11,23 @@ import { isInside } from './deployPlan'
 import { isOurFile } from './ownership'
 
 export interface DeployContext {
-  gamePath: string
   modsDir: string
   backupsDir: string
   manifests: ManifestStore
   library: ModLibrary
 }
 
-export interface UndeployResult {
-  kept: string[]
-}
-
-export async function deployMod(context: DeployContext, mod: ModRecord): Promise<void> {
-  const { gamePath, modsDir, backupsDir, manifests } = context
-  if (await manifests.read(mod.id)) throw new Error(`${mod.name} is already deployed`)
+export async function deployMod(
+  context: DeployContext,
+  gamePath: string,
+  mod: ModRecord
+): Promise<void> {
+  const { modsDir, backupsDir, manifests } = context
+  if (!gamePath) throw new Error('Choose your game folder first.')
+  if (await manifests.read(mod.id)) throw new Error(`${mod.name} is already deployed.`)
 
   const operations = planDeploy(mod, join(modsDir, mod.folder), gamePath)
-  await refuseConflicts(context, mod, operations)
+  await refuseConflicts(context, gamePath, mod, operations)
 
   const backupDir = join(backupsDir, mod.id)
   const folders = await missingFolders(
@@ -127,10 +127,11 @@ function gameFile(gamePath: string, path: string): string {
 
 async function refuseConflicts(
   context: DeployContext,
+  gamePath: string,
   mod: ModRecord,
   operations: DeployOperation[]
 ): Promise<void> {
-  const { gamePath, manifests, library } = context
+  const { manifests, library } = context
   const paths = operations.map((operation) => operation.path)
   const conflicts = findConflicts(paths, await manifests.list(), mod.id, gamePath)
 

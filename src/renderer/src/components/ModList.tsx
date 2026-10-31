@@ -183,7 +183,7 @@ export function ModList(): React.JSX.Element {
                   locked={locked}
                   onDeploy={handleDeploy}
                   onUndeploy={handleUndeploy}
-                  onRemove={handleRemove}
+                  onRemove={setPendingRemoval}
                 />
               ))}
             </ul>

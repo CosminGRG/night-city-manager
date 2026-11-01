@@ -49,7 +49,9 @@ code {
   border-radius: var(--radius-sm);
 }
 
-button {
+button,
+.button-link {
+  --glow: var(--accent);
   font: inherit;
   color: var(--text);
   background: var(--surface-2);
@@ -60,11 +62,22 @@ button {
   transition:
     background-color 120ms,
     border-color 120ms,
+    box-shadow 120ms,
     color 120ms;
 }
 
-button:hover:not(:disabled) {
+button:hover:not(:disabled),
+button[data-state='open'],
+.button-link:hover {
   background: var(--surface-3);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--glow) 35%, transparent);
+}
+
+.button-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  text-decoration: none;
 }
 
 button:disabled {
@@ -73,6 +86,7 @@ button:disabled {
 }
 
 button.primary {
+  --glow: var(--primary);
   background: var(--primary);
   color: var(--on-primary);
   border-color: transparent;
@@ -89,6 +103,7 @@ button.small {
 }
 
 button.danger {
+  --glow: var(--danger);
   background: color-mix(in srgb, var(--danger) 12%, transparent);
   border-color: color-mix(in srgb, var(--danger) 40%, transparent);
   color: var(--danger-text);
@@ -96,33 +111,6 @@ button.danger {
 
 button.danger:hover:not(:disabled) {
   background: color-mix(in srgb, var(--danger) 20%, transparent);
-}
-
-button,
-.button-link {
-  font: inherit;
-  color: var(--text);
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 6px 14px;
-  cursor: pointer;
-  transition:
-    background-color 120ms,
-    border-color 120ms,
-    color 120ms;
-}
-
-button:hover:not(:disabled),
-.button-link:hover {
-  background: var(--surface-3);
-}
-
-.button-link {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  text-decoration: none;
 }
 
 :focus-visible {

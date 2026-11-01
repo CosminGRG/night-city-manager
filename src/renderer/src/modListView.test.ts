@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { ModRecord, ModType, Framework, DeployStatus } from '@shared/types'
-import { filterMods, pageNumbers, paginate, sortMods } from './modListView'
-import { bulkCounts } from './modListView'
+import { filterMods, pageNumbers, paginate, sortMods, bulkCounts } from './modListView'
 
 function mod(name: string, types: ModType[] = [], providers: Framework[] = []): ModRecord {
   return {

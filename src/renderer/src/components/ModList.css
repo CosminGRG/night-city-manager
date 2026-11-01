@@ -6,6 +6,12 @@
   margin: var(--space-6) 0 var(--space-3);
 }
 
+.mods-heading {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
 .mods-title {
   display: flex;
   align-items: center;
@@ -203,4 +209,34 @@
 
 .dot-missing {
   background: var(--danger);
+}
+
+.stat-chip {
+  --chip: var(--success);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--chip);
+  background: color-mix(in srgb, var(--chip) 12%, transparent);
+}
+
+.stat-chip.idle {
+  --chip: var(--text-muted);
+}
+
+.stat-chip.interrupted {
+  --chip: var(--warning);
+}
+
+.stat-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 6px currentColor;
 }

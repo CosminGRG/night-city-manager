@@ -206,15 +206,38 @@ export function ModList({ importedCount, onImport }: ModListProps): React.JSX.El
   const visible = mods && paginate(filterMods(sortMods(mods), query), page)
   const locked = busy !== null || bulkLabel !== null
   const counts = bulkCounts(mods ?? [], deployments)
+  const statuses = (mods ?? []).map((mod) => deployments[mod.id])
+  const activeCount = statuses.filter((status) => status === 'deployed').length
+  const interrupedCount = statuses.filter(
+    (status) => status === 'deploying' || status === 'undeploying'
+  ).length
 
   return (
     <section className="mods">
       <CoreModStatus installed={installed} />
       <header className="mods-header">
         <div className="mods-title">
-          <h2>
-            Mods <span className="mods-count">{mods?.length ?? 0}</span>
-          </h2>
+          <div className="mods-heading">
+            <h2>
+              Mods <span className="mods-count">{mods?.length ?? 0}</span>
+            </h2>
+            <span
+              className={activeCount > 0 ? 'stat-chip' : 'stat-chip idle'}
+              title="Deployed to your game folder"
+            >
+              <span className="stat-dot" aria-hidden="true" />
+              {activeCount} active
+            </span>
+            {interrupedCount > 0 && (
+              <span
+                className="stat-chip interrupted"
+                title="A deploy or undeploy was interrupted. Undeploy these mods to clean up."
+              >
+                <TriangleAlert size={12} aria-hidden="true" />
+                {interrupedCount} interrupted
+              </span>
+            )}
+          </div>
           <button onClick={onImport} disabled={locked}>
             Import archives
           </button>

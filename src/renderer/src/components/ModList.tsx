@@ -5,18 +5,20 @@ import type {
   Framework,
   ModRecord,
   Result,
-  PurgeResult,
-  PurgeScope
+  BulkAction,
+  BulkRequest,
+  BulkResult
 } from '@shared/types'
 import { isCoreMod } from '@shared/mods'
 import { FRAMEWORK_LABELS, MOD_TYPE_LABELS } from '@renderer/modLabels'
 import { CoreModStatus } from './CoreModStatus'
-import { filterMods, paginate, sortMods } from '@renderer/modListView'
+import { filterMods, paginate, sortMods, bulkCounts } from '@renderer/modListView'
 import { Pagination } from './Pagination'
 import { SearchBox } from './SearchBox'
 import { ConfirmDialog } from './ConfirmDialog'
 import { type ModActions, ModControls } from './ModControls'
-import { PurgeMenu } from './PurgeMenu'
+import { ActionsMenu } from './ActionsMenu'
+import { BulkConfirmDialog } from './BulkConfirmDialog'
 import './ModList.css'
 
 const dateFormat = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' })
@@ -37,6 +39,18 @@ interface ModListProps {
   onImport: () => void
 }
 
+const BULK_BUSY: Record<BulkAction, string> = {
+  deploy: 'Deploying...',
+  purge: 'Purging...',
+  remove: 'Removing...'
+}
+
+const BULK_DONE: Record<BulkAction, string> = {
+  deploy: 'Deployed',
+  purge: 'Purged',
+  remove: 'Removed'
+}
+
 async function loadDeployState(): Promise<DeployState> {
   const [deployments, installed] = await Promise.all([
     window.api.listDeployments(),
@@ -53,11 +67,20 @@ function keptMessage(mod: ModRecord, kept: string[]): string {
   return `${mod.name}: left in place because they changed after deploy: ${files}`
 }
 
-function purgeMessage({ undeployed, kept }: PurgeResult): string {
-  const message = `Purged ${undeployed} ${undeployed === 1 ? 'mod' : 'mods'}.`
-  if (kept.length === 0) return message
-  const files = kept.map(({ name, files }) => `${name}: ${files.join(', ')}`).join('; ')
-  return `${message} Left in place because they changed after deploy: ${files}`
+function bulkMessage(action: BulkAction, { done, skipped, kept }: BulkResult): string {
+  const parts = [`${BULK_DONE[action]} ${done} ${done === 1 ? 'mod' : 'mods'}.`]
+
+  if (skipped > 0) {
+    parts.push(
+      `Skipped ${skipped} that can't be deployed automatically (nothing to place or and interrupted deploy, needs undeploy first).`
+    )
+  }
+  if (kept.length > 0) {
+    const files = kept.map(({ name, files }) => `${name}: ${files.join(', ')}`).join(', ')
+    parts.push(`Left in place because they changed after deploy: ${files}`)
+  }
+
+  return parts.join(' ')
 }
 
 export function ModList({ importedCount, onImport }: ModListProps): React.JSX.Element {
@@ -70,8 +93,8 @@ export function ModList({ importedCount, onImport }: ModListProps): React.JSX.El
   const [page, setPage] = useState(1)
   const [pendingRemoval, setPendingRemoval] = useState<ModRecord | null>(null)
   const [busy, setBusy] = useState<Busy | null>(null)
-  const [pendingPurge, setPendingPurge] = useState<PurgeScope | null>(null)
-  const [purging, setPurging] = useState(false)
+  const [pendingBulk, setPendingBulk] = useState<BulkRequest | null>(null)
+  const [bulkLabel, setBulkLabel] = useState<string | null>(null)
 
   function applyDeployState(state: DeployState): void {
     setDeployments(state.deployments)
@@ -143,26 +166,27 @@ export function ModList({ importedCount, onImport }: ModListProps): React.JSX.El
     }
   }
 
-  async function handlePurge(scope: PurgeScope): Promise<void> {
-    setPurging(true)
+  async function handleBulk(request: BulkRequest): Promise<void> {
+    setBulkLabel(BULK_BUSY[request.action])
     setError(null)
     setNotice(null)
+
     try {
-      const result = await window.api.purgeMods(scope)
+      const result = await window.api.runBulk(request)
       if (!result.ok) {
         setError(result.error)
         return
       }
+
       const { failed } = result.value
       if (failed.length > 0) {
-        setError(
-          `Could not purge ${failed.map(({ name, error }) => `${name} (${error})`).join(', ')}`
-        )
+        setError(`Failed ${failed.map(({ name, error }) => `${name} (${error})`).join(',')}`)
       }
-      setNotice(purgeMessage(result.value))
+      setNotice(bulkMessage(request.action, result.value))
     } finally {
+      setMods(await window.api.listMods())
       await refresh()
-      setPurging(false)
+      setBulkLabel(null)
     }
   }
 
@@ -180,9 +204,8 @@ export function ModList({ importedCount, onImport }: ModListProps): React.JSX.El
   }
 
   const visible = mods && paginate(filterMods(sortMods(mods), query), page)
-  const locked = busy !== null || purging
-  const deployedMods = (mods ?? []).filter((mod) => deployments[mod.id] !== undefined)
-  const nonCoreCount = deployedMods.filter((mod) => !isCoreMod(mod)).length
+  const locked = busy !== null || bulkLabel !== null
+  const counts = bulkCounts(mods ?? [], deployments)
 
   return (
     <section className="mods">
@@ -195,12 +218,11 @@ export function ModList({ importedCount, onImport }: ModListProps): React.JSX.El
           <button onClick={onImport} disabled={locked}>
             Import archives
           </button>
-          <PurgeMenu
-            allCount={deployedMods.length}
-            nonCoreCount={nonCoreCount}
-            purging={purging}
+          <ActionsMenu
+            counts={counts}
+            busyLabel={bulkLabel}
             locked={locked}
-            onPurge={setPendingPurge}
+            onSelect={setPendingBulk}
           />
         </div>
         <SearchBox value={query} onChange={handleSearch} />
@@ -272,20 +294,13 @@ export function ModList({ importedCount, onImport }: ModListProps): React.JSX.El
         </ConfirmDialog>
       )}
 
-      {pendingPurge && (
-        <ConfirmDialog
-          title={pendingPurge === 'all' ? 'Purge all mods?' : 'Purge all but core mods?'}
-          confirmLabel="Purge"
-          onConfirm={() => handlePurge(pendingPurge)}
-          onClose={() => setPendingPurge(null)}
-        >
-          <p>
-            {pendingPurge === 'all'
-              ? 'Every deployed mod will be taken out of your game folder.'
-              : 'Every deployed mod except the core mods will be taken out of your game folder.'}
-          </p>
-          <p className="muted">They stay in your mod list, so you can deploy them again anytime.</p>
-        </ConfirmDialog>
+      {pendingBulk && (
+        <BulkConfirmDialog
+          request={pendingBulk}
+          count={counts[pendingBulk.action][pendingBulk.scope]}
+          onConfirm={() => handleBulk(pendingBulk)}
+          onClose={() => setPendingBulk(null)}
+        />
       )}
     </section>
   )

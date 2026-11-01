@@ -4,6 +4,9 @@ import './ConfirmDialog.css'
 interface ConfirmDialogProps {
   title: string
   confirmLabel: string
+  tone?: 'danger' | 'primary'
+  confirmDisabled?: boolean
+  initialFocus?: React.RefObject<HTMLElement | null>
   children: React.ReactNode
   onConfirm: () => void
   onClose: () => void
@@ -12,6 +15,9 @@ interface ConfirmDialogProps {
 export function ConfirmDialog({
   title,
   confirmLabel,
+  tone = 'danger',
+  confirmDisabled,
+  initialFocus,
   children,
   onConfirm,
   onClose
@@ -25,7 +31,14 @@ export function ConfirmDialog({
     >
       <AlertDialog.Portal>
         <AlertDialog.Overlay className="dialog-overlay" />
-        <AlertDialog.Content className="dialog">
+        <AlertDialog.Content
+          className="dialog"
+          onOpenAutoFocus={(event) => {
+            if (!initialFocus?.current) return
+            event.preventDefault()
+            initialFocus.current.focus()
+          }}
+        >
           <AlertDialog.Title className="dialog-title">{title}</AlertDialog.Title>
           <AlertDialog.Description asChild>
             <div className="dialog-body">{children}</div>
@@ -35,7 +48,7 @@ export function ConfirmDialog({
               <button>Cancel</button>
             </AlertDialog.Cancel>
             <AlertDialog.Action asChild>
-              <button className="danger" onClick={onConfirm}>
+              <button className={tone} disabled={confirmDisabled} onClick={onConfirm}>
                 {confirmLabel}
               </button>
             </AlertDialog.Action>

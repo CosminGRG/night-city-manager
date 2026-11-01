@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import type { ModRecord, ModType, Framework } from '@shared/types'
+import type { ModRecord, ModType, Framework, DeployStatus } from '@shared/types'
 import { filterMods, pageNumbers, paginate, sortMods } from './modListView'
+import { bulkCounts } from './modListView'
 
 function mod(name: string, types: ModType[] = [], providers: Framework[] = []): ModRecord {
   return {
@@ -90,5 +91,32 @@ describe('pageNumbers', () => {
     [4, 8, [1, 2, 3, 4, 5, 'gap', 8]]
   ])('page %i of %i', (page, pageCount, expected) => {
     expect(pageNumbers(page, pageCount)).toEqual(expected)
+  })
+})
+
+describe('bulkCounts', () => {
+  const withFiles = (m: ModRecord): ModRecord => ({
+    ...m,
+    plan: { ...m.plan, files: [{ source: 'a', target: 'a' }] }
+  })
+
+  it('counts what each bulk action would touch', () => {
+    const mods = [
+      withFiles(mod('CET', [], ['cet'])),
+      withFiles(mod('Deployed')),
+      withFiles(mod('Fresh')),
+      mod('Variants'),
+      withFiles(mod('Interrupted'))
+    ]
+    const deployments: Record<string, DeployStatus> = {
+      Deployed: 'deployed',
+      Interrupted: 'deploying'
+    }
+
+    expect(bulkCounts(mods, deployments)).toEqual({
+      deploy: { all: 2, 'non-core': 1 },
+      purge: { all: 2, 'non-core': 2 },
+      remove: { all: 5, 'non-core': 4 }
+    })
   })
 })

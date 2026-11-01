@@ -65,10 +65,17 @@ export interface UndeployResult {
   kept: string[]
 }
 
-export type PurgeScope = 'all' | 'non-core'
+export type BulkAction = 'deploy' | 'purge' | 'remove'
+export type BulkScope = 'all' | 'non-core'
 
-export interface PurgeResult {
-  undeployed: number
+export interface BulkRequest {
+  action: BulkAction
+  scope: BulkScope
+}
+
+export interface BulkResult {
+  done: number
+  skipped: number
   kept: { name: string; files: string[] }[]
   failed: { name: string; error: string }[]
 }

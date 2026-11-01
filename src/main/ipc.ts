@@ -10,7 +10,8 @@ import type {
   Framework,
   DeployStatus,
   UndeployResult,
-  PurgeResult
+  BulkRequest,
+  BulkResult
 } from '@shared/types'
 import type { SettingsStore } from './services/settings'
 import { detectGames, findGameRoot } from './services/gameDetector'
@@ -22,9 +23,9 @@ import type { ManifestStore } from './services/manifests'
 import { createQueue } from './services/queue'
 import { type DeployContext, deployMod, undeployMod } from './services/deployer'
 import { ARCHIVE_EXTENSIONS, checkArchivePath } from './services/archivePath'
-import { removeMod } from './services/removal'
 import { stagingFolderFor } from './services/staging'
-import { purgeMods } from './services/purge'
+import { deployAll, purgeAll, removeAll } from './services/bulk'
+import { undeployAndRemove } from './services/removal'
 
 interface IpcDependencies {
   settings: SettingsStore
@@ -161,15 +162,7 @@ export function registerIpcHandlers({
   )
 
   ipcMain.handle(IpcChannels.removeMod, (_event, modId: unknown): Promise<Result<UndeployResult>> =>
-    runExclusive(() =>
-      toResult(async () => {
-        const mod = findMod(modId)
-        const deployed = (await manifests.read(mod.id)) !== null
-        const result = deployed ? await undeployMod(deployContext(), mod) : { kept: [] }
-        await removeMod(deployContext(), mod)
-        return result
-      })
-    )
+    runExclusive(() => toResult(() => undeployAndRemove(deployContext(), findMod(modId))))
   )
 
   ipcMain.handle(IpcChannels.revealMod, (_event, modId: unknown): Promise<Result<null>> =>
@@ -193,14 +186,29 @@ export function registerIpcHandlers({
     })
   )
 
-  ipcMain.handle(IpcChannels.purgeMods, (_event, scope: unknown): Promise<Result<PurgeResult>> =>
+  ipcMain.handle(IpcChannels.runBulk, (_event, request: unknown): Promise<Result<BulkResult>> =>
     runExclusive(() =>
       toResult(async () => {
-        if (scope !== 'all' && scope !== 'non-core') {
-          throw new Error('Unknown purge scope.')
-        }
-        return purgeMods(deployContext(), scope)
+        if (!isBulkRequest(request)) throw new Error('Unknown bulk action.')
+
+        const { action, scope } = request
+        if (action === 'purge') return purgeAll(deployContext(), scope)
+        if (action === 'remove') return removeAll(deployContext(), scope)
+
+        const { gamePath } = settings.get()
+        if (!gamePath) throw new Error('Choose your game folder first.')
+        return deployAll(deployContext(), gamePath, scope)
       })
     )
+  )
+}
+
+function isBulkRequest(value: unknown): value is BulkRequest {
+  if (typeof value !== 'object' || value === null) return false
+  const { action, scope } = value as Record<string, unknown>
+
+  return (
+    (action === 'deploy' || action === 'purge' || action === 'remove') &&
+    (scope === 'all' || scope === 'non-core')
   )
 }

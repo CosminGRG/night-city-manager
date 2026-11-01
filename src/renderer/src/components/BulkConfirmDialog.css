@@ -1,0 +1,15 @@
+.confirm-word {
+  display: grid;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+  font-size: 13px;
+}
+
+.confirm-word input {
+  font: inherit;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 6px 10px;
+}

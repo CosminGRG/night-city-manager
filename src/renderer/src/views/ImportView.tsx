@@ -32,6 +32,8 @@ interface ImportViewProps {
 }
 
 function summary(items: ImportItem[], finished: number): string {
+  if (items.length === 0) return 'No imports yet'
+
   if (finished < items.length) {
     return `Importing ${finished + 1} of ${items.length}...`
   }
@@ -61,26 +63,28 @@ export function ImportView({ queue, onPick }: ImportViewProps): React.JSX.Elemen
         </button>
       </div>
 
-      <a className="nexus=link" href={NEXUS_URL} target="_blank" rel="noreferrer">
+      <a className="button-link nexus-button" href={NEXUS_URL} target="_blank" rel="noreferrer">
         <ExternalLink size={14} aria-hidden="true" />
         Get more mods on Nexus Mods
       </a>
 
-      {items.length > 0 && (
-        <div className="import-results">
-          <header className="import-results-header">
-            <p aria-live="polite">{summary(items, finished.length)}</p>
-            <button className="small" onClick={clearFinished} disabled={finished.length === 0}>
-              Clear finished
-            </button>
-          </header>
+      <div className="import-results">
+        <header className="import-results-header">
+          <p aria-live="polite">{summary(items, finished.length)}</p>
+          <button className="small" onClick={clearFinished} disabled={finished.length === 0}>
+            Clear finished
+          </button>
+        </header>
+        {items.length === 0 ? (
+          <p className="import-empty muted">Archives you import will show up here.</p>
+        ) : (
           <ul>
             {items.map((item) => (
               <ImportRow key={item.key} item={item} />
             ))}
           </ul>
-        </div>
-      )}
+        )}
+      </div>
     </section>
   )
 }

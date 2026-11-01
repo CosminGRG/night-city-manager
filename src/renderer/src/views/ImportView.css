@@ -1,7 +1,11 @@
 .import {
   display: grid;
   gap: var(--space-4);
-  max-width: 760px;
+}
+
+.import-empty {
+  padding: var(--space-6) var(--space-3);
+  text-align: center;
 }
 
 .drop-zone {
@@ -36,6 +40,10 @@
 
 .nexus-link:hover {
   text-decoration: underline;
+}
+
+.nexus-button {
+  justify-self: center;
 }
 
 .import-results {

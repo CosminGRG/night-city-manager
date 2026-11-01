@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react'
-import { Circle, CircleCheck, TriangleAlert, Trash2 } from 'lucide-react'
-import type { DeployStatus, Framework, ModRecord } from '@shared/types'
+import { Circle, CircleCheck, TriangleAlert } from 'lucide-react'
+import type { DeployStatus, Framework, ModRecord, Result } from '@shared/types'
 import { FRAMEWORK_LABELS, MOD_TYPE_LABELS } from '@renderer/modLabels'
 import { CoreModStatus } from './CoreModStatus'
 import { filterMods, isCoreMod, paginate, sortMods } from '@renderer/modListView'
 import { Pagination } from './Pagination'
 import { SearchBox } from './SearchBox'
 import { ConfirmDialog } from './ConfirmDialog'
+import { type ModActions, ModControls } from './ModControls'
 import './ModList.css'
 
 const dateFormat = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' })
@@ -15,6 +16,11 @@ const INTERRUPTED = 'The last deploy or undeploy was interrupted. Undeploy to cl
 interface DeployState {
   deployments: Record<string, DeployStatus>
   installed: Framework[]
+}
+
+interface Busy {
+  id: string
+  label: string
 }
 
 async function loadDeployState(): Promise<DeployState> {
@@ -38,12 +44,12 @@ export function ModList(): React.JSX.Element {
   const [deployments, setDeployments] = useState<Record<string, DeployStatus>>({})
   const [installed, setInstalled] = useState<Framework[]>([])
   const [importing, setImporting] = useState(false)
-  const [busyId, setBusyId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [query, setQuery] = useState('')
   const [page, setPage] = useState(1)
   const [pendingRemoval, setPendingRemoval] = useState<ModRecord | null>(null)
+  const [busy, setBusy] = useState<Busy | null>(null)
 
   function applyDeployState(state: DeployState): void {
     setDeployments(state.deployments)
@@ -82,7 +88,7 @@ export function ModList(): React.JSX.Element {
   }
 
   async function handleDeploy(mod: ModRecord): Promise<void> {
-    setBusyId(mod.id)
+    setBusy({ id: mod.id, label: 'Deploying...' })
     setError(null)
     setNotice(null)
     try {
@@ -90,12 +96,12 @@ export function ModList(): React.JSX.Element {
       if (!result.ok) setError(result.error)
     } finally {
       await refresh()
-      setBusyId(null)
+      setBusy(null)
     }
   }
 
   async function handleUndeploy(mod: ModRecord): Promise<void> {
-    setBusyId(mod.id)
+    setBusy({ id: mod.id, label: 'Undeploying...' })
     setError(null)
     setNotice(null)
     try {
@@ -107,12 +113,12 @@ export function ModList(): React.JSX.Element {
       }
     } finally {
       await refresh()
-      setBusyId(null)
+      setBusy(null)
     }
   }
 
   async function handleRemove(mod: ModRecord): Promise<void> {
-    setBusyId(mod.id)
+    setBusy({ id: mod.id, label: 'Removing...' })
     setError(null)
     setNotice(null)
     try {
@@ -125,12 +131,25 @@ export function ModList(): React.JSX.Element {
     } finally {
       setMods(await window.api.listMods())
       await refresh()
-      setBusyId(null)
+      setBusy(null)
     }
   }
 
+  async function showFailure(action: Promise<Result<null>>): Promise<void> {
+    const result = await action
+    if (!result.ok) setError(result.error)
+  }
+
+  const actions: ModActions = {
+    deploy: handleDeploy,
+    undeploy: handleUndeploy,
+    remove: setPendingRemoval,
+    reveal: (mod) => showFailure(window.api.revealMod(mod.id)),
+    openNexus: (mod) => showFailure(window.api.openNexusPage(mod.id))
+  }
+
   const visible = mods && paginate(filterMods(sortMods(mods), query), page)
-  const locked = importing || busyId !== null
+  const locked = importing || busy !== null
 
   return (
     <section className="mods">
@@ -179,11 +198,9 @@ export function ModList(): React.JSX.Element {
                   mod={mod}
                   status={deployments[mod.id]}
                   installed={installed}
-                  busy={busyId === mod.id}
+                  busyLabel={busy?.id === mod.id ? busy.label : null}
                   locked={locked}
-                  onDeploy={handleDeploy}
-                  onUndeploy={handleUndeploy}
-                  onRemove={setPendingRemoval}
+                  actions={actions}
                 />
               ))}
             </ul>
@@ -249,25 +266,20 @@ interface ModRowProps {
   mod: ModRecord
   status: DeployStatus | undefined
   installed: Framework[]
-  busy: boolean
+  busyLabel: string | null
   locked: boolean
-  onDeploy: (mod: ModRecord) => void
-  onUndeploy: (mod: ModRecord) => void
-  onRemove: (mod: ModRecord) => void
+  actions: ModActions
 }
 
 function ModRow({
   mod,
   status,
   installed,
-  busy,
+  busyLabel,
   locked,
-  onDeploy,
-  onUndeploy,
-  onRemove
+  actions
 }: ModRowProps): React.JSX.Element {
   const interrupted = status === 'deploying' || status === 'undeploying'
-  const nothingToDeploy = mod.plan.files.length === 0
   const warnings = interrupted ? [INTERRUPTED, ...mod.plan.warnings] : mod.plan.warnings
 
   return (
@@ -319,31 +331,13 @@ function ModRow({
       <span className="mod-cell mod-date">{dateFormat.format(new Date(mod.importedAt))}</span>
 
       <span className="mod-cell mod-actions">
-        {status ? (
-          <button className="small" onClick={() => onUndeploy(mod)} disabled={locked}>
-            {busy ? 'Undeploying...' : 'Undeploy'}
-          </button>
-        ) : (
-          <button
-            className="small"
-            onClick={() => onDeploy(mod)}
-            disabled={locked || nothingToDeploy}
-            title={
-              nothingToDeploy ? 'This mod has no files that can be placed automatically' : undefined
-            }
-          >
-            {busy ? 'Deploying...' : 'Deploy'}
-          </button>
-        )}
-        <button
-          className="small"
-          onClick={() => onRemove(mod)}
-          disabled={locked}
-          aria-label={`Remove ${mod.name}`}
-          title="Remove"
-        >
-          <Trash2 size={14} aria-hidden="true" />
-        </button>
+        <ModControls
+          mod={mod}
+          status={status}
+          busyLabel={busyLabel}
+          locked={locked}
+          actions={actions}
+        />
       </span>
     </li>
   )

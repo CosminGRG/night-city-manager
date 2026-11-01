@@ -33,4 +33,5 @@
   --font-mono: 'Cascadia Mono', Consolas, monospace;
 
   --sidebar-width: 56px;
+  --content-max: 1600px;
 }

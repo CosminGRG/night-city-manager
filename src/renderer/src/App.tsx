@@ -26,7 +26,9 @@ function App(): React.JSX.Element {
   return (
     <div className="app">
       <Sidebar view={view} onChange={setView} />
-      <main className="content">{renderContent()}</main>
+      <main className="content">
+        <div className="content-inner">{renderContent()}</div>
+      </main>
     </div>
   )
 }

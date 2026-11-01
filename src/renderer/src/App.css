@@ -8,3 +8,8 @@
   overflow-y: auto;
   padding: var(--space-6) var(--space-8);
 }
+
+.content-inner {
+  max-width: var(--content-max);
+  margin-inline: auto;
+}

@@ -64,3 +64,11 @@ export type DeployStatus = 'deploying' | 'deployed' | 'undeploying'
 export interface UndeployResult {
   kept: string[]
 }
+
+export type PurgeScope = 'all' | 'non-core'
+
+export interface PurgeResult {
+  undeployed: number
+  kept: { name: string; files: string[] }[]
+  failed: { name: string; error: string }[]
+}

@@ -17,7 +17,8 @@ const api: NightCityApi = {
   undeployMod: (modId) => ipcRenderer.invoke(IpcChannels.undeployMod, modId),
   removeMod: (modId) => ipcRenderer.invoke(IpcChannels.removeMod, modId),
   revealMod: (modId) => ipcRenderer.invoke(IpcChannels.revealMod, modId),
-  openNexusPage: (modId) => ipcRenderer.invoke(IpcChannels.openNexusPage, modId)
+  openNexusPage: (modId) => ipcRenderer.invoke(IpcChannels.openNexusPage, modId),
+  purgeMods: (scope) => ipcRenderer.invoke(IpcChannels.purgeMods, scope)
 }
 
 contextBridge.exposeInMainWorld('api', api)

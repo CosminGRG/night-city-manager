@@ -1,13 +1,22 @@
 import { useEffect, useState } from 'react'
 import { Circle, CircleCheck, TriangleAlert } from 'lucide-react'
-import type { DeployStatus, Framework, ModRecord, Result } from '@shared/types'
+import type {
+  DeployStatus,
+  Framework,
+  ModRecord,
+  Result,
+  PurgeResult,
+  PurgeScope
+} from '@shared/types'
+import { isCoreMod } from '@shared/mods'
 import { FRAMEWORK_LABELS, MOD_TYPE_LABELS } from '@renderer/modLabels'
 import { CoreModStatus } from './CoreModStatus'
-import { filterMods, isCoreMod, paginate, sortMods } from '@renderer/modListView'
+import { filterMods, paginate, sortMods } from '@renderer/modListView'
 import { Pagination } from './Pagination'
 import { SearchBox } from './SearchBox'
 import { ConfirmDialog } from './ConfirmDialog'
 import { type ModActions, ModControls } from './ModControls'
+import { PurgeMenu } from './PurgeMenu'
 import './ModList.css'
 
 const dateFormat = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' })
@@ -44,6 +53,13 @@ function keptMessage(mod: ModRecord, kept: string[]): string {
   return `${mod.name}: left in place because they changed after deploy: ${files}`
 }
 
+function purgeMessage({ undeployed, kept }: PurgeResult): string {
+  const message = `Purged ${undeployed} ${undeployed === 1 ? 'mod' : 'mods'}.`
+  if (kept.length === 0) return message
+  const files = kept.map(({ name, files }) => `${name}: ${files.join(', ')}`).join('; ')
+  return `${message} Left in place because they changed after deploy: ${files}`
+}
+
 export function ModList({ importedCount, onImport }: ModListProps): React.JSX.Element {
   const [mods, setMods] = useState<ModRecord[] | null>(null)
   const [deployments, setDeployments] = useState<Record<string, DeployStatus>>({})
@@ -54,6 +70,8 @@ export function ModList({ importedCount, onImport }: ModListProps): React.JSX.El
   const [page, setPage] = useState(1)
   const [pendingRemoval, setPendingRemoval] = useState<ModRecord | null>(null)
   const [busy, setBusy] = useState<Busy | null>(null)
+  const [pendingPurge, setPendingPurge] = useState<PurgeScope | null>(null)
+  const [purging, setPurging] = useState(false)
 
   function applyDeployState(state: DeployState): void {
     setDeployments(state.deployments)
@@ -125,6 +143,29 @@ export function ModList({ importedCount, onImport }: ModListProps): React.JSX.El
     }
   }
 
+  async function handlePurge(scope: PurgeScope): Promise<void> {
+    setPurging(true)
+    setError(null)
+    setNotice(null)
+    try {
+      const result = await window.api.purgeMods(scope)
+      if (!result.ok) {
+        setError(result.error)
+        return
+      }
+      const { failed } = result.value
+      if (failed.length > 0) {
+        setError(
+          `Could not purge ${failed.map(({ name, error }) => `${name} (${error})`).join(', ')}`
+        )
+      }
+      setNotice(purgeMessage(result.value))
+    } finally {
+      await refresh()
+      setPurging(false)
+    }
+  }
+
   async function showFailure(action: Promise<Result<null>>): Promise<void> {
     const result = await action
     if (!result.ok) setError(result.error)
@@ -139,7 +180,9 @@ export function ModList({ importedCount, onImport }: ModListProps): React.JSX.El
   }
 
   const visible = mods && paginate(filterMods(sortMods(mods), query), page)
-  const locked = busy !== null
+  const locked = busy !== null || purging
+  const deployedMods = (mods ?? []).filter((mod) => deployments[mod.id] !== undefined)
+  const nonCoreCount = deployedMods.filter((mod) => !isCoreMod(mod)).length
 
   return (
     <section className="mods">
@@ -152,6 +195,13 @@ export function ModList({ importedCount, onImport }: ModListProps): React.JSX.El
           <button onClick={onImport} disabled={locked}>
             Import archives
           </button>
+          <PurgeMenu
+            allCount={deployedMods.length}
+            nonCoreCount={nonCoreCount}
+            purging={purging}
+            locked={locked}
+            onPurge={setPendingPurge}
+          />
         </div>
         <SearchBox value={query} onChange={handleSearch} />
       </header>
@@ -219,6 +269,22 @@ export function ModList({ importedCount, onImport }: ModListProps): React.JSX.El
           <p className="muted">
             Your downloaded archive stays where it is, so you can import it again anytime.
           </p>
+        </ConfirmDialog>
+      )}
+
+      {pendingPurge && (
+        <ConfirmDialog
+          title={pendingPurge === 'all' ? 'Purge all mods?' : 'Purge all but core mods?'}
+          confirmLabel="Purge"
+          onConfirm={() => handlePurge(pendingPurge)}
+          onClose={() => setPendingPurge(null)}
+        >
+          <p>
+            {pendingPurge === 'all'
+              ? 'Every deployed mod will be taken out of your game folder.'
+              : 'Every deployed mod except the core mods will be taken out of your game folder.'}
+          </p>
+          <p className="muted">They stay in your mod list, so you can deploy them again anytime.</p>
         </ConfirmDialog>
       )}
     </section>

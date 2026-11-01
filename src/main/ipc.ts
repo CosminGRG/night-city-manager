@@ -9,7 +9,8 @@ import type {
   ModRecord,
   Framework,
   DeployStatus,
-  UndeployResult
+  UndeployResult,
+  PurgeResult
 } from '@shared/types'
 import type { SettingsStore } from './services/settings'
 import { detectGames, findGameRoot } from './services/gameDetector'
@@ -23,6 +24,7 @@ import { type DeployContext, deployMod, undeployMod } from './services/deployer'
 import { ARCHIVE_EXTENSIONS, checkArchivePath } from './services/archivePath'
 import { removeMod } from './services/removal'
 import { stagingFolderFor } from './services/staging'
+import { purgeMods } from './services/purge'
 
 interface IpcDependencies {
   settings: SettingsStore
@@ -189,5 +191,16 @@ export function registerIpcHandlers({
       await shell.openExternal(`https://www.nexusmods.com/cyberpunk2077/mods/${nexusModId}`)
       return null
     })
+  )
+
+  ipcMain.handle(IpcChannels.purgeMods, (_event, scope: unknown): Promise<Result<PurgeResult>> =>
+    runExclusive(() =>
+      toResult(async () => {
+        if (scope !== 'all' && scope !== 'non-core') {
+          throw new Error('Unknown purge scope.')
+        }
+        return purgeMods(deployContext(), scope)
+      })
+    )
   )
 }

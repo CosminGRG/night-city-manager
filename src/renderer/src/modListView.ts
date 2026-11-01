@@ -1,11 +1,8 @@
 import type { ModRecord } from '@shared/types'
 import { FRAMEWORK_LABELS, MOD_TYPE_LABELS } from './modLabels'
+import { isCoreMod } from '@shared/mods'
 
 export const PAGE_SIZE = 15
-
-export function isCoreMod(mod: ModRecord): boolean {
-  return mod.plan.providers.length > 0
-}
 
 export function sortMods(mods: ModRecord[]): ModRecord[] {
   return [...mods].sort((a, b) => Number(isCoreMod(b)) - Number(isCoreMod(a)))

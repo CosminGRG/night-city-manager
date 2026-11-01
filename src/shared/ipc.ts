@@ -5,7 +5,9 @@ import type {
   ModRecord,
   Framework,
   DeployStatus,
-  UndeployResult
+  UndeployResult,
+  PurgeScope,
+  PurgeResult
 } from './types'
 
 export const IpcChannels = {
@@ -23,7 +25,8 @@ export const IpcChannels = {
   removeMod: 'mod:remove',
   revealMod: 'mod:reveal',
   openNexusPage: 'mod:open-nexus',
-  pickArchives: 'mod:pick-archives'
+  pickArchives: 'mod:pick-archives',
+  purgeMods: 'mods:purge'
 } as const
 
 export interface AppInfo {
@@ -49,4 +52,5 @@ export interface NightCityApi {
   removeMod(modId: string): Promise<Result<UndeployResult>>
   revealMod(modId: string): Promise<Result<null>>
   openNexusPage(modId: string): Promise<Result<null>>
+  purgeMods(scope: PurgeScope): Promise<Result<PurgeResult>>
 }

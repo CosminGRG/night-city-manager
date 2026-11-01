@@ -1,13 +1,7 @@
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
-import {
-  ChevronDown,
-  ExternalLink,
-  FolderOpen,
-  RefreshCw,
-  Trash2,
-  type LucideIcon
-} from 'lucide-react'
+import { ChevronDown, ExternalLink, FolderOpen, RefreshCw, Trash2 } from 'lucide-react'
 import type { DeployStatus, ModRecord } from '@shared/types'
+import { MenuItem } from './MenuItem'
 import './ModControls.css'
 
 export interface ModActions {
@@ -95,32 +89,5 @@ export function ModControls({
         </DropdownMenu.Root>
       </div>
     </div>
-  )
-}
-
-interface MenuItemProps {
-  icon: LucideIcon
-  children: React.ReactNode
-  disabled?: boolean
-  danger?: boolean
-  onSelect?: () => void
-}
-
-function MenuItem({
-  icon: Icon,
-  children,
-  disabled,
-  danger,
-  onSelect
-}: MenuItemProps): React.JSX.Element {
-  return (
-    <DropdownMenu.Item
-      className={danger ? 'menu-item danger' : 'menu-item'}
-      disabled={disabled}
-      onSelect={onSelect}
-    >
-      <Icon size={14} aria-hidden="true" />
-      {children}
-    </DropdownMenu.Item>
   )
 }

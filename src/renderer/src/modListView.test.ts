@@ -113,9 +113,9 @@ describe('bulkCounts', () => {
     }
 
     expect(bulkCounts(mods, deployments)).toEqual({
-      deploy: { all: 2, 'non-core': 1 },
-      purge: { all: 2, 'non-core': 2 },
-      remove: { all: 5, 'non-core': 4 }
+      deploy: { all: 2, core: 1, 'non-core': 1 },
+      purge: { all: 2, core: 0, 'non-core': 2 },
+      remove: { all: 5, core: 1, 'non-core': 4 }
     })
   })
 })

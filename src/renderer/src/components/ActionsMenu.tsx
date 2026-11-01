@@ -35,6 +35,14 @@ export function ActionsMenu({
           >
             Deploy all ({counts.deploy.all})
           </MenuItem>
+          <MenuItem
+            icon={ShieldCheck}
+            disabled={counts.deploy.core === 0}
+            onSelect={() => onSelect({ action: 'deploy', scope: 'core' })}
+          >
+            Deploy core mods ({counts.deploy.core})
+          </MenuItem>
+
           <DropdownMenu.Separator className="menu-separator" />
           <MenuItem
             icon={PowerOff}

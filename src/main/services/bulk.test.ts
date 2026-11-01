@@ -110,6 +110,19 @@ describe('deployAll', () => {
       failed: []
     })
   })
+
+  it('deploys only core mods for the core scope', async () => {
+    const cet = await staged('CET', ['bin/x64/plugins/cyber_engine_tweaks.asi'], ['cet'])
+    await staged('Faster Elevators', ['archive/pc/mod/a.archive'])
+
+    expect(await deployAll(context, gamePath, 'core')).toEqual({
+      done: 1,
+      skipped: 0,
+      kept: [],
+      failed: []
+    })
+    expect(await deployedIds()).toEqual([cet.id])
+  })
 })
 
 describe('purgeAll', () => {

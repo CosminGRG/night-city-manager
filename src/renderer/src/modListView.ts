@@ -84,6 +84,7 @@ export function bulkCounts(
 ): BulkCounts {
   const count = (keep: (mod: ModRecord) => boolean): Record<BulkScope, number> => ({
     all: mods.filter(keep).length,
+    core: mods.filter((mod) => keep(mod) && isCoreMod(mod)).length,
     'non-core': mods.filter((mod) => keep(mod) && !isCoreMod(mod)).length
   })
 

@@ -209,6 +209,6 @@ function isBulkRequest(value: unknown): value is BulkRequest {
 
   return (
     (action === 'deploy' || action === 'purge' || action === 'remove') &&
-    (scope === 'all' || scope === 'non-core')
+    (scope === 'all' || scope === 'core' || scope === 'non-core')
   )
 }

@@ -66,7 +66,7 @@ export interface UndeployResult {
 }
 
 export type BulkAction = 'deploy' | 'purge' | 'remove'
-export type BulkScope = 'all' | 'non-core'
+export type BulkScope = 'all' | 'core' | 'non-core'
 
 export interface BulkRequest {
   action: BulkAction

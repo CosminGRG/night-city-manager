@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import type { BulkRequest } from '@shared/types'
+import type { BulkRequest, BulkScope } from '@shared/types'
 import { ConfirmDialog } from './ConfirmDialog'
 import './BulkConfirmDialog.css'
 
@@ -12,30 +12,37 @@ interface DialogText {
   confirmLabel: string
 }
 
+const SCOPE_LABELS: Record<BulkScope, string> = {
+  all: 'all mods',
+  core: 'core mods',
+  'non-core': 'all but core mods'
+}
+
 function mods(count: number, kind = ''): string {
   return `${count} ${kind}${count === 1 ? 'mod' : 'mods'}`
 }
 
 function dialogText({ action, scope }: BulkRequest, count: number): DialogText {
-  const allOrNonCore = scope === 'all' ? 'all-mods' : 'all but core mods'
+  const target = SCOPE_LABELS[scope]
+
   switch (action) {
     case 'deploy':
       return {
-        title: 'Deploy all mods?',
+        title: `Deploy ${target}?`,
         body: `${mods(count)} will be deployed to your game folder, core mods first.`,
         note: 'If two mods want the same file, the first one keeps it and the other is reported.',
         confirmLabel: 'Deploy'
       }
     case 'purge':
       return {
-        title: `Purge ${allOrNonCore}?`,
+        title: `Purge ${target}?`,
         body: `${mods(count, 'deployed ')} will be taken out of your game folder.`,
         note: 'They stay in your mod list, so you can deploy them again anytime.',
         confirmLabel: 'Purge'
       }
     case 'remove':
       return {
-        title: `Remove ${allOrNonCore}?`,
+        title: `Remove ${target}?`,
         body: `${mods(count)} will be undeployed and deleted from your mod list.`,
         note: 'Your downloaded archives stay where they are, but every mod has to be imported again.',
         confirmLabel: 'Remove'

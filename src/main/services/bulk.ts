@@ -23,7 +23,8 @@ async function runEach(mods: ModRecord[], skipped: number, task: Task): Promise<
 }
 
 function inScope(mod: ModRecord, scope: BulkScope): boolean {
-  return scope === 'all' || !isCoreMod(mod)
+  if (scope === 'all') return true
+  return isCoreMod(mod) === (scope === 'core')
 }
 
 async function deployStatuses(context: DeployContext): Promise<Map<string, DeployStatus>> {

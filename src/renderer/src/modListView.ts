@@ -14,6 +14,7 @@ function searchText(mod: ModRecord): string {
   return [
     mod.name,
     mod.version ?? '',
+    isCoreMod(mod) ? 'core' : '',
     ...mod.plan.types.map((type) => MOD_TYPE_LABELS[type]),
     ...mod.plan.providers.map((framework) => FRAMEWORK_LABELS[framework])
   ]

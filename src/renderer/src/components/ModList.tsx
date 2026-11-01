@@ -293,7 +293,6 @@ export function ModList({ importedCount, onImport }: ModListProps): React.JSX.El
                   key={mod.id}
                   mod={mod}
                   status={deployments[mod.id]}
-                  installed={installed}
                   busyLabel={busy?.id === mod.id ? busy.label : null}
                   locked={locked}
                   actions={actions}
@@ -370,20 +369,12 @@ function StatusIcon({ status }: { status: DeployStatus | undefined }): React.JSX
 interface ModRowProps {
   mod: ModRecord
   status: DeployStatus | undefined
-  installed: Framework[]
   busyLabel: string | null
   locked: boolean
   actions: ModActions
 }
 
-function ModRow({
-  mod,
-  status,
-  installed,
-  busyLabel,
-  locked,
-  actions
-}: ModRowProps): React.JSX.Element {
+function ModRow({ mod, status, busyLabel, locked, actions }: ModRowProps): React.JSX.Element {
   const interrupted = status === 'deploying' || status === 'undeploying'
   const warnings = interrupted ? [INTERRUPTED, ...mod.plan.warnings] : mod.plan.warnings
 
@@ -411,21 +402,14 @@ function ModRow({
       </span>
 
       <span className="mod-cell mod-badges">
-        {mod.plan.providers.map((framework) => {
-          const isInstalled = installed.includes(framework)
-          const label = isInstalled
-            ? 'Installed in the game folder'
-            : 'Not installed in the game folder'
-          return (
-            <span key={framework} className="badge badge-framework" title={label}>
-              <span
-                className={isInstalled ? 'dot dot-installed' : 'dot dot-missing'}
-                aria-label={label}
-              />
-              {FRAMEWORK_LABELS[framework]}
-            </span>
-          )
-        })}
+        {isCoreMod(mod) && (
+          <span
+            className="badge badge-core"
+            title={`Core mod: ${mod.plan.providers.map((framework) => FRAMEWORK_LABELS[framework]).join(', ')}`}
+          >
+            Core
+          </span>
+        )}
         {mod.plan.types.map((type) => (
           <span key={type} className={`badge badge-${type}`}>
             {MOD_TYPE_LABELS[type]}

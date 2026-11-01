@@ -48,6 +48,10 @@ describe('filterMods', () => {
   it('needs every word to match, in any order', () => {
     expect(names(filterMods(mods, 'red4ext radio'))).toEqual(['RadioExt'])
   })
+
+  it('finds core mods by the word "core"', () => {
+    expect(names(filterMods(mods, 'core'))).toEqual(['Cyber Engine Tweaks'])
+  })
 })
 
 describe('paginate', () => {

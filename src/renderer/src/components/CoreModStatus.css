@@ -16,3 +16,18 @@
   font-size: 12px;
   font-weight: 600;
 }
+
+.dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 0.6);
+}
+
+.dot-installed {
+  background: var(--success);
+}
+
+.dot-missing {
+  background: var(--danger);
+}

@@ -188,27 +188,9 @@
   --badge: #a9b1d6;
 }
 
-.badge-framework {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
+.badge-core {
   color: var(--on-primary);
   background: var(--primary);
-}
-
-.dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  box-shadow: 0 0 0 1px rgb(0 0 0 / 0.6);
-}
-
-.dot-installed {
-  background: var(--success);
-}
-
-.dot-missing {
-  background: var(--danger);
 }
 
 .stat-chip {

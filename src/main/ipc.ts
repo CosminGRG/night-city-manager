@@ -20,6 +20,7 @@ import { detectInstalledFrameworks } from './services/frameworks'
 import type { ManifestStore } from './services/manifests'
 import { createQueue } from './services/queue'
 import { type DeployContext, deployMod, undeployMod } from './services/deployer'
+import { ARCHIVE_EXTENSIONS, checkArchivePath } from './services/archivePath'
 import { removeMod } from './services/removal'
 import { stagingFolderFor } from './services/staging'
 
@@ -37,6 +38,7 @@ export function registerIpcHandlers({
   manifests
 }: IpcDependencies): void {
   const runExclusive = createQueue()
+  const runImport = createQueue()
 
   async function setGamePath(path: string): Promise<Result<Settings>> {
     const gamePath = await findGameRoot(path)
@@ -104,26 +106,27 @@ export function registerIpcHandlers({
 
   ipcMain.handle(IpcChannels.listMods, (): ModRecord[] => library.list())
 
-  ipcMain.handle(IpcChannels.importMod, async (event): Promise<Result<ModRecord> | null> => {
+  ipcMain.handle(IpcChannels.pickArchives, async (event): Promise<string[] | null> => {
     const window = BrowserWindow.fromWebContents(event.sender)
     if (!window) return null
 
     const { canceled, filePaths } = await dialog.showOpenDialog(window, {
-      title: 'Import a mod archive',
-      properties: ['openFile'],
-      filters: [{ name: 'Mod archives', extensions: ['zip', '7z', 'rar'] }]
+      title: 'Import mod archives',
+      properties: ['openFile', 'multiSelections'],
+      filters: [{ name: 'Mod archives', extensions: ARCHIVE_EXTENSIONS.map((ext) => ext.slice(1)) }]
     })
-
-    if (canceled) return null
-
-    try {
-      const modsDir = settings.get().modsPath ?? paths.mods
-      const mod = await importMod({ sevenZip: paths.sevenZip, modsDir, library }, filePaths[0])
-      return { ok: true, value: mod }
-    } catch (error) {
-      return { ok: false, error: error instanceof Error ? error.message : String(error) }
-    }
+    return canceled ? null : filePaths
   })
+
+  ipcMain.handle(IpcChannels.importMod, (_event, path: unknown): Promise<Result<ModRecord>> =>
+    runImport(() =>
+      toResult(async () => {
+        const archive = await checkArchivePath(path)
+        const modsDir = settings.get().modsPath ?? paths.mods
+        return importMod({ sevenZip: paths.sevenZip, modsDir, library }, archive)
+      })
+    )
+  )
 
   ipcMain.handle(IpcChannels.getInstalledFrameworks, (): Promise<Framework[]> => {
     const { gamePath } = settings.get()

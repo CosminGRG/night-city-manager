@@ -71,16 +71,21 @@ export function ModList(): React.JSX.Element {
   }, [])
 
   async function handleImport(): Promise<void> {
+    const archives = await window.api.pickArchives()
+    if (!archives) return
+
     setImporting(true)
     setError(null)
     setNotice(null)
+
     try {
-      const result = await window.api.importMod()
-      if (!result) return
-      if (result.ok) {
-        setMods((current) => [...(current ?? []), result.value])
-      } else {
-        setError(result.error)
+      for (const archive of archives) {
+        const result = await window.api.importMod(archive)
+        if (result.ok) {
+          setMods((current) => [...(current ?? []), result.value])
+        } else {
+          setError(result.error)
+        }
       }
     } finally {
       setImporting(false)

@@ -22,7 +22,8 @@ export const IpcChannels = {
   undeployMod: 'mod:undeploy',
   removeMod: 'mod:remove',
   revealMod: 'mod:reveal',
-  openNexusPage: 'mod:open-nexus'
+  openNexusPage: 'mod:open-nexus',
+  pickArchives: 'mod:pick-archives'
 } as const
 
 export interface AppInfo {
@@ -38,7 +39,9 @@ export interface NightCityApi {
   selectGame(path: string): Promise<Result<Settings>>
   browseGame(): Promise<Result<Settings> | null>
   listMods(): Promise<ModRecord[]>
-  importMod(): Promise<Result<ModRecord> | null>
+  pickArchives(): Promise<string[] | null>
+  importMod(path: string): Promise<Result<ModRecord>>
+  getPathForFile(file: File): string
   getInstalledFrameworks(): Promise<Framework[]>
   listDeployments(): Promise<Record<string, DeployStatus>>
   deployMod(modId: string): Promise<Result<null>>

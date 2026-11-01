@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer } from 'electron'
+import { contextBridge, ipcRenderer, webUtils } from 'electron'
 import { IpcChannels, type NightCityApi } from '@shared/ipc'
 
 const api: NightCityApi = {
@@ -8,7 +8,9 @@ const api: NightCityApi = {
   selectGame: (path) => ipcRenderer.invoke(IpcChannels.selectGame, path),
   browseGame: () => ipcRenderer.invoke(IpcChannels.browseGame),
   listMods: () => ipcRenderer.invoke(IpcChannels.listMods),
-  importMod: () => ipcRenderer.invoke(IpcChannels.importMod),
+  pickArchives: () => ipcRenderer.invoke(IpcChannels.pickArchives),
+  importMod: (path) => ipcRenderer.invoke(IpcChannels.importMod, path),
+  getPathForFile: (file) => webUtils.getPathForFile(file),
   getInstalledFrameworks: () => ipcRenderer.invoke(IpcChannels.getInstalledFrameworks),
   listDeployments: () => ipcRenderer.invoke(IpcChannels.listDeployments),
   deployMod: (modId) => ipcRenderer.invoke(IpcChannels.deployMod, modId),

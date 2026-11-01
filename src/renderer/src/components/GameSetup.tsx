@@ -1,11 +1,19 @@
 import { useEffect, useState } from 'react'
-import type { DetectedGame, Result, Settings } from '@shared/types'
+import { FolderSearch, Gamepad2, ArrowRight } from 'lucide-react'
+import type { DetectedGame, GameStore, Result, Settings } from '@shared/types'
+import './GameSetup.css'
 
-interface GameSetupProps {
+const STORE_LABELS: Record<GameStore, string> = {
+  steam: 'Steam',
+  gog: 'GOG',
+  epic: 'Epic Games'
+}
+
+interface GameSetupPros {
   onSelected: (settings: Settings) => void
 }
 
-export function GameSetup({ onSelected }: GameSetupProps): React.JSX.Element {
+export function GameSetup({ onSelected }: GameSetupPros): React.JSX.Element {
   const [detected, setDetected] = useState<DetectedGame[] | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -22,23 +30,59 @@ export function GameSetup({ onSelected }: GameSetupProps): React.JSX.Element {
     }
   }
 
+  const nothingFound = detected?.length === 0
+
   return (
-    <section>
-      <h2>Select your Cyberpunk 2077 installation folder</h2>
-      {detected === null && <p>Searching...</p>}
-      {detected?.length === 0 && <p>No installation found automatically.</p>}
-      <ul>
-        {detected?.map((game) => (
-          <li key={game.path}>
-            {game.store.toUpperCase()}: {game.path}{' '}
-            <button onClick={() => window.api.selectGame(game.path).then(handleResult)}>
-              Use this
-            </button>
-          </li>
-        ))}
-      </ul>
-      <button onClick={() => window.api.browseGame().then(handleResult)}>Browse...</button>
-      {error && <p role="alert">{error}</p>}
+    <section className="setup">
+      <div className="setup-card">
+        <Gamepad2 size={40} className="setup-icon" aria-hidden="true" />
+        <h1>Welcome to Night City Mod Manager</h1>
+        <p className="muted">First, show us where Cyberpunk 2077 is installed.</p>
+
+        {detected === null && (
+          <p className="muted" role="status">
+            Looking for your game...
+          </p>
+        )}
+        {nothingFound && <p className="muted">We couldn&apos;t find it automatically.</p>}
+        {detected && detected.length > 0 && (
+          <>
+            <p>We found your game. Pick it to continue:</p>
+            <ul className="setup-list">
+              {detected.map((game) => (
+                <li key={game.path}>
+                  <button
+                    className="setup-option"
+                    onClick={() => window.api.selectGame(game.path).then(handleResult)}
+                  >
+                    <span className="setup-option-text">
+                      <span className="setup-store">{STORE_LABELS[game.store]}</span>
+                      <span className="setup-path">{game.path}</span>
+                    </span>
+                    <span className="setup-use">
+                      Use this
+                      <ArrowRight size={16} aria-hidden="true" />
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+
+        <button
+          className={nothingFound ? 'setup-browse primary' : 'setup-browse'}
+          onClick={() => window.api.browseGame().then(handleResult)}
+        >
+          <FolderSearch size={16} aria-hidden="true" />
+          {nothingFound ? 'Browse for the game folder' : 'Use a different folder'}
+        </button>
+        {error && (
+          <p role="alert" className="error">
+            {error}
+          </p>
+        )}
+      </div>
     </section>
   )
 }

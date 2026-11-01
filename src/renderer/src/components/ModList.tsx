@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Circle, CircleCheck, TriangleAlert } from 'lucide-react'
+import { Circle, CircleCheck, TriangleAlert, PackageOpen, SearchX } from 'lucide-react'
 import type {
   DeployStatus,
   Framework,
@@ -19,6 +19,7 @@ import { ConfirmDialog } from './ConfirmDialog'
 import { type ModActions, ModControls } from './ModControls'
 import { ActionsMenu } from './ActionsMenu'
 import { BulkConfirmDialog } from './BulkConfirmDialog'
+import { EmptyState } from './EmptyState'
 import './ModList.css'
 
 const dateFormat = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' })
@@ -262,10 +263,20 @@ export function ModList({ importedCount, onImport }: ModListProps): React.JSX.El
         </p>
       )}
       {mods === null && <p className="muted">Loading...</p>}
-      {mods?.length === 0 && <p className="muted">No mods yet. Import an archive to start.</p>}
-      {visible && mods && mods.length > 0 && visible.total === 0 && (
-        <p className="muted">No mods match &quot;{query}&quot;.</p>
+      {mods?.length === 0 && (
+        <EmptyState icon={PackageOpen} title="No mods yet">
+          <p>Drag mod archives anywhere into the window, or pick them from your disk.</p>
+          <button className="primary" onClick={onImport}>
+            Import archives
+          </button>
+        </EmptyState>
       )}
+      {visible && mods && mods.length > 0 && visible.total === 0 && (
+        <EmptyState icon={SearchX} title={`No mods match "${query}"`}>
+          <button onClick={() => handleSearch('')}>Clear search</button>
+        </EmptyState>
+      )}
+
       {visible && visible.total > 0 && (
         <>
           <div className="mod-table">

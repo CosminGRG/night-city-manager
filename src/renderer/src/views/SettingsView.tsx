@@ -29,10 +29,10 @@ export function SettingsView({ settings, onSettingsChange }: SettingsViewProps):
 
   return (
     <section className="settings">
-      <h1>Settings</h1>
+      <h2>Settings</h2>
 
       <div className="settings-group">
-        <h2>Game folder</h2>
+        <h3>Game folder</h3>
         <div className="settings-row">
           <code className="settings-path">{settings.gamePath}</code>
           <button onClick={handleChangeGame}>Change</button>
@@ -48,7 +48,7 @@ export function SettingsView({ settings, onSettingsChange }: SettingsViewProps):
       </div>
 
       <div className="settings-group">
-        <h2>About</h2>
+        <h3>About</h3>
         {info && (
           <p className="muted">
             Night City Mod Manager {info.version} by Cosmin G. · Electron {info.electronVersion}

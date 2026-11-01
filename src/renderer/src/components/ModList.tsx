@@ -23,6 +23,11 @@ interface Busy {
   label: string
 }
 
+interface ModListProps {
+  importedCount: number
+  onImport: () => void
+}
+
 async function loadDeployState(): Promise<DeployState> {
   const [deployments, installed] = await Promise.all([
     window.api.listDeployments(),
@@ -39,11 +44,10 @@ function keptMessage(mod: ModRecord, kept: string[]): string {
   return `${mod.name}: left in place because they changed after deploy: ${files}`
 }
 
-export function ModList(): React.JSX.Element {
+export function ModList({ importedCount, onImport }: ModListProps): React.JSX.Element {
   const [mods, setMods] = useState<ModRecord[] | null>(null)
   const [deployments, setDeployments] = useState<Record<string, DeployStatus>>({})
   const [installed, setInstalled] = useState<Framework[]>([])
-  const [importing, setImporting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [query, setQuery] = useState('')
@@ -67,30 +71,11 @@ export function ModList(): React.JSX.Element {
 
   useEffect(() => {
     window.api.listMods().then(setMods)
+  }, [importedCount])
+
+  useEffect(() => {
     loadDeployState().then(applyDeployState)
   }, [])
-
-  async function handleImport(): Promise<void> {
-    const archives = await window.api.pickArchives()
-    if (!archives) return
-
-    setImporting(true)
-    setError(null)
-    setNotice(null)
-
-    try {
-      for (const archive of archives) {
-        const result = await window.api.importMod(archive)
-        if (result.ok) {
-          setMods((current) => [...(current ?? []), result.value])
-        } else {
-          setError(result.error)
-        }
-      }
-    } finally {
-      setImporting(false)
-    }
-  }
 
   async function handleDeploy(mod: ModRecord): Promise<void> {
     setBusy({ id: mod.id, label: 'Deploying...' })
@@ -154,7 +139,7 @@ export function ModList(): React.JSX.Element {
   }
 
   const visible = mods && paginate(filterMods(sortMods(mods), query), page)
-  const locked = importing || busy !== null
+  const locked = busy !== null
 
   return (
     <section className="mods">
@@ -164,8 +149,8 @@ export function ModList(): React.JSX.Element {
           <h2>
             Mods <span className="mods-count">{mods?.length ?? 0}</span>
           </h2>
-          <button onClick={handleImport} disabled={locked}>
-            {importing ? 'Importing...' : 'Import archive'}
+          <button onClick={onImport} disabled={locked}>
+            Import archives
           </button>
         </div>
         <SearchBox value={query} onChange={handleSearch} />

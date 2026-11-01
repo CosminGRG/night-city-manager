@@ -132,3 +132,13 @@ button.danger:hover:not(:disabled) {
     animation: none !important;
   }
 }
+
+.spin {
+  animation: spin 800ms linear infinite;
+}
+
+@keyframes spin {
+  to {
+    rotate: 360deg;
+  }
+}

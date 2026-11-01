@@ -1,0 +1,29 @@
+.drop-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  background: rgb(5 6 9 / 75%);
+  animation: drop-in 120ms ease-out;
+}
+
+.drop-overlay-panel {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-3);
+  padding: var(--space-8) 64px;
+  border: 2px dashed var(--primary);
+  border-radius: var(--radius-lg);
+  color: var(--primary);
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 600;
+  pointer-events: none;
+}
+
+@keyframes drop-in {
+  from {
+    opacity: 0;
+  }
+}

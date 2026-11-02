@@ -26,6 +26,7 @@ import { ARCHIVE_EXTENSIONS, checkArchivePath } from './services/archivePath'
 import { stagingFolderFor } from './services/staging'
 import { deployAll, purgeAll, removeAll } from './services/bulk'
 import { undeployAndRemove } from './services/removal'
+import { isGameRunning } from './services/gameProcess'
 
 interface IpcDependencies {
   settings: SettingsStore
@@ -147,6 +148,7 @@ export function registerIpcHandlers({
   ipcMain.handle(IpcChannels.deployMod, (_event, modId: unknown): Promise<Result<null>> =>
     runExclusive(() =>
       toResult(async () => {
+        await refuseWhileGameRuns()
         const { gamePath } = settings.get()
         if (!gamePath) throw new Error('Choose your game folder first.')
         await deployMod(deployContext(), gamePath, findMod(modId))
@@ -158,11 +160,21 @@ export function registerIpcHandlers({
   ipcMain.handle(
     IpcChannels.undeployMod,
     (_event, modId: unknown): Promise<Result<UndeployResult>> =>
-      runExclusive(() => toResult(() => undeployMod(deployContext(), findMod(modId))))
+      runExclusive(() =>
+        toResult(async () => {
+          await refuseWhileGameRuns()
+          return undeployMod(deployContext(), findMod(modId))
+        })
+      )
   )
 
   ipcMain.handle(IpcChannels.removeMod, (_event, modId: unknown): Promise<Result<UndeployResult>> =>
-    runExclusive(() => toResult(() => undeployAndRemove(deployContext(), findMod(modId))))
+    runExclusive(() =>
+      toResult(async () => {
+        await refuseWhileGameRuns()
+        return undeployAndRemove(deployContext(), findMod(modId))
+      })
+    )
   )
 
   ipcMain.handle(IpcChannels.revealMod, (_event, modId: unknown): Promise<Result<null>> =>
@@ -189,6 +201,7 @@ export function registerIpcHandlers({
   ipcMain.handle(IpcChannels.runBulk, (_event, request: unknown): Promise<Result<BulkResult>> =>
     runExclusive(() =>
       toResult(async () => {
+        await refuseWhileGameRuns()
         if (!isBulkRequest(request)) throw new Error('Unknown bulk action.')
 
         const { action, scope } = request
@@ -211,4 +224,10 @@ function isBulkRequest(value: unknown): value is BulkRequest {
     (action === 'deploy' || action === 'purge' || action === 'remove') &&
     (scope === 'all' || scope === 'core' || scope === 'non-core')
   )
+}
+
+async function refuseWhileGameRuns(): Promise<void> {
+  if (await isGameRunning()) {
+    throw new Error('Cyberpunk 2077 is running. Close your game first, then try again.')
+  }
 }

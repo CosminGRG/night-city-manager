@@ -236,19 +236,20 @@ describe('scanning and cleaning the game folder', () => {
     expect(await exists(game('r6/scripts'))).toBe(false)
     expect(await manifests.createdFolders()).toEqual(['red4ext'])
   })
+
   it("cleans only the removed mod's own leftovers", async () => {
     const mine = 'bin/x64/plugins/cyber_engine_tweaks/mods/Mine'
     const other = 'bin/x64/plugins/cyber_engine_tweaks/mods/Other'
     await manifests.setCreatedFolders([mine, other])
     await put(`${mine}/settings.json`)
     await put(`${other}/settings.json`)
-    await put('r6/cache/mine.xml')
-    await manifests.addKeptFiles(['r6/cache/mine.xml'])
+    await put('r6/input/mine.xml')
+    await manifests.addKeptFiles(['r6/input/mine.xml'])
 
     const result = await cleanModLeftovers(
       manifests,
       gamePath,
-      { folders: [mine], kept: ['r6/cache/mine.xml'] },
+      { folders: [mine], kept: ['r6/input/mine.xml'] },
       trash
     )
 
@@ -256,5 +257,21 @@ describe('scanning and cleaning the game folder', () => {
     expect(await exists(game(mine))).toBe(false)
     expect(await exists(game(`${other}/settings.json`))).toBe(true)
     expect(await manifests.createdFolders()).toEqual([other])
+  })
+
+  it('never cleans vanilla folders, even if an old registry lists them', async () => {
+    await manifests.setCreatedFolders(['r6', 'r6/config/cybercmd'])
+    await put('r6/cache/final.redscripts')
+    await put('r6/config/cybercmd/scc.log')
+    await put('r6/cache/kept.xml')
+    await manifests.addKeptFiles(['r6/cache/kept.xml'])
+
+    expect(await cleanUnusedLeftovers(manifests, gamePath, trash)).toEqual({
+      trashed: 1,
+      failed: []
+    })
+    expect(await exists(game('r6/cache/final.redscripts'))).toBe(true)
+    expect(await exists(game('r6/cache/kept.xml'))).toBe(true)
+    expect(await exists(game('r6/config/cybercmd'))).toBe(false)
   })
 })

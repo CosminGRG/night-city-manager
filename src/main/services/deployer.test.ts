@@ -82,6 +82,8 @@ beforeEach(async () => {
     library: new ModLibrary(join(dir, 'data', 'mods.json'))
   }
   await put(game('bin', 'x64', 'Cyberpunk2077.exe'), 'game')
+  await mkdir(game('archive', 'pc', 'mod'), { recursive: true })
+  await mkdir(game('r6', 'cache'), { recursive: true })
 })
 
 afterEach(async () => {
@@ -101,7 +103,7 @@ describe('deployMod', () => {
     expect(await context.manifests.read(mod.id)).toMatchObject({
       status: 'deployed',
       files: [{ path: 'archive/pc/mod/a.archive', method: 'link', backedUp: false }],
-      folders: ['archive/pc/mod', 'archive/pc', 'archive']
+      folders: []
     })
   })
 
@@ -152,7 +154,7 @@ describe('deployMod', () => {
     await expect(deployMod(context, gamePath, mod)).rejects.toThrow()
 
     expect(await readFile(game('bin', 'x64', 'version.dll'), 'utf8')).toBe('manual install')
-    expect(await exists(game('r6'))).toBe(false)
+    expect(await exists(game('r6', 'scripts'))).toBe(false)
     expect(await context.manifests.read(mod.id)).toBeNull()
     expect(await exists(join(context.backupsDir, mod.id))).toBe(false)
   })
@@ -249,7 +251,7 @@ describe('created folders', () => {
     expect(await exists(game('r6', 'scripts', 'second.reds'))).toBe(true)
 
     await undeployMod(context, second)
-    expect(await exists(game('r6'))).toBe(false)
+    expect(await exists(game('r6', 'scripts'))).toBe(false)
     expect(await context.manifests.createdFolders()).toEqual([])
   })
 
@@ -262,6 +264,16 @@ describe('created folders', () => {
     await undeployMod(context, mod)
 
     expect(await exists(game('r6', 'scripts', 'settings.json'))).toBe(true)
-    expect((await context.manifests.createdFolders()).sort()).toEqual(['r6', 'r6/scripts'])
+    expect((await context.manifests.createdFolders()).sort()).toEqual(['r6/scripts'])
+  })
+
+  it('records the folders it creates, but never one the game ships', async () => {
+    const mod = makeMod('redscript', [['engine/tools/scc.exe', 'engine/tools/scc.exe']])
+    await stage(mod, 'scc')
+
+    await deployMod(context, gamePath, mod)
+
+    expect((await context.manifests.read(mod.id))?.folders).toEqual(['engine/tools'])
+    expect(await context.manifests.createdFolders()).toEqual(['engine/tools'])
   })
 })

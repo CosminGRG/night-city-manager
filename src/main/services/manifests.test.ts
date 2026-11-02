@@ -163,15 +163,19 @@ describe('created folders', () => {
   })
 
   it('remembers created folders and skips case duplicates', async () => {
-    await store.addCreatedFolders(['r6/scripts', 'r6'])
+    await store.addCreatedFolders(['r6/scripts', 'red4ext/plugins'])
     await store.addCreatedFolders(['R6/Scripts', 'red4ext'])
-    expect(await store.createdFolders()).toEqual(['r6/scripts', 'r6', 'red4ext'])
+    expect(await store.createdFolders()).toEqual(['r6/scripts', 'red4ext/plugins', 'red4ext'])
   })
 
   it('starts from the folders recorded in existing manifests', async () => {
-    await store.write({ ...manifest(randomUUID(), []), folders: ['r6/scripts', 'r6'] })
+    await store.write({ ...manifest(randomUUID(), []), folders: ['r6/scripts', 'red4ext/plugins'] })
     await store.write({ ...manifest(randomUUID(), []), folders: ['red4ext'] })
-    expect((await store.createdFolders()).sort()).toEqual(['r6', 'r6/scripts', 'red4ext'])
+    expect((await store.createdFolders()).sort()).toEqual([
+      'r6/scripts',
+      'red4ext',
+      'red4ext/plugins'
+    ])
   })
 
   it('does not list its own file as a manifest', async () => {

@@ -4,6 +4,7 @@ import type { CleanResult, LeftoverGroup, LeftoverFile } from '@shared/types'
 import { gameFile, removeEmptyCreatedFolders } from './deployer'
 import { exists, removeEmptyTree } from './folders'
 import { ManifestStore } from './manifests'
+import { isVanillaFolder } from './vanilla'
 
 export interface FoundFile {
   path: string
@@ -162,7 +163,9 @@ async function cleanMatching(
 ): Promise<CleanResult> {
   const groups = await scanLeftovers(manifests, gamePath)
   const paths = groups.flatMap((group) =>
-    group.files.filter((file) => filter(group, file)).map((file) => file.path)
+    group.files
+      .filter((file) => !isVanillaFolder(posix.dirname(file.path)) && filter(group, file))
+      .map((file) => file.path)
   )
 
   return cleanLeftovers(manifests, gamePath, paths, trash)

@@ -9,6 +9,7 @@ import { findConflicts, type Manifest, type ManifestEntry, type ManifestStore } 
 import { linkOrCopy } from './place'
 import { isInside } from './deployPlan'
 import { isOurFile } from './ownership'
+import { isVanillaFolder } from './vanilla'
 
 export interface DeployContext {
   modsDir: string
@@ -48,7 +49,9 @@ export async function deployMod(
     gamePath,
     status: 'deploying',
     files,
-    folders: folders.map((folder) => win32.relative(gamePath, folder).split(win32.sep).join('/'))
+    folders: folders
+      .map((folder) => win32.relative(gamePath, folder).split(win32.sep).join('/'))
+      .filter((folder) => !isVanillaFolder(folder))
   }
 
   await manifests.write(manifest)

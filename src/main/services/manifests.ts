@@ -4,6 +4,7 @@ import { createHash } from 'crypto'
 import { readJsonFile, writeJsonFile } from './jsonFile'
 import type { PlaceMethod } from './place'
 import type { DeployStatus } from '@shared/types'
+import { isVanillaFolder } from './vanilla'
 
 export interface ManifestEntry {
   path: string
@@ -87,9 +88,11 @@ export class ManifestStore {
   }
 
   async createdFolders(): Promise<string[]> {
-    const folders = await this.readList(CREATED_FOLDERS)
-    if (folders) return folders
-    return [...new Set((await this.list()).flatMap((manifest) => manifest.folders))]
+    const folders = (await this.readList(CREATED_FOLDERS)) ?? [
+      ...new Set((await this.list()).flatMap((manifest) => manifest.folders))
+    ]
+
+    return folders.filter((folder) => !isVanillaFolder(folder))
   }
 
   async addCreatedFolders(folders: string[]): Promise<void> {

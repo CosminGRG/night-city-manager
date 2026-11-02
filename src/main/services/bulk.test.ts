@@ -74,6 +74,7 @@ beforeEach(async () => {
     games
   }
   await put(join(gamePath, 'bin', 'x64', 'Cyberpunk2077.exe'), 'game')
+  await mkdir(join(gamePath, 'archive', 'pc', 'mod'), { recursive: true })
 })
 
 afterEach(async () => {
@@ -135,7 +136,7 @@ describe('purgeAll', () => {
 
     expect(await purgeAll(context, 'all')).toEqual({ done: 2, skipped: 0, kept: [], failed: [] })
     expect(await deployedIds()).toEqual([])
-    expect(await readdir(gamePath)).toEqual(['bin'])
+    expect(await readdir(gamePath)).toEqual(['archive', 'bin'])
     expect(context.library.list()).toHaveLength(2)
   })
 
@@ -173,7 +174,7 @@ describe('removeAll', () => {
     expect(await removeAll(context, 'all')).toEqual({ done: 2, skipped: 0, kept: [], failed: [] })
     expect(context.library.list()).toEqual([])
     expect(await readdir(context.modsDir)).toEqual([])
-    expect(await readdir(gamePath)).toEqual(['bin'])
+    expect(await readdir(gamePath)).toEqual(['archive', 'bin'])
   })
 
   it('keeps core mods when removing non-core mods', async () => {

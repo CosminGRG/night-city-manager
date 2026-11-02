@@ -126,9 +126,8 @@ export class GameManifests {
     return new ManifestStore(join(this.root, gameKey(gamePath)))
   }
 
-  async deployedIn(modId: string): Promise<string[]> {
+  private async stores(): Promise<ManifestStore[]> {
     let entries
-
     try {
       entries = await readdir(this.root, { withFileTypes: true })
     } catch (error) {
@@ -136,15 +135,33 @@ export class GameManifests {
       throw error
     }
 
-    const gamePath: string[] = []
-    for (const entry of entries.filter((entry) => entry.isDirectory())) {
-      const manifest = await new ManifestStore(join(this.root, entry.name)).read(modId)
+    return entries
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => new ManifestStore(join(this.root, entry.name)))
+  }
+
+  async deployedIn(modId: string): Promise<string[]> {
+    const gamePaths: string[] = []
+    for (const store of await this.stores()) {
+      const manifest = await store.read(modId)
       if (manifest) {
-        gamePath.push(manifest.gamePath)
+        gamePaths.push(manifest.gamePath)
       }
     }
 
-    return gamePath
+    return gamePaths
+  }
+
+  async deployedGames(): Promise<string[]> {
+    const gamePaths = new Set<string>()
+
+    for (const store of await this.stores()) {
+      for (const manifest of await store.list()) {
+        gamePaths.add(manifest.gamePath)
+      }
+    }
+
+    return [...gamePaths]
   }
 }
 

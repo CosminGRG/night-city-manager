@@ -79,3 +79,8 @@ export interface BulkResult {
   kept: { name: string; files: string[] }[]
   failed: { name: string; error: string }[]
 }
+
+export interface ModsFolderInfo {
+  path: string
+  sameDriveAsGame: boolean | null
+}

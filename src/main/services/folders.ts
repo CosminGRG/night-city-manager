@@ -1,4 +1,4 @@
-import { rmdir, lstat, readdir } from 'fs/promises'
+import { mkdir, rmdir, unlink, writeFile, lstat, readdir } from 'fs/promises'
 import { join, win32 } from 'path'
 import { isInside } from './deployPlan'
 
@@ -64,5 +64,17 @@ export async function removeIfEmpty(folder: string): Promise<boolean> {
 export async function removeEmptyFolders(folders: string[]): Promise<void> {
   for (const folder of deepestFirst(folders)) {
     await removeIfEmpty(folder)
+  }
+}
+
+export async function isWritable(dir: string): Promise<boolean> {
+  const probe = join(dir, `.write-test-${process.pid}`)
+  try {
+    await mkdir(dir, { recursive: true })
+    await writeFile(probe, '')
+    await unlink(probe)
+    return true
+  } catch {
+    return false
   }
 }

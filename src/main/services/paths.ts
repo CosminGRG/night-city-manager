@@ -1,6 +1,5 @@
 import { app } from 'electron'
 import { dirname, join } from 'path'
-import { mkdir, unlink, writeFile } from 'fs/promises'
 
 export interface AppPaths {
   root: string
@@ -32,16 +31,4 @@ export function initPaths(): AppPaths {
 
   app.setPath('userData', paths.data)
   return paths
-}
-
-export async function isWritable(dir: string): Promise<boolean> {
-  const probe = join(dir, `.write-test-${process.pid}`)
-  try {
-    await mkdir(dir, { recursive: true })
-    await writeFile(probe, '')
-    await unlink(probe)
-    return true
-  } catch {
-    return false
-  }
 }

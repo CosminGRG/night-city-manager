@@ -18,7 +18,9 @@ const api: NightCityApi = {
   removeMod: (modId) => ipcRenderer.invoke(IpcChannels.removeMod, modId),
   revealMod: (modId) => ipcRenderer.invoke(IpcChannels.revealMod, modId),
   openNexusPage: (modId) => ipcRenderer.invoke(IpcChannels.openNexusPage, modId),
-  runBulk: (request) => ipcRenderer.invoke(IpcChannels.runBulk, request)
+  runBulk: (request) => ipcRenderer.invoke(IpcChannels.runBulk, request),
+  getModsFolder: () => ipcRenderer.invoke(IpcChannels.getModsFolder),
+  changeModsFolder: () => ipcRenderer.invoke(IpcChannels.changeModsFolder)
 }
 
 contextBridge.exposeInMainWorld('api', api)

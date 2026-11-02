@@ -7,7 +7,8 @@ import type {
   DeployStatus,
   UndeployResult,
   BulkResult,
-  BulkRequest
+  BulkRequest,
+  ModsFolderInfo
 } from './types'
 
 export const IpcChannels = {
@@ -26,7 +27,9 @@ export const IpcChannels = {
   revealMod: 'mod:reveal',
   openNexusPage: 'mod:open-nexus',
   pickArchives: 'mod:pick-archives',
-  runBulk: 'mod:bulk'
+  runBulk: 'mod:bulk',
+  getModsFolder: 'mods-folder:get',
+  changeModsFolder: 'mods-folder:change'
 } as const
 
 export interface AppInfo {
@@ -53,4 +56,6 @@ export interface NightCityApi {
   revealMod(modId: string): Promise<Result<null>>
   openNexusPage(modId: string): Promise<Result<null>>
   runBulk(request: BulkRequest): Promise<Result<BulkResult>>
+  getModsFolder(): Promise<ModsFolderInfo>
+  changeModsFolder(): Promise<Result<Settings>> | null
 }

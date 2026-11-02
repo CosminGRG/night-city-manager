@@ -139,6 +139,14 @@ describe('GameManifests', () => {
   it('finds nothing before the first deploy', async () => {
     expect(await games.deployedIn(randomUUID())).toEqual([])
   })
+
+  it('lists each game folder that has something deployed, once', async () => {
+    await games.forGame('C:\\Fake').write(manifestFor(randomUUID(), 'C:\\Fake'))
+    await games.forGame('C:\\Fake').write(manifestFor(randomUUID(), 'C:\\Fake'))
+    await games.forGame('E:\\Real').write(manifestFor(randomUUID(), 'E:\\Real'))
+
+    expect((await games.deployedGames()).sort()).toEqual(['C:\\Fake', 'E:\\Real'])
+  })
 })
 
 describe('created folders', () => {

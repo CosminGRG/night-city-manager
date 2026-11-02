@@ -6,7 +6,7 @@ import { registerIpcHandlers } from './ipc'
 import { initPaths } from './services/paths'
 import { dialog } from 'electron'
 import { SettingsStore } from './services/settings'
-import { isWritable } from './services/paths'
+import { isWritable } from './services/folders'
 import { ModLibrary } from './services/modLibrary'
 import { GameManifests } from './services/manifests'
 

@@ -1,6 +1,6 @@
 import { app, ipcMain, BrowserWindow, dialog, shell } from 'electron'
 import { stat } from 'fs/promises'
-import { join } from 'path'
+import { join, win32 } from 'path'
 import { IpcChannels, type AppInfo } from '@shared/ipc'
 import type {
   DetectedGame,
@@ -11,7 +11,8 @@ import type {
   DeployStatus,
   UndeployResult,
   BulkRequest,
-  BulkResult
+  BulkResult,
+  ModsFolderInfo
 } from '@shared/types'
 import type { SettingsStore } from './services/settings'
 import { detectGames, findGameRoot } from './services/gameDetector'
@@ -27,6 +28,7 @@ import { stagingFolderFor } from './services/staging'
 import { deployAll, purgeAll, removeAll } from './services/bulk'
 import { undeployAndRemove, type RemoveContext } from './services/removal'
 import { isGameRunning } from './services/gameProcess'
+import { checkNewModsFolder, moveMods, sameDrive } from './services/modsFolder'
 
 interface IpcDependencies {
   settings: SettingsStore
@@ -221,6 +223,48 @@ export function registerIpcHandlers({ settings, library, paths, games }: IpcDepe
       })
     )
   )
+
+  ipcMain.handle(IpcChannels.getModsFolder, (): ModsFolderInfo => {
+    const { gamePath } = settings.get()
+    const path = modsDir()
+    return { path, sameDriveAsGame: gamePath ? sameDrive(path, gamePath) : null }
+  })
+
+  ipcMain.handle(IpcChannels.changeModsFolder, async (event): Promise<Result<Settings> | null> => {
+    const window = BrowserWindow.fromWebContents(event.sender)
+    if (!window) return null
+
+    const { canceled, filePaths } = await dialog.showOpenDialog(window, {
+      title: 'Choose a folder for your mods',
+      properties: ['openDirectory']
+    })
+
+    if (canceled) return null
+
+    return runImport(() =>
+      runExclusive(() =>
+        toResult(async () => {
+          const deployedIn = await games.deployedGames()
+          if (deployedIn.length > 0) {
+            throw new Error(
+              `Purge all mods first. Mods are still deployed in ${deployedIn.join(', ')}.`
+            )
+          }
+
+          const from = modsDir()
+          const to = win32.resolve(filePaths[0])
+          await checkNewModsFolder(to, from, settings.get().gamePath)
+
+          let updated = settings.get()
+          await moveMods(from, to, library.list(), async () => {
+            updated = await settings.update({ modsPath: to })
+          })
+
+          return updated
+        })
+      )
+    )
+  })
 }
 
 function isBulkRequest(value: unknown): value is BulkRequest {

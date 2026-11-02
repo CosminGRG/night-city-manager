@@ -84,3 +84,20 @@ export interface ModsFolderInfo {
   path: string
   sameDriveAsGame: boolean | null
 }
+
+export interface LeftoverFile {
+  path: string
+  size: number
+  changed: boolean
+}
+
+export interface LeftoverGroup {
+  folder: string
+  inUse: boolean
+  files: LeftoverFile[]
+}
+
+export interface CleanResult {
+  trashed: number
+  failed: { path: string; error: string }[]
+}

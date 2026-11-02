@@ -88,7 +88,12 @@ export async function undeployMod(context: DeployContext, mod: ModRecord): Promi
 
   for (const [index, entry] of entries.entries()) {
     try {
-      if (await undeployFile(entry, gamePath, stagingDir, backupDir)) kept.push(entry.path)
+      if (await undeployFile(entry, gamePath, stagingDir, backupDir)) {
+        kept.push(entry.path)
+        if (!(await exists(backupPathFor(backupDir, entry.path)))) {
+          await manifests.addKeptFiles([entry.path])
+        }
+      }
     } catch (error) {
       const remaining = entries.slice(index).reverse()
       await manifests.write({ ...manifest, status: 'undeploying', files: remaining })
@@ -121,7 +126,7 @@ async function undeployFile(
   return false
 }
 
-async function removeEmptyCreatedFolders(
+export async function removeEmptyCreatedFolders(
   manifests: ManifestStore,
   gamePath: string
 ): Promise<void> {
@@ -135,7 +140,7 @@ async function removeEmptyCreatedFolders(
   await manifests.setCreatedFolders(remaining)
 }
 
-function gameFile(gamePath: string, path: string): string {
+export function gameFile(gamePath: string, path: string): string {
   const file = win32.join(gamePath, path)
   if (!isInside(gamePath, file)) throw new Error(`"${path}" is outside the game folder.`)
   return file

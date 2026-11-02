@@ -27,6 +27,7 @@ export interface Conflict {
 }
 
 const CREATED_FOLDERS = 'created-folders.json'
+const KEPT_FILES = 'kept-files.json'
 
 const MOD_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -86,22 +87,43 @@ export class ManifestStore {
   }
 
   async createdFolders(): Promise<string[]> {
-    const data = await readJsonFile(join(this.dir, CREATED_FOLDERS))
-    if (isStringArray(data)) return data
+    const folders = await this.readList(CREATED_FOLDERS)
+    if (folders) return folders
     return [...new Set((await this.list()).flatMap((manifest) => manifest.folders))]
   }
 
   async addCreatedFolders(folders: string[]): Promise<void> {
-    const known = await this.createdFolders()
-    const seen = new Set(known.map((folder) => folder.toLowerCase()))
-    const added = folders.filter((folder) => !seen.has(folder.toLowerCase()))
-    if (added.length > 0) {
-      await this.setCreatedFolders([...known, ...added])
-    }
+    await this.addToList(CREATED_FOLDERS, await this.createdFolders(), folders)
   }
 
   async setCreatedFolders(folders: string[]): Promise<void> {
     await writeJsonFile(join(this.dir, CREATED_FOLDERS), folders)
+  }
+
+  async keptFiles(): Promise<string[]> {
+    return (await this.readList(KEPT_FILES)) ?? []
+  }
+
+  async addKeptFiles(paths: string[]): Promise<void> {
+    await this.addToList(KEPT_FILES, await this.keptFiles(), paths)
+  }
+
+  async setKeptFiles(paths: string[]): Promise<void> {
+    await writeJsonFile(join(this.dir, KEPT_FILES), paths)
+  }
+
+  private async readList(name: string): Promise<string[] | null> {
+    const data = await readJsonFile(join(this.dir, name))
+    return isStringArray(data) ? data : null
+  }
+
+  private async addToList(name: string, known: string[], items: string[]): Promise<void> {
+    const seen = new Set(known.map((item) => item.toLowerCase()))
+    const added = items.filter((item) => !seen.has(item.toLowerCase()))
+
+    if (added.length > 0) {
+      await writeJsonFile(join(this.dir, name), [...known, ...added])
+    }
   }
 
   private fileFor(modId: string): string {

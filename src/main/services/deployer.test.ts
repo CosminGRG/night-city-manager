@@ -199,6 +199,7 @@ describe('undeployMod', () => {
     expect(await readFile(reds, 'utf8')).toBe('edited by the user')
     expect(await readFile(settings, 'utf8')).toBe('{}')
     expect(await readFile(game('bin', 'x64', 'version.dll'), 'utf8')).toBe('manual install')
+    expect(await context.manifests.keptFiles()).toEqual(['r6/scripts/M/a.reds'])
   })
 
   it('finishes a deploy that crashed halfway', async () => {
@@ -220,6 +221,18 @@ describe('undeployMod', () => {
 
   it('refuses a mod that is not deployed', async () => {
     await expect(undeployMod(context, makeMod('M', SAMPLE))).rejects.toThrow(/not deployed/)
+  })
+
+  it('does not offer a kept file for cleanup while its backup waits', async () => {
+    const mod = makeMod('M', SAMPLE)
+    await stage(mod, 'mod')
+    await deployMod(context, gamePath, mod)
+    const dll = game('bin', 'x64', 'version.dll')
+    await writeFile(`${dll}.tmp`, 'replaced by a game update')
+    await rename(`${dll}.tmp`, dll)
+
+    expect(await undeployMod(context, mod)).toEqual({ kept: ['bin/x64/version.dll'] })
+    expect(await context.manifests.keptFiles()).toEqual([])
   })
 })
 

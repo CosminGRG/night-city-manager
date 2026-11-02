@@ -8,7 +8,9 @@ import type {
   UndeployResult,
   BulkResult,
   BulkRequest,
-  ModsFolderInfo
+  ModsFolderInfo,
+  LeftoverGroup,
+  CleanResult
 } from './types'
 
 export const IpcChannels = {
@@ -29,7 +31,9 @@ export const IpcChannels = {
   pickArchives: 'mod:pick-archives',
   runBulk: 'mod:bulk',
   getModsFolder: 'mods-folder:get',
-  changeModsFolder: 'mods-folder:change'
+  changeModsFolder: 'mods-folder:change',
+  scanLeftovers: 'leftovers:scan',
+  cleanLeftovers: 'leftovers:clean'
 } as const
 
 export interface AppInfo {
@@ -58,4 +62,6 @@ export interface NightCityApi {
   runBulk(request: BulkRequest): Promise<Result<BulkResult>>
   getModsFolder(): Promise<ModsFolderInfo>
   changeModsFolder(): Promise<Result<Settings>> | null
+  scanLeftovers(): Promise<Result<LeftoverGroup[]>>
+  cleanLeftovers(paths: string[]): Promise<Result<CleanResult>>
 }

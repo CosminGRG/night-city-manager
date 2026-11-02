@@ -12,7 +12,9 @@ import type {
   UndeployResult,
   BulkRequest,
   BulkResult,
-  ModsFolderInfo
+  ModsFolderInfo,
+  LeftoverGroup,
+  CleanResult
 } from '@shared/types'
 import type { SettingsStore } from './services/settings'
 import { detectGames, findGameRoot } from './services/gameDetector'
@@ -29,6 +31,7 @@ import { deployAll, purgeAll, removeAll } from './services/bulk'
 import { undeployAndRemove, type RemoveContext } from './services/removal'
 import { isGameRunning } from './services/gameProcess'
 import { checkNewModsFolder, moveMods, sameDrive } from './services/modsFolder'
+import { cleanLeftovers, scanLeftovers } from './services/leftovers'
 
 interface IpcDependencies {
   settings: SettingsStore
@@ -265,6 +268,32 @@ export function registerIpcHandlers({ settings, library, paths, games }: IpcDepe
       )
     )
   })
+
+  ipcMain.handle(IpcChannels.scanLeftovers, (): Promise<Result<LeftoverGroup[]>> =>
+    runExclusive(() =>
+      toResult(async () => {
+        const gamePath = currentGame()
+        return scanLeftovers(games.forGame(gamePath), gamePath)
+      })
+    )
+  )
+
+  ipcMain.handle(
+    IpcChannels.cleanLeftovers,
+    (_event, paths: unknown): Promise<Result<CleanResult>> =>
+      runExclusive(() =>
+        toResult(async () => {
+          if (!Array.isArray(paths) || !paths.every((path) => typeof path === 'string')) {
+            throw new Error('Invalid file list.')
+          }
+          await refuseWhileGameRuns()
+          const gamePath = currentGame()
+          return cleanLeftovers(games.forGame(gamePath), gamePath, paths, (file) =>
+            shell.trashItem(file)
+          )
+        })
+      )
+  )
 }
 
 function isBulkRequest(value: unknown): value is BulkRequest {

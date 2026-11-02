@@ -2,7 +2,7 @@ import { mkdir, mkdtemp, stat, rm, writeFile } from 'fs/promises'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { removeEmptyFolders, missingFolders, removeEmptyTree } from './folders'
+import { removeEmptyFolders, missingFolders, removeEmptyTree, removeIfEmpty } from './folders'
 
 let dir: string
 
@@ -81,5 +81,24 @@ describe('removeEmptyTree', () => {
 
     expect(await exists(join(backups, 'bin'))).toBe(false)
     expect(await exists(join(backups, 'r6', 'scripts', 'kept.reds'))).toBe(true)
+  })
+})
+
+describe('removeIfEmpty', () => {
+  it('removes an empty folder', async () => {
+    await mkdir(join(dir, 'empty'))
+    expect(await removeIfEmpty(join(dir, 'empty'))).toBe(true)
+    expect(await exists(join(dir, 'empty'))).toBe(false)
+  })
+
+  it('keeps a folder that holds a file', async () => {
+    await mkdir(join(dir, 'full'))
+    await writeFile(join(dir, 'full', 'settings.json'), '{}')
+    expect(await removeIfEmpty(join(dir, 'full'))).toBe(false)
+    expect(await exists(join(dir, 'full', 'settings.json'))).toBe(true)
+  })
+
+  it('treats a folder that is already gone as removed', async () => {
+    expect(await removeIfEmpty(join(dir, 'missing'))).toBe(true)
   })
 })

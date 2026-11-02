@@ -222,3 +222,33 @@ describe('undeployMod', () => {
     await expect(undeployMod(context, makeMod('M', SAMPLE))).rejects.toThrow(/not deployed/)
   })
 })
+
+describe('created folders', () => {
+  it('removes a shared folder once the last mod using it is undeployed', async () => {
+    const first = makeMod('First', [['r6/scripts/first.reds', 'r6/scripts/first.reds']])
+    const second = makeMod('Second', [['r6/scripts/second.reds', 'r6/scripts/second.reds']])
+    for (const mod of [first, second]) {
+      await stage(mod, mod.name)
+      await deployMod(context, gamePath, mod)
+    }
+
+    await undeployMod(context, first)
+    expect(await exists(game('r6', 'scripts', 'second.reds'))).toBe(true)
+
+    await undeployMod(context, second)
+    expect(await exists(game('r6'))).toBe(false)
+    expect(await context.manifests.createdFolders()).toEqual([])
+  })
+
+  it('keeps a created folder that holds a file no mod placed', async () => {
+    const mod = makeMod('Mod', [['r6/scripts/mod.reds', 'r6/scripts/mod.reds']])
+    await stage(mod, 'mod')
+    await deployMod(context, gamePath, mod)
+    await writeFile(game('r6', 'scripts', 'settings.json'), '{}')
+
+    await undeployMod(context, mod)
+
+    expect(await exists(game('r6', 'scripts', 'settings.json'))).toBe(true)
+    expect((await context.manifests.createdFolders()).sort()).toEqual(['r6', 'r6/scripts'])
+  })
+})

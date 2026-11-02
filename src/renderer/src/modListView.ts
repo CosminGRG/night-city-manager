@@ -4,7 +4,7 @@ import { BulkAction, BulkScope, DeployStatus, ModRecord } from '@shared/types'
 
 export type BulkCounts = Record<BulkAction, Record<BulkScope, number>>
 
-export const PAGE_SIZE = 15
+export const PAGE_SIZE = 13
 
 export function sortMods(mods: ModRecord[]): ModRecord[] {
   return [...mods].sort((a, b) => Number(isCoreMod(b)) - Number(isCoreMod(a)))

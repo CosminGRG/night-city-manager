@@ -3,7 +3,7 @@ import { join, win32 } from 'path'
 import type { ModRecord, UndeployResult } from '@shared/types'
 import { planDeploy, type DeployOperation } from './deployPlan'
 import { backUp, backupPathFor, restore } from './backups'
-import { missingFolders, removeEmptyFolders, removeEmptyTree, exists } from './folders'
+import { deepestFirst, exists, missingFolders, removeEmptyTree, removeIfEmpty } from './folders'
 import type { ModLibrary } from './modLibrary'
 import { findConflicts, type Manifest, type ManifestEntry, type ManifestStore } from './manifests'
 import { linkOrCopy } from './place'
@@ -50,7 +50,9 @@ export async function deployMod(
     files,
     folders: folders.map((folder) => win32.relative(gamePath, folder).split(win32.sep).join('/'))
   }
+
   await manifests.write(manifest)
+  await manifests.addCreatedFolders(manifest.folders)
 
   try {
     for (const [index, operation] of operations.entries()) {
@@ -62,7 +64,7 @@ export async function deployMod(
     }
   } catch (error) {
     await rollBack(operations, files, backupDir, error)
-    await removeEmptyFolders(folders)
+    await removeEmptyCreatedFolders(manifests, gamePath)
     await removeEmptyTree(backupDir)
     await manifests.remove(mod.id)
     throw error
@@ -94,7 +96,7 @@ export async function undeployMod(context: DeployContext, mod: ModRecord): Promi
     }
   }
 
-  await removeEmptyFolders(manifest.folders.map((folder) => gameFile(gamePath, folder)))
+  await removeEmptyCreatedFolders(manifests, gamePath)
   await removeEmptyTree(backupDir)
   await manifests.remove(mod.id)
   return { kept }
@@ -117,6 +119,20 @@ async function undeployFile(
 
   await restore(backupPathFor(backupDir, entry.path), target)
   return false
+}
+
+async function removeEmptyCreatedFolders(
+  manifests: ManifestStore,
+  gamePath: string
+): Promise<void> {
+  const remaining: string[] = []
+  for (const folder of deepestFirst(await manifests.createdFolders())) {
+    if (!(await removeIfEmpty(gameFile(gamePath, folder)))) {
+      remaining.push(folder)
+    }
+  }
+
+  await manifests.setCreatedFolders(remaining)
 }
 
 function gameFile(gamePath: string, path: string): string {

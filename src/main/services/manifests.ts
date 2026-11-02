@@ -26,6 +26,8 @@ export interface Conflict {
   ownerModId: string
 }
 
+const CREATED_FOLDERS = 'created-folders.json'
+
 const MOD_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 function isManifest(data: unknown): data is Manifest {
@@ -38,6 +40,10 @@ function isManifest(data: unknown): data is Manifest {
     Array.isArray(manifest.files) &&
     Array.isArray(manifest.folders)
   )
+}
+
+function isStringArray(data: unknown): data is string[] {
+  return Array.isArray(data) && data.every((item) => typeof item === 'string')
 }
 
 export class ManifestStore {
@@ -70,12 +76,32 @@ export class ManifestStore {
     }
 
     const manifests: Manifest[] = []
-    for (const name of names.filter((name) => name.endsWith('.json'))) {
+    const files = names.filter((name) => name.endsWith('.json') && MOD_ID.test(name.slice(0, -5)))
+    for (const name of files) {
       const data = await readJsonFile(join(this.dir, name))
       if (isManifest(data)) manifests.push(data)
     }
 
     return manifests
+  }
+
+  async createdFolders(): Promise<string[]> {
+    const data = await readJsonFile(join(this.dir, CREATED_FOLDERS))
+    if (isStringArray(data)) return data
+    return [...new Set((await this.list()).flatMap((manifest) => manifest.folders))]
+  }
+
+  async addCreatedFolders(folders: string[]): Promise<void> {
+    const known = await this.createdFolders()
+    const seen = new Set(known.map((folder) => folder.toLowerCase()))
+    const added = folders.filter((folder) => !seen.has(folder.toLowerCase()))
+    if (added.length > 0) {
+      await this.setCreatedFolders([...known, ...added])
+    }
+  }
+
+  async setCreatedFolders(folders: string[]): Promise<void> {
+    await writeJsonFile(join(this.dir, CREATED_FOLDERS), folders)
   }
 
   private fileFor(modId: string): string {
@@ -106,10 +132,8 @@ export class GameManifests {
     try {
       entries = await readdir(this.root, { withFileTypes: true })
     } catch (error) {
-      if (error) {
-        if ((error as NodeJS.ErrnoException).code === 'ENOENT') return []
-        throw error
-      }
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') return []
+      throw error
     }
 
     const gamePath: string[] = []

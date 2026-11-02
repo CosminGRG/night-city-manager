@@ -140,3 +140,35 @@ describe('GameManifests', () => {
     expect(await games.deployedIn(randomUUID())).toEqual([])
   })
 })
+
+describe('created folders', () => {
+  let dir: string
+  let store: ManifestStore
+
+  beforeEach(async () => {
+    dir = await mkdtemp(join(tmpdir(), 'ncm-created-'))
+    store = new ManifestStore(join(dir, 'manifests'))
+  })
+
+  afterEach(async () => {
+    await rm(dir, { recursive: true, force: true })
+  })
+
+  it('remembers created folders and skips case duplicates', async () => {
+    await store.addCreatedFolders(['r6/scripts', 'r6'])
+    await store.addCreatedFolders(['R6/Scripts', 'red4ext'])
+    expect(await store.createdFolders()).toEqual(['r6/scripts', 'r6', 'red4ext'])
+  })
+
+  it('starts from the folders recorded in existing manifests', async () => {
+    await store.write({ ...manifest(randomUUID(), []), folders: ['r6/scripts', 'r6'] })
+    await store.write({ ...manifest(randomUUID(), []), folders: ['red4ext'] })
+    expect((await store.createdFolders()).sort()).toEqual(['r6', 'r6/scripts', 'red4ext'])
+  })
+
+  it('does not list its own file as a manifest', async () => {
+    await store.write(manifest(randomUUID(), []))
+    await store.setCreatedFolders(['r6'])
+    expect(await store.list()).toHaveLength(1)
+  })
+})

@@ -8,7 +8,7 @@ import { dialog } from 'electron'
 import { SettingsStore } from './services/settings'
 import { isWritable } from './services/paths'
 import { ModLibrary } from './services/modLibrary'
-import { ManifestStore } from './services/manifests'
+import { GameManifests } from './services/manifests'
 
 const paths = initPaths()
 
@@ -72,7 +72,7 @@ app.whenReady().then(async () => {
   const library = new ModLibrary(join(paths.data, 'mods.json'))
   await library.load()
 
-  const manifests = new ManifestStore(join(paths.data, 'manifests'))
+  const games = new GameManifests(join(paths.data, 'manifests'))
 
   // Set app user model id for windows
   electronApp.setAppUserModelId('com.cosmingrg.nightcitymanager')
@@ -84,7 +84,7 @@ app.whenReady().then(async () => {
     optimizer.watchWindowShortcuts(window)
   })
 
-  registerIpcHandlers({ settings, library, manifests, paths })
+  registerIpcHandlers({ settings, library, games, paths })
   createWindow()
 
   app.on('activate', function () {

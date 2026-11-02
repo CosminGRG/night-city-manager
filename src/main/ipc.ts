@@ -19,28 +19,23 @@ import type { ModLibrary } from './services/modLibrary'
 import type { AppPaths } from './services/paths'
 import { importMod } from './services/importer'
 import { detectInstalledFrameworks } from './services/frameworks'
-import type { ManifestStore } from './services/manifests'
+import { gameKey, type GameManifests } from './services/manifests'
 import { createQueue } from './services/queue'
 import { type DeployContext, deployMod, undeployMod } from './services/deployer'
 import { ARCHIVE_EXTENSIONS, checkArchivePath } from './services/archivePath'
 import { stagingFolderFor } from './services/staging'
 import { deployAll, purgeAll, removeAll } from './services/bulk'
-import { undeployAndRemove } from './services/removal'
+import { undeployAndRemove, type RemoveContext } from './services/removal'
 import { isGameRunning } from './services/gameProcess'
 
 interface IpcDependencies {
   settings: SettingsStore
   library: ModLibrary
   paths: AppPaths
-  manifests: ManifestStore
+  games: GameManifests
 }
 
-export function registerIpcHandlers({
-  settings,
-  library,
-  paths,
-  manifests
-}: IpcDependencies): void {
+export function registerIpcHandlers({ settings, library, paths, games }: IpcDependencies): void {
   const runExclusive = createQueue()
   const runImport = createQueue()
 
@@ -63,12 +58,23 @@ export function registerIpcHandlers({
     return mod
   }
 
-  function deployContext(): DeployContext {
+  function modsDir(): string {
+    return settings.get().modsPath ?? paths.mods
+  }
+
+  function currentGame(): string {
+    const { gamePath } = settings.get()
+    if (!gamePath) throw new Error('Choose your game folder first.')
+    return gamePath
+  }
+
+  function deployContext(gamePath: string): DeployContext & RemoveContext {
     return {
-      modsDir: settings.get().modsPath ?? paths.mods,
-      backupsDir: join(paths.data, 'backups'),
-      manifests,
-      library
+      modsDir: modsDir(),
+      backupsDir: join(paths.data, 'backups', gameKey(gamePath)),
+      manifests: games.forGame(gamePath),
+      library,
+      games
     }
   }
 
@@ -126,8 +132,7 @@ export function registerIpcHandlers({
     runImport(() =>
       toResult(async () => {
         const archive = await checkArchivePath(path)
-        const modsDir = settings.get().modsPath ?? paths.mods
-        return importMod({ sevenZip: paths.sevenZip, modsDir, library }, archive)
+        return importMod({ sevenZip: paths.sevenZip, modsDir: modsDir(), library }, archive)
       })
     )
   )
@@ -139,7 +144,9 @@ export function registerIpcHandlers({
 
   ipcMain.handle(IpcChannels.listDeployments, async (): Promise<Record<string, DeployStatus>> => {
     const statuses: Record<string, DeployStatus> = {}
-    for (const manifest of await manifests.list()) {
+    const { gamePath } = settings.get()
+    if (!gamePath) return {}
+    for (const manifest of await games.forGame(gamePath).list()) {
       statuses[manifest.modId] = manifest.status
     }
     return statuses
@@ -149,9 +156,8 @@ export function registerIpcHandlers({
     runExclusive(() =>
       toResult(async () => {
         await refuseWhileGameRuns()
-        const { gamePath } = settings.get()
-        if (!gamePath) throw new Error('Choose your game folder first.')
-        await deployMod(deployContext(), gamePath, findMod(modId))
+        const gamePath = currentGame()
+        await deployMod(deployContext(gamePath), gamePath, findMod(modId))
         return null
       })
     )
@@ -163,7 +169,7 @@ export function registerIpcHandlers({
       runExclusive(() =>
         toResult(async () => {
           await refuseWhileGameRuns()
-          return undeployMod(deployContext(), findMod(modId))
+          return undeployMod(deployContext(currentGame()), findMod(modId))
         })
       )
   )
@@ -172,14 +178,15 @@ export function registerIpcHandlers({
     runExclusive(() =>
       toResult(async () => {
         await refuseWhileGameRuns()
-        return undeployAndRemove(deployContext(), findMod(modId))
+        return undeployAndRemove(deployContext(currentGame()), findMod(modId))
       })
     )
   )
 
   ipcMain.handle(IpcChannels.revealMod, (_event, modId: unknown): Promise<Result<null>> =>
     toResult(async () => {
-      const folder = stagingFolderFor(deployContext().modsDir, findMod(modId))
+      const folder = stagingFolderFor(modsDir(), findMod(modId))
+
       if (!(await stat(folder)).isDirectory()) throw new Error('The mod folder is missing.')
       const error = await shell.openPath(folder)
       if (error) throw new Error(error)
@@ -204,13 +211,13 @@ export function registerIpcHandlers({
         await refuseWhileGameRuns()
         if (!isBulkRequest(request)) throw new Error('Unknown bulk action.')
 
+        const gamePath = currentGame()
+        const context = deployContext(gamePath)
         const { action, scope } = request
-        if (action === 'purge') return purgeAll(deployContext(), scope)
-        if (action === 'remove') return removeAll(deployContext(), scope)
 
-        const { gamePath } = settings.get()
-        if (!gamePath) throw new Error('Choose your game folder first.')
-        return deployAll(deployContext(), gamePath, scope)
+        if (action === 'purge') return purgeAll(context, scope)
+        if (action === 'remove') return removeAll(context, scope)
+        return deployAll(context, gamePath, scope)
       })
     )
   )

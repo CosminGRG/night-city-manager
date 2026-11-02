@@ -1,5 +1,6 @@
 import { readdir, rm } from 'fs/promises'
 import { join, win32 } from 'path'
+import { createHash } from 'crypto'
 import { readJsonFile, writeJsonFile } from './jsonFile'
 import type { PlaceMethod } from './place'
 import type { DeployStatus } from '@shared/types'
@@ -80,6 +81,46 @@ export class ManifestStore {
   private fileFor(modId: string): string {
     if (!MOD_ID.test(modId)) throw new Error(`Invalid mod id: ${modId}`)
     return join(this.dir, `${modId}.json`)
+  }
+}
+
+export function gameKey(gamePath: string): string {
+  const normalized = win32.resolve(gamePath).toLowerCase()
+  return createHash('sha256').update(normalized).digest('hex').slice(0, 16)
+}
+
+export class GameManifests {
+  private readonly root: string
+
+  constructor(root: string) {
+    this.root = root
+  }
+
+  forGame(gamePath: string): ManifestStore {
+    return new ManifestStore(join(this.root, gameKey(gamePath)))
+  }
+
+  async deployedIn(modId: string): Promise<string[]> {
+    let entries
+
+    try {
+      entries = await readdir(this.root, { withFileTypes: true })
+    } catch (error) {
+      if (error) {
+        if ((error as NodeJS.ErrnoException).code === 'ENOENT') return []
+        throw error
+      }
+    }
+
+    const gamePath: string[] = []
+    for (const entry of entries.filter((entry) => entry.isDirectory())) {
+      const manifest = await new ManifestStore(join(this.root, entry.name)).read(modId)
+      if (manifest) {
+        gamePath.push(manifest.gamePath)
+      }
+    }
+
+    return gamePath
   }
 }
 

@@ -6,12 +6,13 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import type { Framework, ModRecord } from '@shared/types'
 import { deployAll, purgeAll, removeAll } from './bulk'
 import { deployMod, type DeployContext } from './deployer'
-import { ManifestStore } from './manifests'
 import { ModLibrary } from './modLibrary'
+import { GameManifests } from './manifests'
+import type { RemoveContext } from './removal'
 
 let dir: string
 let gamePath: string
-let context: DeployContext
+let context: DeployContext & RemoveContext
 
 async function put(path: string, content: string): Promise<void> {
   await mkdir(dirname(path), { recursive: true })
@@ -64,11 +65,13 @@ const names = (mods: ModRecord[]): string[] => mods.map((mod) => mod.name)
 beforeEach(async () => {
   dir = await mkdtemp(join(tmpdir(), 'ncm-bulk-'))
   gamePath = join(dir, 'game')
+  const games = new GameManifests(join(dir, 'data', 'manifests'))
   context = {
     modsDir: join(dir, 'mods'),
     backupsDir: join(dir, 'data', 'backups'),
-    manifests: new ManifestStore(join(dir, 'data', 'manifests')),
-    library: new ModLibrary(join(dir, 'data', 'mods.json'))
+    manifests: games.forGame(gamePath),
+    library: new ModLibrary(join(dir, 'data', 'mods.json')),
+    games
   }
   await put(join(gamePath, 'bin', 'x64', 'Cyberpunk2077.exe'), 'game')
 })
@@ -180,5 +183,25 @@ describe('removeAll', () => {
     expect(await removeAll(context, 'non-core')).toMatchObject({ done: 1 })
     expect(names(context.library.list())).toEqual(['CET'])
     expect(await deployedIds()).toEqual([cet.id])
+  })
+
+  it('refuses to remove a mod that is deployed in another game folder', async () => {
+    const elsewhere = await staged('Elsewhere', ['archive/pc/mod/b.archive'])
+    const otherGame = join(dir, 'other-game')
+    await context.games.forGame(otherGame).write({
+      version: 1,
+      modId: elsewhere.id,
+      gamePath: otherGame,
+      status: 'deployed',
+      files: [],
+      folders: []
+    })
+    await deployed('Here', 'archive/pc/mod/a.archive')
+
+    const result = await removeAll(context, 'all')
+
+    expect(result).toMatchObject({ done: 1, failed: [{ name: 'Elsewhere' }] })
+    expect(result.failed[0].error).toMatch(/still deployed in .*other-game/)
+    expect(names(context.library.list())).toEqual(['Elsewhere'])
   })
 })

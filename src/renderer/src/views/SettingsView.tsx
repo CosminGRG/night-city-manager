@@ -38,7 +38,7 @@ export function SettingsView({ settings, onSettingsChange }: SettingsViewProps):
           <button onClick={handleChangeGame}>Change</button>
         </div>
         <p className="muted settings-hint">
-          Mods that are already deployed stay where they are until you undeploy them.
+          Each game folder keeps its own deployed mods. Switching back shows them again.
         </p>
         {error && (
           <p role="alert" className="error">

@@ -4,7 +4,7 @@ import { tmpdir } from 'os'
 import { join } from 'path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import type { ModRecord } from '@shared/types'
-import { ManifestStore } from './manifests'
+import { GameManifests } from './manifests'
 import { ModLibrary } from './modLibrary'
 import { removeMod, type RemoveContext } from './removal'
 
@@ -28,8 +28,8 @@ beforeEach(async () => {
   dir = await mkdtemp(join(tmpdir(), 'ncm-remove-'))
   context = {
     modsDir: join(dir, 'mods'),
-    manifests: new ManifestStore(join(dir, 'data', 'manifests')),
-    library: new ModLibrary(join(dir, 'data', 'mods.json'))
+    library: new ModLibrary(join(dir, 'data', 'mods.json')),
+    games: new GameManifests(join(dir, 'data', 'manifests'))
   }
 })
 
@@ -50,19 +50,20 @@ describe('removeMod', () => {
     expect(await readdir(context.modsDir)).toEqual([])
   })
 
-  it('refuses a mod that is still deployed', async () => {
+  it('refuses a mod that is still deployed in any game folder', async () => {
     const mod = makeMod('Test Mod')
     await context.library.add(mod)
-    await context.manifests.write({
+    const otherGame = join(dir, 'other-game')
+    await context.games.forGame(otherGame).write({
       version: 1,
       modId: mod.id,
-      gamePath: join(dir, 'game'),
+      gamePath: otherGame,
       status: 'deployed',
       files: [],
       folders: []
     })
 
-    await expect(removeMod(context, mod)).rejects.toThrow(/still deployed/)
+    await expect(removeMod(context, mod)).rejects.toThrow(/still deployed in .*other-game/)
     expect(context.library.list()).toHaveLength(1)
   })
 

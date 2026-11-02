@@ -1,7 +1,7 @@
 import type { BulkResult, BulkScope, DeployStatus, ModRecord } from '@shared/types'
 import { isCoreMod } from '@shared/mods'
 import { deployMod, undeployMod, type DeployContext } from './deployer'
-import { undeployAndRemove } from './removal'
+import { undeployAndRemove, type RemoveContext } from './removal'
 
 type Task = (mod: ModRecord) => Promise<string[]>
 
@@ -58,7 +58,10 @@ export async function purgeAll(context: DeployContext, scope: BulkScope): Promis
   return runEach(targets, 0, async (mod) => (await undeployMod(context, mod)).kept)
 }
 
-export async function removeAll(context: DeployContext, scope: BulkScope): Promise<BulkResult> {
+export async function removeAll(
+  context: DeployContext & RemoveContext,
+  scope: BulkScope
+): Promise<BulkResult> {
   const targets = context.library.list().filter((mod) => inScope(mod, scope))
   return runEach(targets, 0, async (mod) => (await undeployAndRemove(context, mod)).kept)
 }

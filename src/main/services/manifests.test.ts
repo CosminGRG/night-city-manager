@@ -3,7 +3,7 @@ import { mkdtemp, rm, writeFile } from 'fs/promises'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { findConflicts, ManifestStore, type Manifest } from './manifests'
+import { findConflicts, ManifestStore, GameManifests, gameKey, type Manifest } from './manifests'
 
 const GAME = 'D:\\Games\\Cyberpunk2077'
 
@@ -83,5 +83,60 @@ describe('findConflicts', () => {
   it('finds nothing when no path is owned', () => {
     const manifests = [manifest(OWNER, ['archive/pc/mod/other.archive'])]
     expect(findConflicts(['archive/pc/mod/a.archive'], manifests, ME, GAME)).toEqual([])
+  })
+})
+
+describe('gameKey', () => {
+  it('is the same for different spellings of one folder', () => {
+    expect(gameKey('C:\\Games\\Cyberpunk 2077')).toBe(gameKey('c:/games/cyberpunk 2077/'))
+  })
+
+  it('differs between folders and is a short hex string', () => {
+    expect(gameKey('C:\\Games\\Cyberpunk 2077')).not.toBe(gameKey('D:\\Games\\Cyberpunk 2077'))
+    expect(gameKey('C:\\Games\\Cyberpunk 2077')).toMatch(/^[0-9a-f]{16}$/)
+  })
+})
+
+describe('GameManifests', () => {
+  let root: string
+  let games: GameManifests
+
+  const manifestFor = (modId: string, gamePath: string): Manifest => ({
+    version: 1,
+    modId,
+    gamePath,
+    status: 'deployed',
+    files: [],
+    folders: []
+  })
+
+  beforeEach(async () => {
+    root = await mkdtemp(join(tmpdir(), 'ncm-games-'))
+    games = new GameManifests(join(root, 'manifests'))
+  })
+
+  afterEach(async () => {
+    await rm(root, { recursive: true, force: true })
+  })
+
+  it('keeps the manifests of each game folder apart', async () => {
+    const modId = randomUUID()
+    await games.forGame('C:\\Fake').write(manifestFor(modId, 'C:\\Fake'))
+
+    expect(await games.forGame('C:\\Fake').list()).toHaveLength(1)
+    expect(await games.forGame('E:\\Real').list()).toEqual([])
+  })
+
+  it('finds every game folder a mod is deployed in', async () => {
+    const modId = randomUUID()
+    await games.forGame('C:\\Fake').write(manifestFor(modId, 'C:\\Fake'))
+    await games.forGame('E:\\Real').write(manifestFor(modId, 'E:\\Real'))
+
+    expect((await games.deployedIn(modId)).sort()).toEqual(['C:\\Fake', 'E:\\Real'])
+    expect(await games.deployedIn(randomUUID())).toEqual([])
+  })
+
+  it('finds nothing before the first deploy', async () => {
+    expect(await games.deployedIn(randomUUID())).toEqual([])
   })
 })

@@ -7,7 +7,8 @@ import type {
   Result,
   BulkAction,
   BulkRequest,
-  BulkResult
+  BulkResult,
+  CleanResult
 } from '@shared/types'
 import { isCoreMod } from '@shared/mods'
 import { FRAMEWORK_LABELS, MOD_TYPE_LABELS } from '@renderer/modLabels'
@@ -15,7 +16,7 @@ import { CoreModStatus } from './CoreModStatus'
 import { filterMods, paginate, sortMods, bulkCounts } from '@renderer/modListView'
 import { Pagination } from './Pagination'
 import { SearchBox } from './SearchBox'
-import { ConfirmDialog } from './ConfirmDialog'
+import { RemoveConfirmDialog } from './RemoveConfirmDialog'
 import { type ModActions, ModControls } from './ModControls'
 import { ActionsMenu } from './ActionsMenu'
 import { BulkConfirmDialog } from './BulkConfirmDialog'
@@ -68,7 +69,20 @@ function keptMessage(mod: ModRecord, kept: string[]): string {
   return `${mod.name}: left in place because they changed after deploy: ${files}`
 }
 
-function bulkMessage(action: BulkAction, { done, skipped, kept }: BulkResult): string {
+function cleanedMessage({ trashed, failed }: CleanResult): string {
+  const parts = [
+    `Moved ${trashed} leftover ${trashed === 1 ? 'file' : 'files'} to the Recycle Bin.`
+  ]
+  if (failed.length > 0) {
+    parts.push(
+      `Could not move: ${failed.map(({ path, error }) => `${path} (${error})`).join(', ')}`
+    )
+  }
+
+  return parts.join(' ')
+}
+
+function bulkMessage(action: BulkAction, { done, skipped, kept, cleaned }: BulkResult): string {
   const parts = [`${BULK_DONE[action]} ${done} ${done === 1 ? 'mod' : 'mods'}.`]
 
   if (skipped > 0) {
@@ -79,6 +93,10 @@ function bulkMessage(action: BulkAction, { done, skipped, kept }: BulkResult): s
   if (kept.length > 0) {
     const files = kept.map(({ name, files }) => `${name}: ${files.join(', ')}`).join(', ')
     parts.push(`Left in place because they changed after deploy: ${files}`)
+  }
+
+  if (cleaned) {
+    parts.push(cleanedMessage(cleaned))
   }
 
   return parts.join(' ')
@@ -149,16 +167,20 @@ export function ModList({ importedCount, onImport }: ModListProps): React.JSX.El
     }
   }
 
-  async function handleRemove(mod: ModRecord): Promise<void> {
+  async function handleRemove(mod: ModRecord, trashLeftover: boolean): Promise<void> {
     setBusy({ id: mod.id, label: 'Removing...' })
     setError(null)
     setNotice(null)
     try {
-      const result = await window.api.removeMod(mod.id)
+      const result = await window.api.removeMod(mod.id, trashLeftover)
       if (!result.ok) {
         setError(result.error)
-      } else if (result.value.kept.length > 0) {
-        setNotice(keptMessage(mod, result.value.kept))
+      } else {
+        const { kept, cleaned } = result.value
+        const parts: string[] = []
+        if (kept.length > 0) parts.push(keptMessage(mod, kept))
+        if (cleaned) parts.push(cleanedMessage(cleaned))
+        if (parts.length > 0) setNotice(parts.join(' '))
       }
     } finally {
       setMods(await window.api.listMods())
@@ -181,7 +203,7 @@ export function ModList({ importedCount, onImport }: ModListProps): React.JSX.El
 
       const { failed } = result.value
       if (failed.length > 0) {
-        setError(`Failed ${failed.map(({ name, error }) => `${name} (${error})`).join(',')}`)
+        setError(`Failed ${failed.map(({ name, error }) => `${name} (${error})`).join(', ')}`)
       }
       setNotice(bulkMessage(request.action, result.value))
     } finally {
@@ -312,27 +334,19 @@ export function ModList({ importedCount, onImport }: ModListProps): React.JSX.El
         </>
       )}
       {pendingRemoval && (
-        <ConfirmDialog
-          title={`Remove ${pendingRemoval.name}?`}
-          confirmLabel="Remove"
-          onConfirm={() => handleRemove(pendingRemoval)}
+        <RemoveConfirmDialog
+          mod={pendingRemoval}
+          deployed={deployments[pendingRemoval.id] !== undefined}
+          onConfirm={(trashLeftovers) => handleRemove(pendingRemoval, trashLeftovers)}
           onClose={() => setPendingRemoval(null)}
-        >
-          <p>
-            It will be taken off your mod list
-            {deployments[pendingRemoval.id] ? ' and out of your game' : ''}.
-          </p>
-          <p className="muted">
-            Your downloaded archive stays where it is, so you can import it again anytime.
-          </p>
-        </ConfirmDialog>
+        />
       )}
 
       {pendingBulk && (
         <BulkConfirmDialog
           request={pendingBulk}
           count={counts[pendingBulk.action][pendingBulk.scope]}
-          onConfirm={() => handleBulk(pendingBulk)}
+          onConfirm={(trashLeftovers) => handleBulk({ ...pendingBulk, trashLeftovers })}
           onClose={() => setPendingBulk(null)}
         />
       )}

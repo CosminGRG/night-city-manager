@@ -1,6 +1,6 @@
 import { lstat, readdir } from 'fs/promises'
 import { join, posix, win32 } from 'path'
-import type { CleanResult, LeftoverGroup } from '@shared/types'
+import type { CleanResult, LeftoverGroup, LeftoverFile } from '@shared/types'
 import { gameFile, removeEmptyCreatedFolders } from './deployer'
 import { exists, removeEmptyTree } from './folders'
 import { ManifestStore } from './manifests'
@@ -16,6 +16,8 @@ export interface LeftoverInput {
   kept: string[]
   found: FoundFile[]
 }
+
+type LeftoverFilter = (group: LeftoverGroup, file: LeftoverFile) => boolean
 
 function isUnder(folder: string, path: string): boolean {
   return path.toLowerCase().startsWith(`${folder.toLowerCase()}/`)
@@ -150,4 +152,40 @@ export async function cleanLeftovers(
   await manifests.setKeptFiles(kept)
 
   return result
+}
+
+async function cleanMatching(
+  manifests: ManifestStore,
+  gamePath: string,
+  trash: (file: string) => Promise<void>,
+  filter: LeftoverFilter
+): Promise<CleanResult> {
+  const groups = await scanLeftovers(manifests, gamePath)
+  const paths = groups.flatMap((group) =>
+    group.files.filter((file) => filter(group, file)).map((file) => file.path)
+  )
+
+  return cleanLeftovers(manifests, gamePath, paths, trash)
+}
+
+export function cleanUnusedLeftovers(
+  manifests: ManifestStore,
+  gamePath: string,
+  trash: (file: string) => Promise<void>
+): Promise<CleanResult> {
+  return cleanMatching(manifests, gamePath, trash, (group) => !group.inUse)
+}
+
+export function cleanModLeftovers(
+  manifests: ManifestStore,
+  gamePath: string,
+  mod: { folders: string[]; kept: string[] },
+  trash: (file: string) => Promise<void>
+): Promise<CleanResult> {
+  const folders = new Set(mod.folders.map((folder) => folder.toLowerCase()))
+  const kept = new Set(mod.kept.map((path) => path.toLowerCase()))
+  const filter: LeftoverFilter = (group, file) =>
+    (!group.inUse && folders.has(group.folder.toLowerCase())) || kept.has(file.path.toLowerCase())
+
+  return cleanMatching(manifests, gamePath, trash, filter)
 }

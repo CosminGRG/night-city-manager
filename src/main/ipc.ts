@@ -31,7 +31,12 @@ import { deployAll, purgeAll, removeAll } from './services/bulk'
 import { undeployAndRemove, type RemoveContext } from './services/removal'
 import { isGameRunning } from './services/gameProcess'
 import { checkNewModsFolder, moveMods, sameDrive } from './services/modsFolder'
-import { cleanLeftovers, scanLeftovers } from './services/leftovers'
+import {
+  cleanLeftovers,
+  scanLeftovers,
+  cleanUnusedLeftovers,
+  cleanModLeftovers
+} from './services/leftovers'
 
 interface IpcDependencies {
   settings: SettingsStore
@@ -179,13 +184,29 @@ export function registerIpcHandlers({ settings, library, paths, games }: IpcDepe
       )
   )
 
-  ipcMain.handle(IpcChannels.removeMod, (_event, modId: unknown): Promise<Result<UndeployResult>> =>
-    runExclusive(() =>
-      toResult(async () => {
-        await refuseWhileGameRuns()
-        return undeployAndRemove(deployContext(currentGame()), findMod(modId))
-      })
-    )
+  ipcMain.handle(
+    IpcChannels.removeMod,
+    (_event, modId: unknown, trashLeftovers: unknown): Promise<Result<UndeployResult>> =>
+      runExclusive(() =>
+        toResult(async () => {
+          await refuseWhileGameRuns()
+          const gamePath = currentGame()
+          const context = deployContext(gamePath)
+          const mod = findMod(modId)
+          const manifest = await context.manifests.read(mod.id)
+
+          const result = await undeployAndRemove(context, mod)
+          if (trashLeftovers !== true || !manifest) return result
+
+          const cleaned = await cleanModLeftovers(
+            context.manifests,
+            gamePath,
+            { folders: manifest.folders, kept: result.kept },
+            (file) => shell.trashItem(file)
+          )
+          return { ...result, cleaned }
+        })
+      )
   )
 
   ipcMain.handle(IpcChannels.revealMod, (_event, modId: unknown): Promise<Result<null>> =>
@@ -218,11 +239,23 @@ export function registerIpcHandlers({ settings, library, paths, games }: IpcDepe
 
         const gamePath = currentGame()
         const context = deployContext(gamePath)
-        const { action, scope } = request
 
-        if (action === 'purge') return purgeAll(context, scope)
-        if (action === 'remove') return removeAll(context, scope)
-        return deployAll(context, gamePath, scope)
+        const { action, scope, trashLeftovers } = request
+        if (action === 'deploy') {
+          return deployAll(context, gamePath, scope)
+        }
+
+        const result =
+          action === 'purge' ? await purgeAll(context, scope) : await removeAll(context, scope)
+        if (!trashLeftovers) {
+          return result
+        }
+
+        const cleaned = await cleanUnusedLeftovers(context.manifests, gamePath, (file) =>
+          shell.trashItem(file)
+        )
+
+        return { ...result, cleaned }
       })
     )
   )
@@ -298,11 +331,12 @@ export function registerIpcHandlers({ settings, library, paths, games }: IpcDepe
 
 function isBulkRequest(value: unknown): value is BulkRequest {
   if (typeof value !== 'object' || value === null) return false
-  const { action, scope } = value as Record<string, unknown>
+  const { action, scope, trashLeftovers } = value as Record<string, unknown>
 
   return (
     (action === 'deploy' || action === 'purge' || action === 'remove') &&
-    (scope === 'all' || scope === 'core' || scope === 'non-core')
+    (scope === 'all' || scope === 'core' || scope === 'non-core') &&
+    (trashLeftovers === undefined || typeof trashLeftovers === 'boolean')
   )
 }
 

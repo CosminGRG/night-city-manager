@@ -63,6 +63,7 @@ export type DeployStatus = 'deploying' | 'deployed' | 'undeploying'
 
 export interface UndeployResult {
   kept: string[]
+  cleaned?: CleanResult
 }
 
 export type BulkAction = 'deploy' | 'purge' | 'remove'
@@ -71,6 +72,7 @@ export type BulkScope = 'all' | 'core' | 'non-core'
 export interface BulkRequest {
   action: BulkAction
   scope: BulkScope
+  trashLeftovers?: boolean
 }
 
 export interface BulkResult {
@@ -78,6 +80,7 @@ export interface BulkResult {
   skipped: number
   kept: { name: string; files: string[] }[]
   failed: { name: string; error: string }[]
+  cleaned?: CleanResult
 }
 
 export interface ModsFolderInfo {

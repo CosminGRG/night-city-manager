@@ -4,7 +4,13 @@ import { tmpdir } from 'os'
 import { dirname, join } from 'path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { exists } from './folders'
-import { cleanLeftovers, findLeftovers, scanLeftovers } from './leftovers'
+import {
+  cleanLeftovers,
+  findLeftovers,
+  scanLeftovers,
+  cleanUnusedLeftovers,
+  cleanModLeftovers
+} from './leftovers'
 import { ManifestStore, type Manifest } from './manifests'
 
 describe('findLeftovers', () => {
@@ -213,5 +219,42 @@ describe('scanning and cleaning the game folder', () => {
 
     expect(await manifests.keptFiles()).toEqual([])
     expect(await exists(game('r6/cache/final.redscripts'))).toBe(true)
+  })
+
+  it('cleans only folders that no deployed mod uses', async () => {
+    await manifests.setCreatedFolders(['red4ext', 'r6/scripts'])
+    await manifests.write(manifestOwning('red4ext/RED4ext.dll'))
+    await put('red4ext/RED4ext.dll')
+    await put('red4ext/logs/red4ext.log')
+    await put('r6/scripts/Old/settings.json')
+
+    expect(await cleanUnusedLeftovers(manifests, gamePath, trash)).toEqual({
+      trashed: 1,
+      failed: []
+    })
+    expect(await exists(game('red4ext/logs/red4ext.log'))).toBe(true)
+    expect(await exists(game('r6/scripts'))).toBe(false)
+    expect(await manifests.createdFolders()).toEqual(['red4ext'])
+  })
+  it("cleans only the removed mod's own leftovers", async () => {
+    const mine = 'bin/x64/plugins/cyber_engine_tweaks/mods/Mine'
+    const other = 'bin/x64/plugins/cyber_engine_tweaks/mods/Other'
+    await manifests.setCreatedFolders([mine, other])
+    await put(`${mine}/settings.json`)
+    await put(`${other}/settings.json`)
+    await put('r6/cache/mine.xml')
+    await manifests.addKeptFiles(['r6/cache/mine.xml'])
+
+    const result = await cleanModLeftovers(
+      manifests,
+      gamePath,
+      { folders: [mine], kept: ['r6/cache/mine.xml'] },
+      trash
+    )
+
+    expect(result).toEqual({ trashed: 2, failed: [] })
+    expect(await exists(game(mine))).toBe(false)
+    expect(await exists(game(`${other}/settings.json`))).toBe(true)
+    expect(await manifests.createdFolders()).toEqual([other])
   })
 })

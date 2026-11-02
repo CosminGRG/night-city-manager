@@ -15,7 +15,8 @@ const api: NightCityApi = {
   listDeployments: () => ipcRenderer.invoke(IpcChannels.listDeployments),
   deployMod: (modId) => ipcRenderer.invoke(IpcChannels.deployMod, modId),
   undeployMod: (modId) => ipcRenderer.invoke(IpcChannels.undeployMod, modId),
-  removeMod: (modId) => ipcRenderer.invoke(IpcChannels.removeMod, modId),
+  removeMod: (modId, trashLeftovers) =>
+    ipcRenderer.invoke(IpcChannels.removeMod, modId, trashLeftovers),
   revealMod: (modId) => ipcRenderer.invoke(IpcChannels.revealMod, modId),
   openNexusPage: (modId) => ipcRenderer.invoke(IpcChannels.openNexusPage, modId),
   runBulk: (request) => ipcRenderer.invoke(IpcChannels.runBulk, request),

@@ -1,0 +1,18 @@
+.confirm-option {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.confirm-option input {
+  margin-top: 3px;
+  accent-color: var(--primary);
+}
+
+.confirm-option .muted {
+  display: block;
+  margin-top: 2px;
+}

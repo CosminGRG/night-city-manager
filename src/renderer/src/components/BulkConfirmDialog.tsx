@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import type { BulkRequest, BulkScope } from '@shared/types'
 import { ConfirmDialog } from './ConfirmDialog'
+import { TrashLeftoversOption } from './TrashLeftoversOption'
 import './BulkConfirmDialog.css'
 
 const CONFIRM_WORD = 'remove'
@@ -53,7 +54,7 @@ function dialogText({ action, scope }: BulkRequest, count: number): DialogText {
 interface BulkConfirmDialogProps {
   request: BulkRequest
   count: number
-  onConfirm: () => void
+  onConfirm: (trashLeftovers: boolean) => void
   onClose: () => void
 }
 
@@ -67,6 +68,8 @@ export function BulkConfirmDialog({
   const inputRef = useRef<HTMLInputElement>(null)
   const needsWord = request.action === 'remove'
   const text = dialogText(request, count)
+  const [trashLeftovers, setTrashLeftovers] = useState(false)
+  const canTrash = request.action !== 'deploy'
 
   return (
     <ConfirmDialog
@@ -75,11 +78,19 @@ export function BulkConfirmDialog({
       tone={request.action === 'deploy' ? 'primary' : 'danger'}
       confirmDisabled={needsWord && typed.trim().toLowerCase() !== CONFIRM_WORD}
       initialFocus={needsWord ? inputRef : undefined}
-      onConfirm={onConfirm}
+      onConfirm={() => onConfirm(trashLeftovers)}
       onClose={onClose}
     >
       <p>{text.body}</p>
       <p className="muted">{text.note}</p>
+      {canTrash && (
+        <TrashLeftoversOption
+          checked={trashLeftovers}
+          onChange={setTrashLeftovers}
+          hint="Logs, settings and saved data (like CET key bindings or AMM appearances) in folders the app created that no deployed mod still uses."
+        />
+      )}
+
       {needsWord && (
         <label className="confirm-word">
           <span>

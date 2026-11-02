@@ -102,6 +102,12 @@ button.small {
   padding: 3px 10px;
 }
 
+.with-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
 button.danger {
   --glow: var(--danger);
   background: color-mix(in srgb, var(--danger) 12%, transparent);

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Circle, CircleCheck, TriangleAlert, PackageOpen, SearchX } from 'lucide-react'
+import { Circle, CircleCheck, TriangleAlert, PackageOpen, SearchX, Plus } from 'lucide-react'
 import type {
   DeployStatus,
   Framework,
@@ -239,7 +239,8 @@ export function ModList({ importedCount, onImport }: ModListProps): React.JSX.El
               </span>
             )}
           </div>
-          <button onClick={onImport} disabled={locked}>
+          <button className="with-icon" onClick={onImport} disabled={locked}>
+            <Plus size={16} aria-hidden="true" />
             Import archives
           </button>
           <ActionsMenu

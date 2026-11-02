@@ -1,5 +1,13 @@
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
-import { ChevronDown, Power, PowerOff, ShieldCheck, Trash2 } from 'lucide-react'
+import {
+  ChevronDown,
+  Power,
+  PowerOff,
+  ShieldCheck,
+  Trash2,
+  Layers,
+  LoaderCircle
+} from 'lucide-react'
 import type { BulkRequest } from '@shared/types'
 import type { BulkCounts } from '@renderer/modListView'
 import { MenuItem } from './MenuItem'
@@ -22,6 +30,11 @@ export function ActionsMenu({
     <DropdownMenu.Root>
       <DropdownMenu.Trigger asChild>
         <button className="actions-button" disabled={locked || counts.remove.all === 0}>
+          {busyLabel ? (
+            <LoaderCircle size={16} className="spin" aria-hidden="true" />
+          ) : (
+            <Layers size={16} aria-hidden="true" />
+          )}
           {busyLabel ?? 'Actions'}
           <ChevronDown size={14} aria-hidden="true" />
         </button>

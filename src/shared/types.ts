@@ -104,3 +104,17 @@ export interface CleanResult {
   trashed: number
   failed: { path: string; error: string }[]
 }
+
+export type BisectAnswer = 'broken' | 'works'
+
+export type BisectStatus =
+  | {
+      kind: 'testing'
+      round: number
+      checking: boolean
+      suspects: string[]
+      off: string[]
+      roundsLeft: number
+    }
+  | { kind: 'found'; culprit: string }
+  | { kind: 'not-in-suspects' }

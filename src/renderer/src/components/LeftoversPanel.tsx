@@ -8,7 +8,7 @@ import {
   defaultSelection,
   formatSize,
   selectedTotals,
-  toggleFiles
+  toggleItems
 } from '@renderer/leftoversView'
 import './LeftoversPanel.css'
 
@@ -130,7 +130,7 @@ export function LeftoversPanel(): React.JSX.Element {
   }
 
   function toggle(paths: string[], on: boolean): void {
-    setSelected((current) => toggleFiles(current, paths, on))
+    setSelected((current) => toggleItems(current, paths, on))
   }
 
   const totals = groups ? selectedTotals(groups, selected) : { count: 0, size: 0 }

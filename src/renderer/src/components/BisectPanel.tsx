@@ -8,7 +8,7 @@ import {
   roundCount,
   roundSummary
 } from '@renderer/bisectView'
-import { toggleFiles } from '@renderer/leftoversView'
+import { toggleItems } from '@renderer/leftoversView'
 import { ConfirmDialog } from './ConfirmDialog'
 import './BisectPanel.css'
 
@@ -134,7 +134,7 @@ export function BisectPanel(): React.JSX.Element {
                   type="checkbox"
                   checked={suspects.has(mod.id)}
                   onChange={(event) =>
-                    setSuspects((current) => toggleFiles(current, [mod.id], event.target.checked))
+                    setSuspects((current) => toggleItems(current, [mod.id], event.target.checked))
                   }
                 />
                 <span className="bisect-mod-name">{mod.name}</span>

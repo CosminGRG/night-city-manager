@@ -22,7 +22,7 @@ export function defaultSelection(groups: LeftoverGroup[]): Set<string> {
   )
 }
 
-export function toggleFiles(selected: Set<string>, paths: string[], on: boolean): Set<string> {
+export function toggleItems(selected: Set<string>, paths: string[], on: boolean): Set<string> {
   const next = new Set(selected)
   for (const path of paths) {
     if (on) {

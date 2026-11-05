@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { LeftoverGroup } from '@shared/types'
-import { defaultSelection, formatSize, selectedTotals, toggleFiles } from './leftoversView'
+import { defaultSelection, formatSize, selectedTotals, toggleItems } from './leftoversView'
 
 const groups: LeftoverGroup[] = [
   {
@@ -43,12 +43,12 @@ describe('defaultSelection', () => {
   })
 })
 
-describe('toggleFiles and selectedTotals', () => {
+describe('toggleItems and selectedTotals', () => {
   it('adds and removes paths without changing the old set', () => {
     const before = new Set(['red4ext/config.ini'])
-    const after = toggleFiles(before, ['red4ext/config.ini', 'r6/tweaks/x.log'], false)
+    const after = toggleItems(before, ['red4ext/config.ini', 'r6/tweaks/x.log'], false)
     expect([...before]).toEqual(['red4ext/config.ini'])
-    expect([...toggleFiles(after, ['r6/tweaks/x.log'], true)]).toEqual(['r6/tweaks/x.log'])
+    expect([...toggleItems(after, ['r6/tweaks/x.log'], true)]).toEqual(['r6/tweaks/x.log'])
   })
 
   it('counts and sums the selected files', () => {

@@ -1,29 +1,3 @@
-.troubleshoot-panel {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  padding: var(--space-4);
-  background: var(--surface-1);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-}
-
-.troubleshoot-panel-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--space-4);
-}
-
-.troubleshoot-panel-header p {
-  margin-top: var(--space-1);
-  font-size: 13px;
-}
-
-.troubleshoot-panel-header > button {
-  flex-shrink: 0;
-}
-
 .leftover-groups,
 .leftover-files {
   list-style: none;

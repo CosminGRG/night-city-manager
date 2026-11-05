@@ -7,11 +7,12 @@ import { DropOverlay } from './components/DropOverlay'
 import { useImportQueue } from './useImportQueue'
 import { ImportView } from './views/ImportView'
 import { SettingsView } from './views/SettingsView'
-import { TroubleshootView } from './views/TroubleshootView'
+import { TroubleshootView, type TroubleshootTab } from './views/TroubleshootView'
 import './App.css'
 
 function App(): React.JSX.Element {
   const [view, setView] = useState<View>('mods')
+  const [troubleshootTab, setTroubleshootTab] = useState<TroubleshootTab>('overview')
   const [settings, setSettings] = useState<Settings | null>(null)
   const queue = useImportQueue()
 
@@ -29,6 +30,11 @@ function App(): React.JSX.Element {
     if (paths) importArchives(paths)
   }
 
+  function openBisect(): void {
+    setTroubleshootTab('bisect')
+    setView('troubleshoot')
+  }
+
   function renderContent(): React.JSX.Element {
     if (!settings) return <p className="muted">Loading...</p>
     if (!settings.gamePath) return <GameSetup onSelected={setSettings} />
@@ -37,18 +43,14 @@ function App(): React.JSX.Element {
       return <ImportView queue={queue} onPick={pickArchives} />
     }
     if (view === 'troubleshoot') {
-      return <TroubleshootView />
+      return <TroubleshootView tab={troubleshootTab} onTabChange={setTroubleshootTab} />
     }
     if (view === 'settings') {
       return <SettingsView settings={settings} onSettingsChange={setSettings} />
     }
 
     return (
-      <ModList
-        importedCount={queue.imported}
-        onImport={pickArchives}
-        onTroubleshoot={() => setView('troubleshoot')}
-      />
+      <ModList importedCount={queue.imported} onImport={pickArchives} onTroubleshoot={openBisect} />
     )
   }
 

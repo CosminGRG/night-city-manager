@@ -18,10 +18,6 @@ interface LeftoverGroupRowProps {
   onToggle: (paths: string[], on: boolean) => void
 }
 
-interface LeftoversPanelProps {
-  locked: boolean
-}
-
 function LeftoverGroupRow({ group, selected, onToggle }: LeftoverGroupRowProps): React.JSX.Element {
   const paths = group.files.map((file) => file.path)
   const count = paths.filter((path) => selected.has(path)).length
@@ -81,13 +77,14 @@ function LeftoverGroupRow({ group, selected, onToggle }: LeftoverGroupRowProps):
   )
 }
 
-export function LeftoversPanel({ locked }: LeftoversPanelProps): React.JSX.Element {
+export function LeftoversPanel(): React.JSX.Element {
   const [groups, setGroups] = useState<LeftoverGroup[] | null>(null)
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [confirming, setConfirming] = useState(false)
   const [cleaning, setCleaning] = useState(false)
+  const [locked, setLocked] = useState(false)
 
   function applyScan(result: Result<LeftoverGroup[]>): void {
     if (result.ok) {
@@ -100,6 +97,7 @@ export function LeftoversPanel({ locked }: LeftoversPanelProps): React.JSX.Eleme
 
   useEffect(() => {
     window.api.scanLeftovers().then(applyScan)
+    window.api.getBisect().then((result) => setLocked(result.ok && result.value !== null))
   }, [])
 
   async function rescan(): Promise<void> {
@@ -196,7 +194,7 @@ export function LeftoversPanel({ locked }: LeftoversPanelProps): React.JSX.Eleme
             {notice}
           </p>
         </div>
-        <button className="with-icon" onClick={handleRescan} disabled={!groups || cleaning}>
+        <button className="primary with-icon" onClick={handleRescan} disabled={!groups || cleaning}>
           <RefreshCw size={16} aria-hidden="true" />
           Scan again
         </button>

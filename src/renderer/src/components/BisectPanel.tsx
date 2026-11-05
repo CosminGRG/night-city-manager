@@ -47,11 +47,7 @@ function ModNames({ title, names }: ModNamesProps): React.JSX.Element {
   )
 }
 
-interface BisectPanelProps {
-  onRunningChange: (running: boolean) => void
-}
-
-export function BisectPanel({ onRunningChange }: BisectPanelProps): React.JSX.Element {
+export function BisectPanel(): React.JSX.Element {
   const [view, setView] = useState<BisectView | null | undefined>(undefined)
   const [mods, setMods] = useState<ModRecord[]>([])
   const [candidates, setCandidates] = useState<ModRecord[]>([])
@@ -77,10 +73,6 @@ export function BisectPanel({ onRunningChange }: BisectPanelProps): React.JSX.El
   useEffect(() => {
     loadBisectState().then(apply)
   }, [])
-
-  useEffect(() => {
-    onRunningChange(Boolean(view))
-  }, [view, onRunningChange])
 
   async function run(label: string, action: () => Promise<Result<unknown>>): Promise<void> {
     setBusy(label)
@@ -176,7 +168,7 @@ export function BisectPanel({ onRunningChange }: BisectPanelProps): React.JSX.El
             onClick={start}
           >
             <Play size={16} aria-hidden="true" />
-            Start bisect
+            Start Bisect
           </button>
         </div>
       </>

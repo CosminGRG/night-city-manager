@@ -1,0 +1,56 @@
+.overview {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.overview-steps {
+  display: grid;
+  gap: var(--space-2);
+  padding-left: var(--space-6);
+  font-size: 13px;
+  list-style: decimal;
+}
+
+.overview-steps li::marker {
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.overview-tools {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: var(--space-4);
+}
+
+.overview-tool p {
+  flex: 1;
+  font-size: 13px;
+}
+
+.overview-tool button {
+  align-self: flex-start;
+}
+
+.overview-links {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.overview-links a {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--accent);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.overview-links a:hover {
+  text-decoration: underline;
+}
+
+.overview-links p {
+  margin-top: 2px;
+  font-size: 13px;
+}

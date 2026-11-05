@@ -1,5 +1,13 @@
 import { useEffect, useState } from 'react'
-import { Circle, CircleCheck, TriangleAlert, PackageOpen, SearchX, Plus } from 'lucide-react'
+import {
+  Circle,
+  CircleCheck,
+  TriangleAlert,
+  PackageOpen,
+  SearchX,
+  Plus,
+  FlaskConical
+} from 'lucide-react'
 import type {
   DeployStatus,
   Framework,
@@ -29,6 +37,7 @@ const INTERRUPTED = 'The last deploy or undeploy was interrupted. Undeploy to cl
 interface DeployState {
   deployments: Record<string, DeployStatus>
   installed: Framework[]
+  bisecting: boolean
 }
 
 interface Busy {
@@ -39,6 +48,7 @@ interface Busy {
 interface ModListProps {
   importedCount: number
   onImport: () => void
+  onTroubleshoot: () => void
 }
 
 const BULK_BUSY: Record<BulkAction, string> = {
@@ -54,11 +64,12 @@ const BULK_DONE: Record<BulkAction, string> = {
 }
 
 async function loadDeployState(): Promise<DeployState> {
-  const [deployments, installed] = await Promise.all([
+  const [deployments, installed, bisect] = await Promise.all([
     window.api.listDeployments(),
-    window.api.getInstalledFrameworks()
+    window.api.getInstalledFrameworks(),
+    window.api.getBisect()
   ])
-  return { deployments, installed }
+  return { deployments, installed, bisecting: bisect.ok && bisect.value !== null }
 }
 
 function keptMessage(mod: ModRecord, kept: string[]): string {
@@ -89,7 +100,11 @@ function bulkMessage(action: BulkAction, { done, skipped, kept, cleaned }: BulkR
   return parts.join(' ')
 }
 
-export function ModList({ importedCount, onImport }: ModListProps): React.JSX.Element {
+export function ModList({
+  importedCount,
+  onImport,
+  onTroubleshoot
+}: ModListProps): React.JSX.Element {
   const [mods, setMods] = useState<ModRecord[] | null>(null)
   const [deployments, setDeployments] = useState<Record<string, DeployStatus>>({})
   const [installed, setInstalled] = useState<Framework[]>([])
@@ -101,10 +116,12 @@ export function ModList({ importedCount, onImport }: ModListProps): React.JSX.El
   const [busy, setBusy] = useState<Busy | null>(null)
   const [pendingBulk, setPendingBulk] = useState<BulkRequest | null>(null)
   const [bulkLabel, setBulkLabel] = useState<string | null>(null)
+  const [bisecting, setBisecting] = useState(false)
 
   function applyDeployState(state: DeployState): void {
     setDeployments(state.deployments)
     setInstalled(state.installed)
+    setBisecting(state.bisecting)
   }
 
   async function refresh(): Promise<void> {
@@ -215,6 +232,7 @@ export function ModList({ importedCount, onImport }: ModListProps): React.JSX.El
 
   const visible = mods && paginate(filterMods(sortMods(mods), query), page)
   const locked = busy !== null || bulkLabel !== null
+  const changesLocked = locked || bisecting
   const counts = bulkCounts(mods ?? [], deployments)
   const statuses = (mods ?? []).map((mod) => deployments[mod.id])
   const activeCount = statuses.filter((status) => status === 'deployed').length
@@ -255,12 +273,24 @@ export function ModList({ importedCount, onImport }: ModListProps): React.JSX.El
           <ActionsMenu
             counts={counts}
             busyLabel={bulkLabel}
-            locked={locked}
+            locked={changesLocked}
             onSelect={setPendingBulk}
           />
         </div>
         <SearchBox value={query} onChange={handleSearch} />
       </header>
+
+      {bisecting && (
+        <div className="bisect-banner mods-message" role="status">
+          <FlaskConical size={16} aria-hidden="true" />
+          <span>
+            A bisect is running, so mods can&apos;t be changed until you finish or stop it.
+          </span>
+          <button className="small" onClick={onTroubleshoot}>
+            Open Troubleshoot
+          </button>
+        </div>
+      )}
 
       {error && (
         <p role="alert" className="error mods-message">
@@ -304,7 +334,7 @@ export function ModList({ importedCount, onImport }: ModListProps): React.JSX.El
                   mod={mod}
                   status={deployments[mod.id]}
                   busyLabel={busy?.id === mod.id ? busy.label : null}
-                  locked={locked}
+                  locked={changesLocked}
                   actions={actions}
                 />
               ))}

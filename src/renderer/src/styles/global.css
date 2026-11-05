@@ -108,15 +108,34 @@ button.small {
   gap: var(--space-2);
 }
 
-button.danger {
-  --glow: var(--danger);
-  background: color-mix(in srgb, var(--danger) 12%, transparent);
-  border-color: color-mix(in srgb, var(--danger) 40%, transparent);
-  color: var(--danger-text);
+button.danger,
+button.warning,
+button.success {
+  --glow: var(--tone);
+  background: color-mix(in srgb, var(--tone) 12%, transparent);
+  border-color: color-mix(in srgb, var(--tone) 40%, transparent);
+  color: var(--tone-text);
 }
 
-button.danger:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--danger) 20%, transparent);
+button.danger:hover:not(:disabled),
+button.warning:hover:not(:disabled),
+button.success:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--tone) 20%, transparent);
+}
+
+button.danger {
+  --tone: var(--danger);
+  --tone-text: var(--danger-text);
+}
+
+button.warning {
+  --tone: var(--warning);
+  --tone-text: var(--warning);
+}
+
+button.success {
+  --tone: var(--success);
+  --tone-text: var(--success);
 }
 
 :focus-visible {

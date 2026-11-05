@@ -18,6 +18,10 @@ interface LeftoverGroupRowProps {
   onToggle: (paths: string[], on: boolean) => void
 }
 
+interface LeftoversPanelProps {
+  locked: boolean
+}
+
 function LeftoverGroupRow({ group, selected, onToggle }: LeftoverGroupRowProps): React.JSX.Element {
   const paths = group.files.map((file) => file.path)
   const count = paths.filter((path) => selected.has(path)).length
@@ -77,7 +81,7 @@ function LeftoverGroupRow({ group, selected, onToggle }: LeftoverGroupRowProps):
   )
 }
 
-export function LeftoversPanel(): React.JSX.Element {
+export function LeftoversPanel({ locked }: LeftoversPanelProps): React.JSX.Element {
   const [groups, setGroups] = useState<LeftoverGroup[] | null>(null)
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [error, setError] = useState<string | null>(null)
@@ -158,13 +162,18 @@ export function LeftoversPanel(): React.JSX.Element {
             />
           ))}
         </ul>
+        {locked && (
+          <p className="warning">
+            Finish the bisect first: mods switched off for a round keep their settings here.
+          </p>
+        )}
         <div className="leftover-actions">
           <span className="muted">
             {totals.count} of {fileCount} files selected ({formatSize(totals.size)})
           </span>
           <button
             className="danger with-icon"
-            disabled={totals.count === 0 || cleaning}
+            disabled={totals.count === 0 || cleaning || locked}
             onClick={() => setConfirming(true)}
           >
             <Trash2 size={16} aria-hidden="true" />

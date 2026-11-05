@@ -43,7 +43,13 @@ function App(): React.JSX.Element {
       return <SettingsView settings={settings} onSettingsChange={setSettings} />
     }
 
-    return <ModList importedCount={queue.imported} onImport={pickArchives} />
+    return (
+      <ModList
+        importedCount={queue.imported}
+        onImport={pickArchives}
+        onTroubleshoot={() => setView('troubleshoot')}
+      />
+    )
   }
 
   return (

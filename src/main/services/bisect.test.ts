@@ -6,6 +6,7 @@ import {
   deployedDuring,
   startBisect,
   undoBisect,
+  isBisectSession,
   type BisectSession
 } from './bisect'
 
@@ -89,5 +90,17 @@ describe('deployedDuring', () => {
     const session = startBisect(['core', 'a', 'b', 'c'], ['a', 'b', 'c'], false)
     expect(deployedDuring(session)).toEqual(['core', 'c'])
     expect(deployedDuring(answered(session, 'works', 'works'))).toEqual(['core', 'a', 'b', 'c'])
+  })
+})
+
+describe('isBisectSession', () => {
+  it('accepts a saved session and rejects one that makes no sense', () => {
+    const session = answered(startBisect(MODS, MODS, true), 'works')
+    expect(isBisectSession(JSON.parse(JSON.stringify(session)))).toBe(true)
+
+    expect(isBisectSession({ ...session, answers: ['maybe'] })).toBe(false)
+    expect(isBisectSession({ ...session, suspects: ['a'] })).toBe(false)
+    expect(isBisectSession({ ...session, suspects: ['a', 'x'] })).toBe(false)
+    expect(isBisectSession(null)).toBe(false)
   })
 })

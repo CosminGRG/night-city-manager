@@ -23,7 +23,14 @@ const api: NightCityApi = {
   getModsFolder: () => ipcRenderer.invoke(IpcChannels.getModsFolder),
   changeModsFolder: () => ipcRenderer.invoke(IpcChannels.changeModsFolder),
   scanLeftovers: () => ipcRenderer.invoke(IpcChannels.scanLeftovers),
-  cleanLeftovers: (paths) => ipcRenderer.invoke(IpcChannels.cleanLeftovers, paths)
+  cleanLeftovers: (paths) => ipcRenderer.invoke(IpcChannels.cleanLeftovers, paths),
+  getBisect: () => ipcRenderer.invoke(IpcChannels.getBisect),
+  startBisect: (suspects, checkFirst) =>
+    ipcRenderer.invoke(IpcChannels.startBisect, suspects, checkFirst),
+  answerBisect: (answer) => ipcRenderer.invoke(IpcChannels.answerBisect, answer),
+  undoBisect: () => ipcRenderer.invoke(IpcChannels.undoBisect),
+  applyBisect: () => ipcRenderer.invoke(IpcChannels.applyBisect),
+  endBisect: (keepCulpritOff) => ipcRenderer.invoke(IpcChannels.endBisect, keepCulpritOff)
 }
 
 contextBridge.exposeInMainWorld('api', api)

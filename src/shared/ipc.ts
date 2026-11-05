@@ -10,7 +10,9 @@ import type {
   BulkRequest,
   ModsFolderInfo,
   LeftoverGroup,
-  CleanResult
+  CleanResult,
+  BisectView,
+  BisectAnswer
 } from './types'
 
 export const IpcChannels = {
@@ -33,7 +35,13 @@ export const IpcChannels = {
   getModsFolder: 'mods-folder:get',
   changeModsFolder: 'mods-folder:change',
   scanLeftovers: 'leftovers:scan',
-  cleanLeftovers: 'leftovers:clean'
+  cleanLeftovers: 'leftovers:clean',
+  getBisect: 'bisect:get',
+  startBisect: 'bisect:start',
+  answerBisect: 'bisect:answer',
+  undoBisect: 'bisect:undo',
+  applyBisect: 'bisect:apply',
+  endBisect: 'bisect:end'
 } as const
 
 export interface AppInfo {
@@ -61,7 +69,13 @@ export interface NightCityApi {
   openNexusPage(modId: string): Promise<Result<null>>
   runBulk(request: BulkRequest): Promise<Result<BulkResult>>
   getModsFolder(): Promise<ModsFolderInfo>
-  changeModsFolder(): Promise<Result<Settings>> | null
+  changeModsFolder(): Promise<Result<Settings> | null>
   scanLeftovers(): Promise<Result<LeftoverGroup[]>>
   cleanLeftovers(paths: string[]): Promise<Result<CleanResult>>
+  getBisect(): Promise<Result<BisectView | null>>
+  startBisect(suspects: string[], checkFirst: boolean): Promise<Result<BisectView>>
+  answerBisect(answer: BisectAnswer): Promise<Result<BisectView>>
+  undoBisect(): Promise<Result<BisectView>>
+  applyBisect(): Promise<Result<BisectView>>
+  endBisect(keepCulpritOff: boolean): Promise<Result<null>>
 }

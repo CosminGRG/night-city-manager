@@ -14,7 +14,8 @@ import type {
   BulkResult,
   ModsFolderInfo,
   LeftoverGroup,
-  CleanResult
+  CleanResult,
+  BisectView
 } from '@shared/types'
 import type { SettingsStore } from './services/settings'
 import { detectGames, findGameRoot } from './services/gameDetector'
@@ -37,6 +38,14 @@ import {
   cleanUnusedLeftovers,
   cleanModLeftovers
 } from './services/leftovers'
+import {
+  answerRound,
+  applyRound,
+  beginBisect,
+  endBisect,
+  getBisect,
+  undoRound
+} from './services/bisectSession'
 
 interface IpcDependencies {
   settings: SettingsStore
@@ -94,6 +103,24 @@ export function registerIpcHandlers({ settings, library, paths, games }: IpcDepe
     } catch (error) {
       return { ok: false, error: error instanceof Error ? error.message : String(error) }
     }
+  }
+
+  async function refuseWhileBisecting(gamePath: string): Promise<void> {
+    if (await games.forGame(gamePath).readBisect()) {
+      throw new Error('A bisect is running. Finish or stop it on the Troubleshoot screen first.')
+    }
+  }
+
+  function bisectTask<T>(
+    task: (context: DeployContext, gamePath: string) => Promise<T>
+  ): Promise<Result<T>> {
+    return runExclusive(() =>
+      toResult(async () => {
+        await refuseWhileGameRuns()
+        const gamePath = currentGame()
+        return task(deployContext(gamePath), gamePath)
+      })
+    )
   }
 
   ipcMain.handle(IpcChannels.getAppInfo, (): AppInfo => ({
@@ -167,6 +194,7 @@ export function registerIpcHandlers({ settings, library, paths, games }: IpcDepe
       toResult(async () => {
         await refuseWhileGameRuns()
         const gamePath = currentGame()
+        await refuseWhileBisecting(gamePath)
         await deployMod(deployContext(gamePath), gamePath, findMod(modId))
         return null
       })
@@ -179,6 +207,9 @@ export function registerIpcHandlers({ settings, library, paths, games }: IpcDepe
       runExclusive(() =>
         toResult(async () => {
           await refuseWhileGameRuns()
+          const gamePath = currentGame()
+          await refuseWhileBisecting(gamePath)
+
           return undeployMod(deployContext(currentGame()), findMod(modId))
         })
       )
@@ -191,6 +222,7 @@ export function registerIpcHandlers({ settings, library, paths, games }: IpcDepe
         toResult(async () => {
           await refuseWhileGameRuns()
           const gamePath = currentGame()
+          await refuseWhileBisecting(gamePath)
           const context = deployContext(gamePath)
           const mod = findMod(modId)
           const manifest = await context.manifests.read(mod.id)
@@ -238,6 +270,8 @@ export function registerIpcHandlers({ settings, library, paths, games }: IpcDepe
         if (!isBulkRequest(request)) throw new Error('Unknown bulk action.')
 
         const gamePath = currentGame()
+        await refuseWhileBisecting(gamePath)
+
         const context = deployContext(gamePath)
 
         const { action, scope, trashLeftovers } = request
@@ -316,16 +350,66 @@ export function registerIpcHandlers({ settings, library, paths, games }: IpcDepe
     (_event, paths: unknown): Promise<Result<CleanResult>> =>
       runExclusive(() =>
         toResult(async () => {
-          if (!Array.isArray(paths) || !paths.every((path) => typeof path === 'string')) {
-            throw new Error('Invalid file list.')
-          }
+          if (!isStringArray(paths)) throw new Error('Invalid file list.')
+
           await refuseWhileGameRuns()
           const gamePath = currentGame()
+          await refuseWhileBisecting(gamePath)
+
           return cleanLeftovers(games.forGame(gamePath), gamePath, paths, (file) =>
             shell.trashItem(file)
           )
         })
       )
+  )
+
+  ipcMain.handle(IpcChannels.getBisect, (): Promise<Result<BisectView | null>> =>
+    runExclusive(() =>
+      toResult(async () => {
+        const { gamePath } = settings.get()
+        return gamePath ? getBisect(deployContext(gamePath)) : null
+      })
+    )
+  )
+
+  ipcMain.handle(
+    IpcChannels.startBisect,
+    (_event, suspects: unknown, checkFirst: unknown): Promise<Result<BisectView>> =>
+      bisectTask(async (context, gamePath) => {
+        if (!isStringArray(suspects) || typeof checkFirst !== 'boolean') {
+          throw new Error('Invalid bisect request.')
+        }
+        return beginBisect(context, gamePath, suspects, checkFirst)
+      })
+  )
+
+  ipcMain.handle(IpcChannels.answerBisect, (_event, answer: unknown): Promise<Result<BisectView>> =>
+    bisectTask(async (context, gamePath) => {
+      if (answer !== 'broken' && answer !== 'works') {
+        throw new Error('Unknown ansewr.')
+      }
+
+      return answerRound(context, gamePath, answer)
+    })
+  )
+
+  ipcMain.handle(IpcChannels.undoBisect, (): Promise<Result<BisectView>> =>
+    bisectTask((context, gamePath) => undoRound(context, gamePath))
+  )
+
+  ipcMain.handle(IpcChannels.applyBisect, (): Promise<Result<BisectView>> =>
+    bisectTask((context, gamePath) => applyRound(context, gamePath))
+  )
+
+  ipcMain.handle(IpcChannels.endBisect, (_event, keepCulpritOff: unknown): Promise<Result<null>> =>
+    bisectTask(async (context, gamePath) => {
+      if (typeof keepCulpritOff !== 'boolean') {
+        throw new Error('Invalid bisect request.')
+      }
+      await endBisect(context, gamePath, keepCulpritOff)
+
+      return null
+    })
   )
 }
 
@@ -344,4 +428,8 @@ async function refuseWhileGameRuns(): Promise<void> {
   if (await isGameRunning()) {
     throw new Error('Cyberpunk 2077 is running. Close your game first, then try again.')
   }
+}
+
+function isStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every((item) => typeof item === 'string')
 }

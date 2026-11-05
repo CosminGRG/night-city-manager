@@ -94,3 +94,26 @@ export function deployedDuring(session: BisectSession): string[] {
 
   return session.original.filter((id) => !off.has(id))
 }
+
+function isIdList(data: unknown): data is string[] {
+  return Array.isArray(data) && data.every((id) => typeof id === 'string')
+}
+
+export function isBisectSession(data: unknown): data is BisectSession {
+  if (typeof data !== 'object' || data === null) {
+    return false
+  }
+
+  const session = data as BisectSession
+
+  return (
+    session.version === 1 &&
+    isIdList(session.original) &&
+    isIdList(session.suspects) &&
+    session.suspects.length >= 2 &&
+    session.suspects.every((id) => session.original.includes(id)) &&
+    typeof session.checkFirst === 'boolean' &&
+    Array.isArray(session.answers) &&
+    session.answers.every((answer) => answer === 'broken' || answer === 'works')
+  )
+}

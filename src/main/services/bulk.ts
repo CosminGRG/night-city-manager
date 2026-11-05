@@ -27,7 +27,7 @@ function inScope(mod: ModRecord, scope: BulkScope): boolean {
   return isCoreMod(mod) === (scope === 'core')
 }
 
-async function deployStatuses(context: DeployContext): Promise<Map<string, DeployStatus>> {
+export async function deployStatuses(context: DeployContext): Promise<Map<string, DeployStatus>> {
   const manifests = await context.manifests.list()
   return new Map(manifests.map((manifest) => [manifest.modId, manifest.status]))
 }

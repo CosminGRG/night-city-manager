@@ -1,10 +1,11 @@
 import { readdir, rm } from 'fs/promises'
 import { join, win32 } from 'path'
 import { createHash } from 'crypto'
+import type { DeployStatus } from '@shared/types'
 import { readJsonFile, writeJsonFile } from './jsonFile'
 import type { PlaceMethod } from './place'
-import type { DeployStatus } from '@shared/types'
 import { isVanillaFolder } from './vanilla'
+import { isBisectSession, type BisectSession } from './bisect'
 
 export interface ManifestEntry {
   path: string
@@ -29,6 +30,7 @@ export interface Conflict {
 
 const CREATED_FOLDERS = 'created-folders.json'
 const KEPT_FILES = 'kept-files.json'
+const BISECT = 'bisect.json'
 
 const MOD_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -113,6 +115,19 @@ export class ManifestStore {
 
   async setKeptFiles(paths: string[]): Promise<void> {
     await writeJsonFile(join(this.dir, KEPT_FILES), paths)
+  }
+
+  async readBisect(): Promise<BisectSession | null> {
+    const data = await readJsonFile(join(this.dir, BISECT))
+    return isBisectSession(data) ? data : null
+  }
+
+  async writeBisect(session: BisectSession): Promise<void> {
+    await writeJsonFile(join(this.dir, BISECT), session)
+  }
+
+  async removeBisect(): Promise<void> {
+    await rm(join(this.dir, BISECT), { force: true })
   }
 
   private async readList(name: string): Promise<string[] | null> {

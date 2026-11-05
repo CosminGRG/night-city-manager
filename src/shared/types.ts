@@ -118,3 +118,10 @@ export type BisectStatus =
     }
   | { kind: 'found'; culprit: string }
   | { kind: 'not-in-suspects' }
+
+export interface BisectView {
+  status: BisectStatus
+  total: number
+  answered: number
+  ready: boolean
+}

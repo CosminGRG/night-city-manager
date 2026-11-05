@@ -7,6 +7,7 @@ const api: NightCityApi = {
   detectGames: () => ipcRenderer.invoke(IpcChannels.detectGames),
   selectGame: (path) => ipcRenderer.invoke(IpcChannels.selectGame, path),
   browseGame: () => ipcRenderer.invoke(IpcChannels.browseGame),
+  setNexusLookup: (enabled) => ipcRenderer.invoke(IpcChannels.setNexusLookup, enabled),
   listMods: () => ipcRenderer.invoke(IpcChannels.listMods),
   pickArchives: () => ipcRenderer.invoke(IpcChannels.pickArchives),
   importMod: (path) => ipcRenderer.invoke(IpcChannels.importMod, path),

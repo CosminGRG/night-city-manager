@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { AppInfo } from '@shared/ipc'
 import type { Settings, ModsFolderInfo } from '@shared/types'
+import { NexusLookupOption } from '@renderer/components/NexusLookupOption'
 import './SettingsView.css'
 
 interface SettingsViewProps {
@@ -99,6 +100,11 @@ export function SettingsView({ settings, onSettingsChange }: SettingsViewProps):
             {modsError}
           </p>
         )}
+      </div>
+
+      <div className="settings-group">
+        <h3>Nexus Mods</h3>
+        <NexusLookupOption enabled={settings.nexusLookup} onSettingsChange={onSettingsChange} />
       </div>
 
       <div className="settings-group">

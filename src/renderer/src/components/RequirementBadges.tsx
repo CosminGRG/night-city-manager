@@ -6,7 +6,7 @@ const MAX_VISIBLE = 2
 
 const STATE_TEXT = {
   met: 'installed',
-  'not-deployed': 'not-deployed',
+  'not-deployed': 'not deployed',
   missing: 'not installed'
 } as const
 
@@ -29,7 +29,7 @@ export function RequirementBadges({ badges }: RequirementBadgesProp): React.JSX.
         >
           {badge.state !== 'met' && <TriangleAlert size={12} aria-hidden="true" />}
           {badge.label}
-          <span className="sr-only">({STATE_TEXT[badge.state]})</span>
+          <span className="sr-only"> ({STATE_TEXT[badge.state]})</span>
         </span>
       ))}
       {hidden.length > 0 && (

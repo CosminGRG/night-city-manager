@@ -14,6 +14,9 @@ export class SettingsStore {
     if (typeof data === 'object' && data !== null && !Array.isArray(data)) {
       this.settings = { ...DEFAULT_SETTINGS, ...data }
     }
+    if (typeof this.settings.nexusLookup !== 'boolean') {
+      this.settings.nexusLookup = DEFAULT_SETTINGS.nexusLookup
+    }
   }
 
   get(): Settings {

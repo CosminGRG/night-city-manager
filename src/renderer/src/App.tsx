@@ -37,7 +37,7 @@ function App(): React.JSX.Element {
 
   function renderContent(): React.JSX.Element {
     if (!settings) return <p className="muted">Loading...</p>
-    if (!settings.gamePath) return <GameSetup onSelected={setSettings} />
+    if (!settings.gamePath) return <GameSetup settings={settings} onSettingsChange={setSettings} />
 
     if (view === 'import') {
       return <ImportView queue={queue} onPick={pickArchives} />

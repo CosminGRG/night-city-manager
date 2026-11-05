@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { FolderSearch, Gamepad2, ArrowRight } from 'lucide-react'
 import type { DetectedGame, GameStore, Result, Settings } from '@shared/types'
+import { NexusLookupOption } from './NexusLookupOption'
 import './GameSetup.css'
 
 const STORE_LABELS: Record<GameStore, string> = {
@@ -9,11 +10,12 @@ const STORE_LABELS: Record<GameStore, string> = {
   epic: 'Epic Games'
 }
 
-interface GameSetupPros {
-  onSelected: (settings: Settings) => void
+interface GameSetupProps {
+  settings: Settings
+  onSettingsChange: (settings: Settings) => void
 }
 
-export function GameSetup({ onSelected }: GameSetupPros): React.JSX.Element {
+export function GameSetup({ settings, onSettingsChange }: GameSetupProps): React.JSX.Element {
   const [detected, setDetected] = useState<DetectedGame[] | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -24,7 +26,7 @@ export function GameSetup({ onSelected }: GameSetupPros): React.JSX.Element {
   function handleResult(result: Result<Settings> | null): void {
     if (!result) return
     if (result.ok) {
-      onSelected(result.value)
+      onSettingsChange(result.value)
     } else {
       setError(result.error)
     }
@@ -37,7 +39,7 @@ export function GameSetup({ onSelected }: GameSetupPros): React.JSX.Element {
       <div className="setup-card">
         <Gamepad2 size={40} className="setup-icon" aria-hidden="true" />
         <h1>Welcome to Night City Mod Manager</h1>
-        <p className="muted">First, show us where Cyberpunk 2077 is installed.</p>
+        <p className="muted">First, select where Cyberpunk 2077 is installed.</p>
 
         {detected === null && (
           <p className="muted" role="status">
@@ -82,6 +84,10 @@ export function GameSetup({ onSelected }: GameSetupPros): React.JSX.Element {
             {error}
           </p>
         )}
+
+        <div className="setup-nexus">
+          <NexusLookupOption enabled={settings.nexusLookup} onSettingsChange={onSettingsChange} />
+        </div>
       </div>
     </section>
   )

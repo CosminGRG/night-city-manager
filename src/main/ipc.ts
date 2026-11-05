@@ -131,6 +131,17 @@ export function registerIpcHandlers({ settings, library, paths, games }: IpcDepe
 
   ipcMain.handle(IpcChannels.getSettings, (): Settings => settings.get())
 
+  ipcMain.handle(
+    IpcChannels.setNexusLookup,
+    (_event, enabled: unknown): Promise<Result<Settings>> => {
+      if (typeof enabled !== 'boolean') {
+        throw new Error('setNexusLookup: enabled must be a boolean')
+      }
+
+      return toResult(() => settings.update({ nexusLookup: enabled }))
+    }
+  )
+
   ipcMain.handle(IpcChannels.detectGames, (): Promise<DetectedGame[]> => detectGames())
 
   ipcMain.handle(IpcChannels.selectGame, (_event, path: unknown): Promise<Result<Settings>> => {

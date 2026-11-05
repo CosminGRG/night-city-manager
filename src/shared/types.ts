@@ -5,13 +5,15 @@ export interface Settings {
   gamePath: string | null
   modsPath: string | null
   downloadsPath: string | null
+  nexusLookup: boolean
 }
 
 export const DEFAULT_SETTINGS: Settings = {
   version: 1,
   gamePath: null,
   modsPath: null,
-  downloadsPath: null
+  downloadsPath: null,
+  nexusLookup: true
 }
 
 export interface DetectedGame {

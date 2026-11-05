@@ -1,6 +1,7 @@
-import { FRAMEWORK_LABELS, MOD_TYPE_LABELS } from './modLabels'
 import { isCoreMod } from '@shared/mods'
 import { BulkAction, BulkScope, DeployStatus, ModRecord } from '@shared/types'
+import { KNOWN_DEPENDENCIES, needs } from '@shared/requirements'
+import { FRAMEWORK_LABELS, MOD_TYPE_LABELS } from './modLabels'
 
 export type BulkCounts = Record<BulkAction, Record<BulkScope, number>>
 
@@ -16,7 +17,8 @@ function searchText(mod: ModRecord): string {
     mod.version ?? '',
     isCoreMod(mod) ? 'core' : '',
     ...mod.plan.types.map((type) => MOD_TYPE_LABELS[type]),
-    ...mod.plan.providers.map((framework) => FRAMEWORK_LABELS[framework])
+    ...mod.plan.providers.map((framework) => FRAMEWORK_LABELS[framework]),
+    ...needs(mod.plan).map((dependency) => KNOWN_DEPENDENCIES[dependency].label)
   ]
     .join(' ')
     .toLowerCase()

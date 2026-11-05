@@ -8,7 +8,7 @@ export const MOD_TYPE_LABELS: Record<ModType, string> = {
   red4ext: 'RED4ext',
   redscript: 'Redscript',
   tweakxl: 'TweakXL',
-  input: 'Input Loader',
+  input: 'Input',
   config: 'Config'
 }
 

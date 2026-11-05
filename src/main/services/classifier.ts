@@ -1,5 +1,6 @@
 import { posix } from 'path'
-import type { InstallPlan, ModType, Framework } from '@shared/types'
+import { FRAMEWORKS, type InstallPlan, type ModType, type Framework } from '@shared/types'
+import { KNOWN_DEPENDENCIES } from '@shared/requirements'
 
 const JUNK = /(^|\/)(__MACOSX\/|\.DS_Store$|Thumbs\.db$|desktop\.ini$)/i
 
@@ -30,15 +31,6 @@ const TYPE_PREFIXES: [string, ModType][] = [
 ]
 
 const ROOT_FOLDERS = new Set(['archive', 'bin', 'engine', 'mods', 'r6', 'red4ext'])
-
-export const FRAMEWORK_FILES: [string, Framework][] = [
-  ['bin/x64/plugins/cyber_engine_tweaks.asi', 'cet'],
-  ['red4ext/red4ext.dll', 'red4ext'],
-  ['engine/tools/scc.exe', 'redscript'],
-  ['red4ext/plugins/archivexl/archivexl.dll', 'archivexl'],
-  ['red4ext/plugins/tweakxl/tweakxl.dll', 'tweakxl'],
-  ['red4ext/plugins/codeware/codeware.dll', 'codeware']
-]
 
 export interface ClassifyInput {
   files: string[]
@@ -77,8 +69,7 @@ export function detectType(target: string): ModType | null {
 
 export function detectFramework(target: string): Framework | null {
   const lower = target.toLowerCase()
-  const match = FRAMEWORK_FILES.find(([file]) => lower === file)
-  return match ? match[1] : null
+  return FRAMEWORKS.find((framework) => KNOWN_DEPENDENCIES[framework].file === lower) ?? null
 }
 
 function stripPrefix(file: string, prefix: string): string | null {

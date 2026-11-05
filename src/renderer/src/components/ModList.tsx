@@ -10,13 +10,13 @@ import {
 } from 'lucide-react'
 import type {
   DeployStatus,
-  Framework,
   ModRecord,
   Result,
   BulkAction,
   BulkRequest,
   BulkResult
 } from '@shared/types'
+import type { Dependency } from '@shared/requirements'
 import { isCoreMod } from '@shared/mods'
 import { FRAMEWORK_LABELS, MOD_TYPE_LABELS } from '@renderer/modLabels'
 import { filterMods, paginate, sortMods, bulkCounts } from '@renderer/modListView'
@@ -36,7 +36,7 @@ const INTERRUPTED = 'The last deploy or undeploy was interrupted. Undeploy to cl
 
 interface DeployState {
   deployments: Record<string, DeployStatus>
-  installed: Framework[]
+  installed: Dependency[]
   bisecting: boolean
 }
 
@@ -66,7 +66,7 @@ const BULK_DONE: Record<BulkAction, string> = {
 async function loadDeployState(): Promise<DeployState> {
   const [deployments, installed, bisect] = await Promise.all([
     window.api.listDeployments(),
-    window.api.getInstalledFrameworks(),
+    window.api.getInstalledDependencies(),
     window.api.getBisect()
   ])
   return { deployments, installed, bisecting: bisect.ok && bisect.value !== null }
@@ -107,7 +107,7 @@ export function ModList({
 }: ModListProps): React.JSX.Element {
   const [mods, setMods] = useState<ModRecord[] | null>(null)
   const [deployments, setDeployments] = useState<Record<string, DeployStatus>>({})
-  const [installed, setInstalled] = useState<Framework[]>([])
+  const [installed, setInstalled] = useState<Dependency[]>([])
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [query, setQuery] = useState('')

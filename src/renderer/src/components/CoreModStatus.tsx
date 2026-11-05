@@ -1,8 +1,9 @@
-import type { Framework } from '@shared/types'
-import { FRAMEWORK_LABELS, FRAMEWORKS } from '@renderer/modLabels'
+import { FRAMEWORKS } from '@shared/types'
+import type { Dependency } from '@shared/requirements'
+import { FRAMEWORK_LABELS } from '@renderer/modLabels'
 import './CoreModStatus.css'
 
-export function CoreModStatus({ installed }: { installed: Framework[] }): React.JSX.Element {
+export function CoreModStatus({ installed }: { installed: Dependency[] }): React.JSX.Element {
   return (
     <div className="core-status" aria-label="Core mods">
       {FRAMEWORKS.map((framework) => {

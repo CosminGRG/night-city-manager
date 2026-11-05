@@ -46,7 +46,16 @@ export interface InstallPlan {
   warnings: string[]
 }
 
-export type Framework = 'cet' | 'red4ext' | 'redscript' | 'archivexl' | 'tweakxl' | 'codeware'
+export const FRAMEWORKS = [
+  'cet',
+  'red4ext',
+  'redscript',
+  'archivexl',
+  'tweakxl',
+  'codeware'
+] as const
+
+export type Framework = (typeof FRAMEWORKS)[number]
 
 export interface ModRecord {
   id: string

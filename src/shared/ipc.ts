@@ -3,7 +3,6 @@ import type {
   Settings,
   Result,
   ModRecord,
-  Framework,
   DeployStatus,
   UndeployResult,
   BulkResult,
@@ -14,6 +13,7 @@ import type {
   BisectView,
   BisectAnswer
 } from './types'
+import type { Dependency } from './requirements'
 
 export const IpcChannels = {
   getAppInfo: 'app:get-info',
@@ -23,7 +23,7 @@ export const IpcChannels = {
   browseGame: 'game:browse',
   listMods: 'mod:list',
   importMod: 'mod:import',
-  getInstalledFrameworks: 'frameworks:installed',
+  getInstalledDependencies: 'dependencies:installed',
   listDeployments: 'deploy:list',
   deployMod: 'mod:deploy',
   undeployMod: 'mod:undeploy',
@@ -60,7 +60,7 @@ export interface NightCityApi {
   pickArchives(): Promise<string[] | null>
   importMod(path: string): Promise<Result<ModRecord>>
   getPathForFile(file: File): string
-  getInstalledFrameworks(): Promise<Framework[]>
+  getInstalledDependencies(): Promise<Dependency[]>
   listDeployments(): Promise<Record<string, DeployStatus>>
   deployMod(modId: string): Promise<Result<null>>
   undeployMod(modId: string): Promise<Result<UndeployResult>>

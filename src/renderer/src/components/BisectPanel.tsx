@@ -122,10 +122,11 @@ export function BisectPanel(): React.JSX.Element {
 
     return (
       <>
-        <p className="muted">
-          Untick mods that should stay on the whole time, for example ones that other mods need.
-          Core mods always stay on.
+        <p className="">
+          Ticked mods get tested. Mods that other mods build on start as Always on; tick one to test
+          it too. Core mods always stay on.
         </p>
+
         <ul className="bisect-candidates">
           {candidates.map((mod) => (
             <li key={mod.id}>

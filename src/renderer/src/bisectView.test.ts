@@ -2,7 +2,13 @@ import { describe, expect, it } from 'vitest'
 import type { BisectStatus, DeployStatus, Framework, ModRecord } from '@shared/types'
 import { bisectCandidates, defaultSuspects, namesOf, roundCount, roundSummary } from './bisectView'
 
-function mod(id: string, name: string, providers: Framework[] = []): ModRecord {
+function mod(
+  id: string,
+  name: string,
+  providers: Framework[] = [],
+  targets: string[] = []
+): ModRecord {
+  const files = targets.map((target) => ({ source: target, target }))
   return {
     id,
     name,
@@ -10,7 +16,7 @@ function mod(id: string, name: string, providers: Framework[] = []): ModRecord {
     nexusModId: null,
     archive: `${name}.zip`,
     folder: name,
-    plan: { providers, files: [], types: [], ignored: [], unmatched: [], warnings: [] },
+    plan: { providers, files, types: [], ignored: [], unmatched: [], warnings: [] },
     importedAt: '2026-11-05T00:00:00.000Z'
   }
 }
@@ -37,9 +43,19 @@ describe('bisectCandidates', () => {
 })
 
 describe('defaultSuspects', () => {
-  it('keeps Virtual Atelier on, however its name is written', () => {
-    const mods = [mod('va', 'Virtual Atelier 1.6'), mod('vb', 'virtualatelier'), mod('a', 'A')]
-    expect(defaultSuspects(mods)).toEqual(new Set(['a']))
+  it('keeps mods that other mods build on switched on, whatever their archive is called', () => {
+    const library = [
+      mod('va', 'VA 1.6.4 renamed', [], ['r6/scripts/virtual-atelier-full/Config.reds']),
+      mod('il', 'Input Loader', [], ['red4ext/plugins/input_loader/input_loader.dll']),
+      mod('rx', 'RadioExt', [], ['bin/x64/plugins/cyber_engine_tweaks/mods/radioExt/init.lua'])
+    ]
+    const pack = mod(
+      'pack',
+      'Radio pack',
+      [],
+      ['bin/x64/plugins/cyber_engine_tweaks/mods/radioExt/radios/Station/song.mp3']
+    )
+    expect(defaultSuspects([...library, pack, mod('a', 'A')])).toEqual(new Set(['pack', 'a']))
   })
 })
 

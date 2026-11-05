@@ -7,7 +7,6 @@ import type {
   Settings,
   Result,
   ModRecord,
-  Framework,
   DeployStatus,
   UndeployResult,
   BulkRequest,
@@ -17,12 +16,13 @@ import type {
   CleanResult,
   BisectView
 } from '@shared/types'
+import { detectInstalled } from './services/frameworks'
 import type { SettingsStore } from './services/settings'
 import { detectGames, findGameRoot } from './services/gameDetector'
 import type { ModLibrary } from './services/modLibrary'
 import type { AppPaths } from './services/paths'
 import { importMod } from './services/importer'
-import { detectInstalledFrameworks } from './services/frameworks'
+import type { Dependency } from '@shared/requirements'
 import { gameKey, type GameManifests } from './services/manifests'
 import { createQueue } from './services/queue'
 import { type DeployContext, deployMod, undeployMod } from './services/deployer'
@@ -174,9 +174,9 @@ export function registerIpcHandlers({ settings, library, paths, games }: IpcDepe
     )
   )
 
-  ipcMain.handle(IpcChannels.getInstalledFrameworks, (): Promise<Framework[]> => {
+  ipcMain.handle(IpcChannels.getInstalledDependencies, (): Promise<Dependency[]> => {
     const { gamePath } = settings.get()
-    return gamePath ? detectInstalledFrameworks(gamePath) : Promise.resolve([])
+    return gamePath ? detectInstalled(gamePath) : Promise.resolve([])
   })
 
   ipcMain.handle(IpcChannels.listDeployments, async (): Promise<Record<string, DeployStatus>> => {

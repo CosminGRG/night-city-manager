@@ -20,5 +20,3 @@ export const FRAMEWORK_LABELS: Record<Framework, string> = {
   tweakxl: 'TweakXL',
   codeware: 'Codeware'
 }
-
-export const FRAMEWORKS = Object.keys(FRAMEWORK_LABELS) as Framework[]

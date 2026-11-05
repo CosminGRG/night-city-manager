@@ -90,7 +90,7 @@ export function TroubleshootOverview({ onOpen }: TroubleshootOverviewProps): Rea
         ))}
       </div>
 
-      <section className="troubleshoot-panel" aria-labelledby="help-outline-title">
+      <section className="troubleshoot-panel" aria-labelledby="help-online-title">
         <h3 id="help-online-title">Help online</h3>
         <ul className="overview-links">
           {RESOURCES.map((resouces) => (

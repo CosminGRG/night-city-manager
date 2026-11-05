@@ -17,6 +17,8 @@ import type {
   BulkResult
 } from '@shared/types'
 import type { Dependency } from '@shared/requirements'
+import { requirementBadges, type RequirementBadge } from '@renderer/requirementsView'
+import { RequirementBadges } from './RequirementBadges'
 import { isCoreMod } from '@shared/mods'
 import { FRAMEWORK_LABELS, MOD_TYPE_LABELS } from '@renderer/modLabels'
 import { filterMods, paginate, sortMods, bulkCounts } from '@renderer/modListView'
@@ -324,6 +326,7 @@ export function ModList({
               <span />
               <span>Name</span>
               <span>Type</span>
+              <span>Requires</span>
               <span>Imported</span>
               <span />
             </div>
@@ -333,6 +336,7 @@ export function ModList({
                   key={mod.id}
                   mod={mod}
                   status={deployments[mod.id]}
+                  requirements={requirementBadges(mod, mods, installed)}
                   busyLabel={busy?.id === mod.id ? busy.label : null}
                   locked={changesLocked}
                   actions={actions}
@@ -401,12 +405,20 @@ function StatusIcon({ status }: { status: DeployStatus | undefined }): React.JSX
 interface ModRowProps {
   mod: ModRecord
   status: DeployStatus | undefined
+  requirements: RequirementBadge[]
   busyLabel: string | null
   locked: boolean
   actions: ModActions
 }
 
-function ModRow({ mod, status, busyLabel, locked, actions }: ModRowProps): React.JSX.Element {
+function ModRow({
+  mod,
+  status,
+  requirements,
+  busyLabel,
+  locked,
+  actions
+}: ModRowProps): React.JSX.Element {
   const interrupted = status === 'deploying' || status === 'undeploying'
   const warnings = interrupted ? [INTERRUPTED, ...mod.plan.warnings] : mod.plan.warnings
 
@@ -447,6 +459,10 @@ function ModRow({ mod, status, busyLabel, locked, actions }: ModRowProps): React
             {MOD_TYPE_LABELS[type]}
           </span>
         ))}
+      </span>
+
+      <span className="mod-cell mod-badges">
+        <RequirementBadges badges={requirements} />
       </span>
 
       <span className="mod-cell mod-date">{dateFormat.format(new Date(mod.importedAt))}</span>

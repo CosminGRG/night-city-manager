@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow } from 'electron'
+import { app, shell, BrowserWindow, screen } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
@@ -12,13 +12,20 @@ import { GameManifests } from './services/manifests'
 
 const paths = initPaths()
 
+const MIN_SIZE = { width: 960, height: 600 }
+const MAX_START_SIZE = { width: 1440, height: 900 }
+
+function startSize(available: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, Math.round(available * 0.85)))
+}
+
 function createWindow(): void {
-  // Create the browser window.
+  const { workAreaSize } = screen.getPrimaryDisplay()
   const mainWindow = new BrowserWindow({
-    width: 1200,
-    height: 800,
-    minWidth: 960,
-    minHeight: 600,
+    width: startSize(workAreaSize.width, MIN_SIZE.width, MAX_START_SIZE.width),
+    height: startSize(workAreaSize.height, MIN_SIZE.height, MAX_START_SIZE.height),
+    minWidth: MIN_SIZE.width,
+    minHeight: MIN_SIZE.height,
     backgroundColor: '#0b0d12',
     show: false,
     autoHideMenuBar: true,

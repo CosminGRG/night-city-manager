@@ -40,9 +40,9 @@ describe('filterMods', () => {
     expect(names(filterMods(mods, 'ELEVATOR'))).toEqual(['Faster Elevators'])
   })
 
-  it('matches type and framework labels', () => {
+  it('matches type, framework and requirement labels', () => {
     expect(names(filterMods(mods, 'redscript'))).toEqual(['Always First Equip'])
-    expect(names(filterMods(mods, 'cyber engine'))).toEqual(['Cyber Engine Tweaks'])
+    expect(names(filterMods(mods, 'cyber engine'))).toEqual(['RadioExt', 'Cyber Engine Tweaks'])
   })
 
   it('needs every word to match, in any order', () => {

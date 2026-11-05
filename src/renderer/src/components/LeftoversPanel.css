@@ -1,0 +1,98 @@
+.troubleshoot-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.troubleshoot-panel-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.troubleshoot-panel-header p {
+  margin-top: var(--space-1);
+  font-size: 13px;
+}
+
+.troubleshoot-panel-header > button {
+  flex-shrink: 0;
+}
+
+.leftover-groups,
+.leftover-files {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.leftover-groups {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.leftover-group + .leftover-group {
+  border-top: 1px solid var(--border);
+}
+
+.leftover-group summary,
+.leftover-files label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 36px;
+  padding: 0 var(--space-3);
+}
+
+.leftover-group summary {
+  cursor: pointer;
+  background: var(--surface-2);
+}
+
+.leftover-group summary:hover {
+  background: var(--surface-3);
+}
+
+.leftover-files label {
+  padding-left: 40px;
+  font-size: 13px;
+}
+
+.leftover-groups input[type='checkbox'] {
+  accent-color: var(--primary);
+}
+
+.leftover-folder,
+.leftover-path {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.leftover-size {
+  margin-left: auto;
+  white-space: nowrap;
+  font-size: 12px;
+}
+
+.leftover-badge {
+  --badge: var(--warning);
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  color: var(--badge);
+  background: color-mix(in srgb, var(--badge) 16%, transparent);
+}
+
+.leftover-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}

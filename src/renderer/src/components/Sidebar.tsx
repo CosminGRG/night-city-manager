@@ -1,11 +1,12 @@
-import { List, Settings, PackagePlus, type LucideIcon } from 'lucide-react'
+import { List, Settings, PackagePlus, Wrench, type LucideIcon } from 'lucide-react'
 import './Sidebar.css'
 
-export type View = 'mods' | 'import' | 'settings'
+export type View = 'mods' | 'import' | 'troubleshoot' | 'settings'
 
 const ITEMS: { view: View; label: string; Icon: LucideIcon }[] = [
   { view: 'mods', label: 'Mod list', Icon: List },
   { view: 'import', label: 'Import', Icon: PackagePlus },
+  { view: 'troubleshoot', label: 'Troubleshoot', Icon: Wrench },
   { view: 'settings', label: 'Settings', Icon: Settings }
 ]
 

@@ -7,13 +7,13 @@ import type {
   Result,
   BulkAction,
   BulkRequest,
-  BulkResult,
-  CleanResult
+  BulkResult
 } from '@shared/types'
 import { isCoreMod } from '@shared/mods'
 import { FRAMEWORK_LABELS, MOD_TYPE_LABELS } from '@renderer/modLabels'
-import { CoreModStatus } from './CoreModStatus'
 import { filterMods, paginate, sortMods, bulkCounts } from '@renderer/modListView'
+import { cleanedMessage } from '@renderer/leftoversView'
+import { CoreModStatus } from './CoreModStatus'
 import { Pagination } from './Pagination'
 import { SearchBox } from './SearchBox'
 import { RemoveConfirmDialog } from './RemoveConfirmDialog'
@@ -67,19 +67,6 @@ function keptMessage(mod: ModRecord, kept: string[]): string {
     return `${mod.name}: none of its files could be verified, so all were left in place (was its folder in "mods" deleted?): ${files}`
   }
   return `${mod.name}: left in place because they changed after deploy: ${files}`
-}
-
-function cleanedMessage({ trashed, failed }: CleanResult): string {
-  const parts = [
-    `Moved ${trashed} leftover ${trashed === 1 ? 'file' : 'files'} to the Recycle Bin.`
-  ]
-  if (failed.length > 0) {
-    parts.push(
-      `Could not move: ${failed.map(({ path, error }) => `${path} (${error})`).join(', ')}`
-    )
-  }
-
-  return parts.join(' ')
 }
 
 function bulkMessage(action: BulkAction, { done, skipped, kept, cleaned }: BulkResult): string {

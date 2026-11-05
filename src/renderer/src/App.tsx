@@ -3,11 +3,12 @@ import type { Settings } from '@shared/types'
 import { GameSetup } from './components/GameSetup'
 import { ModList } from './components/ModList'
 import { Sidebar, type View } from './components/Sidebar'
-import { SettingsView } from './views/SettingsView'
-import './App.css'
+import { DropOverlay } from './components/DropOverlay'
 import { useImportQueue } from './useImportQueue'
 import { ImportView } from './views/ImportView'
-import { DropOverlay } from './components/DropOverlay'
+import { SettingsView } from './views/SettingsView'
+import { TroubleshootView } from './views/TroubleshootView'
+import './App.css'
 
 function App(): React.JSX.Element {
   const [view, setView] = useState<View>('mods')
@@ -31,12 +32,15 @@ function App(): React.JSX.Element {
   function renderContent(): React.JSX.Element {
     if (!settings) return <p className="muted">Loading...</p>
     if (!settings.gamePath) return <GameSetup onSelected={setSettings} />
-    if (view === 'settings') {
-      return <SettingsView settings={settings} onSettingsChange={setSettings} />
-    }
 
     if (view === 'import') {
       return <ImportView queue={queue} onPick={pickArchives} />
+    }
+    if (view === 'troubleshoot') {
+      return <TroubleshootView />
+    }
+    if (view === 'settings') {
+      return <SettingsView settings={settings} onSettingsChange={setSettings} />
     }
 
     return <ModList importedCount={queue.imported} onImport={pickArchives} />

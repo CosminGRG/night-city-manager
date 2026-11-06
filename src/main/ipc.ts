@@ -14,7 +14,8 @@ import type {
   ModsFolderInfo,
   LeftoverGroup,
   CleanResult,
-  BisectView
+  BisectView,
+  NexusRequirement
 } from '@shared/types'
 import { detectInstalled } from './services/frameworks'
 import type { SettingsStore } from './services/settings'
@@ -46,15 +47,23 @@ import {
   getBisect,
   undoRound
 } from './services/bisectSession'
+import { NexusLookup } from './services/nexusLookup'
 
 interface IpcDependencies {
   settings: SettingsStore
   library: ModLibrary
   paths: AppPaths
   games: GameManifests
+  nexus: NexusLookup
 }
 
-export function registerIpcHandlers({ settings, library, paths, games }: IpcDependencies): void {
+export function registerIpcHandlers({
+  settings,
+  library,
+  paths,
+  games,
+  nexus
+}: IpcDependencies): void {
   const runExclusive = createQueue()
   const runImport = createQueue()
 
@@ -138,7 +147,13 @@ export function registerIpcHandlers({ settings, library, paths, games }: IpcDepe
         throw new Error('setNexusLookup: enabled must be a boolean')
       }
 
-      return toResult(() => settings.update({ nexusLookup: enabled }))
+      return toResult(async () => {
+        const updated = await settings.update({ nexusLookup: enabled })
+        if (enabled) {
+          nexus.refreshInBackground()
+        }
+        return updated
+      })
     }
   )
 
@@ -180,7 +195,13 @@ export function registerIpcHandlers({ settings, library, paths, games }: IpcDepe
     runImport(() =>
       toResult(async () => {
         const archive = await checkArchivePath(path)
-        return importMod({ sevenZip: paths.sevenZip, modsDir: modsDir(), library }, archive)
+        const mod = await importMod(
+          { sevenZip: paths.sevenZip, modsDir: modsDir(), library },
+          archive
+        )
+
+        nexus.refreshInBackground()
+        return mod
       })
     )
   )
@@ -421,6 +442,10 @@ export function registerIpcHandlers({ settings, library, paths, games }: IpcDepe
 
       return null
     })
+  )
+
+  ipcMain.handle(IpcChannels.getNexusRequirements, (): Record<number, NexusRequirement[]> =>
+    nexus.requirements()
   )
 }
 

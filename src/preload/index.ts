@@ -13,6 +13,7 @@ const api: NightCityApi = {
   importMod: (path) => ipcRenderer.invoke(IpcChannels.importMod, path),
   getPathForFile: (file) => webUtils.getPathForFile(file),
   getInstalledDependencies: () => ipcRenderer.invoke(IpcChannels.getInstalledDependencies),
+  getNexusRequirements: () => ipcRenderer.invoke(IpcChannels.getNexusRequirements),
   listDeployments: () => ipcRenderer.invoke(IpcChannels.listDeployments),
   deployMod: (modId) => ipcRenderer.invoke(IpcChannels.deployMod, modId),
   undeployMod: (modId) => ipcRenderer.invoke(IpcChannels.undeployMod, modId),

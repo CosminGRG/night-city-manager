@@ -11,7 +11,8 @@ import type {
   LeftoverGroup,
   CleanResult,
   BisectView,
-  BisectAnswer
+  BisectAnswer,
+  NexusRequirement
 } from './types'
 import type { Dependency } from './requirements'
 
@@ -25,6 +26,7 @@ export const IpcChannels = {
   listMods: 'mod:list',
   importMod: 'mod:import',
   getInstalledDependencies: 'dependencies:installed',
+  getNexusRequirements: 'nexus:requirements',
   listDeployments: 'deploy:list',
   deployMod: 'mod:deploy',
   undeployMod: 'mod:undeploy',
@@ -63,6 +65,7 @@ export interface NightCityApi {
   importMod(path: string): Promise<Result<ModRecord>>
   getPathForFile(file: File): string
   getInstalledDependencies(): Promise<Dependency[]>
+  getNexusRequirements(): Promise<Record<number, NexusRequirement[]>>
   listDeployments(): Promise<Record<string, DeployStatus>>
   deployMod(modId: string): Promise<Result<null>>
   undeployMod(modId: string): Promise<Result<UndeployResult>>

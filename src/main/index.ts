@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow, screen } from 'electron'
+import { app, shell, BrowserWindow, screen, net } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
@@ -9,6 +9,8 @@ import { SettingsStore } from './services/settings'
 import { isWritable } from './services/folders'
 import { ModLibrary } from './services/modLibrary'
 import { GameManifests } from './services/manifests'
+import { NexusCache } from './services/nexusCache'
+import { NexusLookup } from './services/nexusLookup'
 
 const paths = initPaths()
 
@@ -81,6 +83,19 @@ app.whenReady().then(async () => {
 
   const games = new GameManifests(join(paths.data, 'manifests'))
 
+  const nexusCache = new NexusCache(join(paths.data, 'nexus.json'))
+  await nexusCache.load().catch((error: unknown) => {
+    console.warn('Could not read teh saved Nexus answers, starting without them.', error)
+  })
+
+  const nexus = new NexusLookup({
+    cache: nexusCache,
+    fetch: (url, init) => net.fetch(url, init),
+    appVersion: app.getVersion(),
+    enabled: () => settings.get().nexusLookup,
+    mods: () => library.list()
+  })
+
   // Set app user model id for windows
   electronApp.setAppUserModelId('com.cosmingrg.nightcitymanager')
 
@@ -91,8 +106,10 @@ app.whenReady().then(async () => {
     optimizer.watchWindowShortcuts(window)
   })
 
-  registerIpcHandlers({ settings, library, games, paths })
+  registerIpcHandlers({ settings, library, games, paths, nexus })
   createWindow()
+
+  nexus.refreshInBackground()
 
   app.on('activate', function () {
     // On macOS it's common to re-create a window in the app when the

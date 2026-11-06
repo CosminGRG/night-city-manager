@@ -136,3 +136,9 @@ export interface BisectView {
   answered: number
   ready: boolean
 }
+
+export interface NexusRequirement {
+  nexusId: number
+  name: string
+  optional: boolean
+}

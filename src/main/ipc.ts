@@ -29,10 +29,11 @@ import { createQueue } from './services/queue'
 import { type DeployContext, deployMod, undeployMod } from './services/deployer'
 import { ARCHIVE_EXTENSIONS, checkArchivePath } from './services/archivePath'
 import { stagingFolderFor } from './services/staging'
-import { deployAll, purgeAll, removeAll } from './services/bulk'
+import { deployAll, purgeAll, removeAll, deployStatuses } from './services/bulk'
 import { undeployAndRemove, type RemoveContext } from './services/removal'
 import { isGameRunning } from './services/gameProcess'
 import { checkNewModsFolder, moveMods, sameDrive } from './services/modsFolder'
+import { deployWithRequirements, requirementsToDeploy } from './services/autoRequirements'
 import {
   cleanLeftovers,
   scanLeftovers,
@@ -232,14 +233,27 @@ export function registerIpcHandlers({
     return statuses
   })
 
-  ipcMain.handle(IpcChannels.deployMod, (_event, modId: unknown): Promise<Result<null>> =>
+  ipcMain.handle(IpcChannels.deployMod, (_event, modId: unknown): Promise<Result<string[]>> =>
     runExclusive(() =>
       toResult(async () => {
         await refuseWhileGameRuns()
         const gamePath = currentGame()
         await refuseWhileBisecting(gamePath)
-        await deployMod(deployContext(gamePath), gamePath, findMod(modId))
-        return null
+        const mod = findMod(modId)
+        const context = deployContext(gamePath)
+
+        const requirements = settings.get().autoDeployRequirements
+          ? requirementsToDeploy(mod, {
+              library: library.list(),
+              installed: await detectInstalled(gamePath),
+              deployments: Object.fromEntries(await deployStatuses(context)),
+              nexus: nexus.requirements()
+            })
+          : []
+
+        return deployWithRequirements(mod, requirements, (target) =>
+          deployMod(context, gamePath, target)
+        )
       })
     )
   )

@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import type { ModRecord, ModType, NexusRequirement } from '@shared/types'
-import { requirementsToDeploy, type RequirementSources } from './autoRequirements'
+import {
+  requirementsToDeploy,
+  deployWithRequirements,
+  type RequirementSources
+} from './autoRequirements'
 
 function mod(
   name: string,
@@ -125,5 +129,33 @@ describe('requirementsToDeploy', () => {
     expect(requirementsToDeploy(refract, sources({ library: [variants, refract], nexus }))).toEqual(
       []
     )
+  })
+})
+
+describe('deployWithRequirements', () => {
+  it('deploys the requirements in order, then the mod', async () => {
+    const deployed: string[] = []
+    const deploy = async (target: ModRecord): Promise<void> => {
+      deployed.push(target.name)
+    }
+
+    const names = await deployWithRequirements(alwaysFirstEquip, [red4ext, inputLoader], deploy)
+    expect(deployed).toEqual(['RED4ext', 'Input Loader', 'Always First Equip'])
+    expect(names).toEqual(['RED4ext', 'Input Loader'])
+  })
+
+  it('does not deploy the mod when a requirement fails', async () => {
+    const deployed: string[] = []
+    const deploy = async (target: ModRecord): Promise<void> => {
+      if (target === inputLoader) throw new Error('A file is owned by Other Mod.')
+      deployed.push(target.name)
+    }
+
+    await expect(
+      deployWithRequirements(alwaysFirstEquip, [red4ext, inputLoader], deploy)
+    ).rejects.toThrow(
+      'Always First Equip was not deployed: it needs Input Loader, which could not be deployed. A file is owned by Other Mod.'
+    )
+    expect(deployed).toEqual(['RED4ext'])
   })
 })

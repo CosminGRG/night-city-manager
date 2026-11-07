@@ -29,6 +29,11 @@ export interface MissingRequirements {
   missing: string[]
 }
 
+export interface DeployMessage {
+  text: string
+  tone: 'info' | 'warning'
+}
+
 function isFramework(dependency: Dependency): boolean {
   return FRAMEWORKS.some((framework) => framework === dependency)
 }
@@ -139,4 +144,23 @@ export function deployNotice(mod: ModRecord, context: RequirementContext): strin
   }
 
   return `${mod.name} is deployed, but it still needs: ${unmet.join(', ')}.`
+}
+
+export function deployMessage(
+  mod: ModRecord,
+  alsoDeployed: string[],
+  context: RequirementContext
+): DeployMessage | null {
+  const also =
+    alsoDeployed.length > 0
+      ? `Also deployed what ${mod.name} needs: ${alsoDeployed.join(', ')}.`
+      : null
+
+  const warning = deployNotice(mod, context)
+
+  if (warning) {
+    return { text: also ? `${also} ${warning}` : warning, tone: 'warning' }
+  }
+
+  return also ? { text: also, tone: 'info' } : null
 }

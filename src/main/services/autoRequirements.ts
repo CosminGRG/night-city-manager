@@ -96,3 +96,24 @@ export function requirementsToDeploy(mod: ModRecord, sources: RequirementSources
   visit(mod)
   return order
 }
+
+export async function deployWithRequirements(
+  mod: ModRecord,
+  requirements: ModRecord[],
+  deploy: (mod: ModRecord) => Promise<void>
+): Promise<string[]> {
+  for (const requirement of requirements) {
+    try {
+      await deploy(requirement)
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error)
+      throw new Error(
+        `${mod.name} was not deployed: it needs ${requirement.name}, which could not be deployed. ${reason}`,
+        { cause: error }
+      )
+    }
+  }
+
+  await deploy(mod)
+  return requirements.map((requirement) => requirement.name)
+}

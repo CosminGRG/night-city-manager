@@ -71,7 +71,7 @@ export interface NightCityApi {
   getNexusRequirements(): Promise<Record<number, NexusRequirement[]>>
   onNexusUpdated(callback: () => void): () => void
   listDeployments(): Promise<Record<string, DeployStatus>>
-  deployMod(modId: string): Promise<Result<null>>
+  deployMod(modId: string): Promise<Result<string[]>>
   undeployMod(modId: string): Promise<Result<UndeployResult>>
   removeMod(modId: string, trashLeftovers: boolean): Promise<Result<UndeployResult>>
   revealMod(modId: string): Promise<Result<null>>

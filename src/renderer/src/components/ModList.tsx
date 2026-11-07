@@ -20,7 +20,7 @@ import type {
 import type { Dependency } from '@shared/requirements'
 import {
   requirementBadges,
-  deployNotice,
+  deployMessage,
   missingForBulkDeploy,
   type RequirementBadge,
   type RequirementContext
@@ -171,14 +171,15 @@ export function ModList({
     setNotice(null)
     try {
       const result = await window.api.deployMod(mod.id)
+      const state = await loadDeployState()
+      applyDeployState(state)
+
       if (!result.ok) {
         setError(result.error)
       } else {
-        const warning = deployNotice(mod, requirementContext)
-        setNotice(warning ? { text: warning, tone: 'warning' } : null)
+        setNotice(deployMessage(mod, result.value, { ...state, library: mods ?? [] }))
       }
     } finally {
-      await refresh()
       setBusy(null)
     }
   }

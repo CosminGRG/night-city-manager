@@ -4,6 +4,7 @@ import {
   requirementBadges,
   missingForBulkDeploy,
   deployNotice,
+  deployMessage,
   type RequirementContext
 } from './requirementsView'
 
@@ -244,5 +245,33 @@ describe('deployNotice', () => {
     const nexus = { 2557: [requires(4575, 'Input Loader', true)] }
     const installed = context({ nexus, installed: ['archivexl', 'redscript'] })
     expect(deployNotice(alwaysFirstEquip, installed)).toBeNull()
+  })
+})
+
+describe('deployMessage', () => {
+  const ready = context({ library: [radioPack, radioExt], installed: ['cet', 'radioext'] })
+
+  it('says what was deployed along with the mod', () => {
+    expect(deployMessage(radioPack, ['RadioExt 2.92'], ready)).toEqual({
+      text: 'Also deployed what Outrun Waves needs: RadioExt 2.92.',
+      tone: 'info'
+    })
+  })
+
+  it('warns about what is still missing, after saying what was deployed', () => {
+    const nexus = { 34858: [requires(12345, 'Blur Begone'), requires(4575, 'Input Loader')] }
+    const message = deployMessage(
+      refract,
+      ['Input Loader'],
+      context({ nexus, installed: ['inputloader'] })
+    )
+    expect(message).toEqual({
+      text: 'Also deployed what ReFRACT needs: Input Loader. ReFRACT is deployed, but it still needs: Blur Begone.',
+      tone: 'warning'
+    })
+  })
+
+  it('says nothing when nothing was added and nothing is missing', () => {
+    expect(deployMessage(radioPack, [], ready)).toBeNull()
   })
 })

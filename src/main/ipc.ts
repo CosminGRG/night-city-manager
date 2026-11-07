@@ -157,6 +157,17 @@ export function registerIpcHandlers({
     }
   )
 
+  ipcMain.handle(
+    IpcChannels.setAutoDeployRequirements,
+    (_event, enabled: unknown): Promise<Result<Settings>> => {
+      if (typeof enabled !== 'boolean') {
+        throw new Error('setAutoDeployRequirements: enabled must be a boolean')
+      }
+
+      return toResult(() => settings.update({ autoDeployRequirements: enabled }))
+    }
+  )
+
   ipcMain.handle(IpcChannels.detectGames, (): Promise<DetectedGame[]> => detectGames())
 
   ipcMain.handle(IpcChannels.selectGame, (_event, path: unknown): Promise<Result<Settings>> => {

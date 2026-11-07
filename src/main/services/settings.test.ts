@@ -41,4 +41,12 @@ describe('SettingsStore', () => {
     await reloaded.load()
     expect(reloaded.get().nexusLookup).toBe(false)
   })
+
+  it('leaves automatic requirement deploys on unless the user turns them on', async () => {
+    await writeFile(file, JSON.stringify({ version: 1, autoDeployRequirements: 'yes' }))
+    const store = new SettingsStore(file)
+    await store.load()
+
+    expect(store.get().autoDeployRequirements).toBe(true)
+  })
 })

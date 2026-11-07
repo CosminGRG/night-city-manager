@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import type { AppInfo } from '@shared/ipc'
 import type { Settings, ModsFolderInfo } from '@shared/types'
 import { NexusLookupOption } from '@renderer/components/NexusLookupOption'
+import { SettingToggle } from '@renderer/components/SettingToggle'
 import './SettingsView.css'
 
 interface SettingsViewProps {
@@ -100,6 +101,17 @@ export function SettingsView({ settings, onSettingsChange }: SettingsViewProps):
             {modsError}
           </p>
         )}
+      </div>
+
+      <div className="settings-group">
+        <h3>Deploying</h3>
+        <SettingToggle
+          label="Deploy requirements automatically"
+          hint="When you switch a mod on, the mods it needs that are in your library are deployed first. Optional requirements are left alone."
+          enabled={settings.autoDeployRequirements}
+          save={(next) => window.api.setAutoDeployRequirements(next)}
+          onSettingsChange={onSettingsChange}
+        />
       </div>
 
       <div className="settings-group">

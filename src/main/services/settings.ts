@@ -1,6 +1,8 @@
 import { DEFAULT_SETTINGS, type Settings } from '@shared/types'
 import { readJsonFile, writeJsonFile } from './jsonFile'
 
+const BOOLEAN_SETTINGS = ['nexusLookup', 'autoDeployRequirements'] as const
+
 export class SettingsStore {
   private readonly filePath: string
   private settings: Settings = { ...DEFAULT_SETTINGS }
@@ -14,8 +16,10 @@ export class SettingsStore {
     if (typeof data === 'object' && data !== null && !Array.isArray(data)) {
       this.settings = { ...DEFAULT_SETTINGS, ...data }
     }
-    if (typeof this.settings.nexusLookup !== 'boolean') {
-      this.settings.nexusLookup = DEFAULT_SETTINGS.nexusLookup
+    for (const key of BOOLEAN_SETTINGS) {
+      if (typeof this.settings[key] !== 'boolean') {
+        this.settings[key] = DEFAULT_SETTINGS[key]
+      }
     }
   }
 

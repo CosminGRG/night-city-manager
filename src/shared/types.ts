@@ -6,6 +6,7 @@ export interface Settings {
   modsPath: string | null
   downloadsPath: string | null
   nexusLookup: boolean
+  autoDeployRequirements: boolean
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -13,7 +14,8 @@ export const DEFAULT_SETTINGS: Settings = {
   gamePath: null,
   modsPath: null,
   downloadsPath: null,
-  nexusLookup: true
+  nexusLookup: true,
+  autoDeployRequirements: true
 }
 
 export interface DetectedGame {

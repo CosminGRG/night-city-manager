@@ -24,6 +24,11 @@ export interface RequirementContext {
   nexus: Record<number, NexusRequirement[]>
 }
 
+export interface MissingRequirements {
+  mod: ModRecord
+  missing: string[]
+}
+
 function isFramework(dependency: Dependency): boolean {
   return FRAMEWORKS.some((framework) => framework === dependency)
 }
@@ -104,4 +109,34 @@ export function requirementBadges(mod: ModRecord, context: RequirementContext): 
   ].filter((badge) => badge !== null)
 
   return badges.sort((a, b) => rank(a) - rank(b))
+}
+
+function unmetRequired(mod: ModRecord, context: RequirementContext): RequirementBadge[] {
+  return requirementBadges(mod, context).filter((badge) => !badge.optional && badge.state !== 'met')
+}
+
+export function missingForBulkDeploy(
+  mods: ModRecord[],
+  context: RequirementContext
+): MissingRequirements[] {
+  return mods
+    .map((mod) => ({
+      mod,
+      missing: unmetRequired(mod, context)
+        .filter((badge) => badge.state === 'missing')
+        .map((badge) => badge.label)
+    }))
+    .filter((entry) => entry.missing.length > 0)
+}
+
+export function deployNotice(mod: ModRecord, context: RequirementContext): string | null {
+  const unmet = unmetRequired(mod, context).map((badge) =>
+    badge.state === 'not-deployed' ? `${badge.label} (in your library, not deployed)` : badge.label
+  )
+
+  if (unmet.length === 0) {
+    return null
+  }
+
+  return `${mod.name} is deployed, but it still needs: ${unmet.join(', ')}.`
 }

@@ -18,11 +18,17 @@ import type {
   NexusRequirement
 } from '@shared/types'
 import type { Dependency } from '@shared/requirements'
-import { requirementBadges, type RequirementBadge } from '@renderer/requirementsView'
+import {
+  requirementBadges,
+  deployNotice,
+  missingForBulkDeploy,
+  type RequirementBadge,
+  type RequirementContext
+} from '@renderer/requirementsView'
 import { RequirementBadges } from './RequirementBadges'
 import { isCoreMod } from '@shared/mods'
 import { FRAMEWORK_LABELS, MOD_TYPE_LABELS } from '@renderer/modLabels'
-import { filterMods, paginate, sortMods, bulkCounts } from '@renderer/modListView'
+import { filterMods, paginate, sortMods, bulkCounts, bulkTargets } from '@renderer/modListView'
 import { cleanedMessage } from '@renderer/leftoversView'
 import { CoreModStatus } from './CoreModStatus'
 import { Pagination } from './Pagination'
@@ -53,6 +59,11 @@ interface ModListProps {
   importedCount: number
   onImport: () => void
   onTroubleshoot: () => void
+}
+
+interface Notice {
+  text: string
+  tone: 'info' | 'warning'
 }
 
 const BULK_BUSY: Record<BulkAction, string> = {
@@ -115,7 +126,7 @@ export function ModList({
   const [installed, setInstalled] = useState<Dependency[]>([])
   const [nexus, setNexus] = useState<Record<number, NexusRequirement[]>>({})
   const [error, setError] = useState<string | null>(null)
-  const [notice, setNotice] = useState<string | null>(null)
+  const [notice, setNotice] = useState<Notice | null>(null)
   const [query, setQuery] = useState('')
   const [page, setPage] = useState(1)
   const [pendingRemoval, setPendingRemoval] = useState<ModRecord | null>(null)
@@ -160,7 +171,12 @@ export function ModList({
     setNotice(null)
     try {
       const result = await window.api.deployMod(mod.id)
-      if (!result.ok) setError(result.error)
+      if (!result.ok) {
+        setError(result.error)
+      } else {
+        const warning = deployNotice(mod, requirementContext)
+        setNotice(warning ? { text: warning, tone: 'warning' } : null)
+      }
     } finally {
       await refresh()
       setBusy(null)
@@ -176,7 +192,7 @@ export function ModList({
       if (!result.ok) {
         setError(result.error)
       } else if (result.value.kept.length > 0) {
-        setNotice(keptMessage(mod, result.value.kept))
+        setNotice({ text: keptMessage(mod, result.value.kept), tone: 'info' })
       }
     } finally {
       await refresh()
@@ -197,7 +213,7 @@ export function ModList({
         const parts: string[] = []
         if (kept.length > 0) parts.push(keptMessage(mod, kept))
         if (cleaned) parts.push(cleanedMessage(cleaned))
-        if (parts.length > 0) setNotice(parts.join(' '))
+        if (parts.length > 0) setNotice({ text: parts.join(' '), tone: 'info' })
       }
     } finally {
       setMods(await window.api.listMods())
@@ -222,7 +238,7 @@ export function ModList({
       if (failed.length > 0) {
         setError(`Failed ${failed.map(({ name, error }) => `${name} (${error})`).join(', ')}`)
       }
-      setNotice(bulkMessage(request.action, result.value))
+      setNotice({ text: bulkMessage(request.action, result.value), tone: 'info' })
     } finally {
       setMods(await window.api.listMods())
       await refresh()
@@ -252,6 +268,12 @@ export function ModList({
   const interrupedCount = statuses.filter(
     (status) => status === 'deploying' || status === 'undeploying'
   ).length
+  const requirementContext: RequirementContext = {
+    library: mods ?? [],
+    installed,
+    deployments,
+    nexus
+  }
 
   return (
     <section className="mods">
@@ -311,8 +333,14 @@ export function ModList({
         </p>
       )}
       {notice && (
-        <p role="status" className="notice mods-message">
-          {notice}
+        <p
+          role="status"
+          className={
+            notice.tone === 'warning' ? 'notice notice-warning mods-message' : 'notice mods-message'
+          }
+        >
+          {notice.tone === 'warning' && <TriangleAlert size={16} aria-hidden="true" />}
+          {notice.text}
         </p>
       )}
       {mods === null && <p className="muted">Loading...</p>}
@@ -347,13 +375,7 @@ export function ModList({
                   key={mod.id}
                   mod={mod}
                   status={deployments[mod.id]}
-                  requirements={requirementBadges(mod, {
-                    library: mods,
-                    installed,
-                    deployments,
-                    nexus
-                  })}
-
+                  requirements={requirementBadges(mod, requirementContext)}
                   busyLabel={busy?.id === mod.id ? busy.label : null}
                   locked={changesLocked}
                   actions={actions}
@@ -384,6 +406,14 @@ export function ModList({
         <BulkConfirmDialog
           request={pendingBulk}
           count={counts[pendingBulk.action][pendingBulk.scope]}
+          missing={
+            pendingBulk.action === 'deploy'
+              ? missingForBulkDeploy(
+                  bulkTargets(mods ?? [], deployments, 'deploy', pendingBulk.scope),
+                  requirementContext
+                )
+              : []
+          }
           onConfirm={(trashLeftovers) => handleBulk({ ...pendingBulk, trashLeftovers })}
           onClose={() => setPendingBulk(null)}
         />

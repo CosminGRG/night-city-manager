@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import type { ModRecord, ModType, NexusRequirement } from '@shared/types'
-import { requirementBadges, type RequirementContext } from './requirementsView'
+import {
+  requirementBadges,
+  missingForBulkDeploy,
+  deployNotice,
+  type RequirementContext
+} from './requirementsView'
 
 function mod(
   name: string,
@@ -202,5 +207,42 @@ describe('requirementBadges with Nexus requirements', () => {
     const repack = { ...radioExt, nexusModId: 9999 }
     const installed = context({ nexus, installed: ['cet', 'red4ext'] })
     expect(states(requirementBadges(repack, installed))).toEqual([])
+  })
+})
+
+describe('missingForBulkDeploy', () => {
+  it('lists required mods that nothing will provide, per mod', () => {
+    const nexus = {
+      34858: [requires(12345, 'Blur Begone')],
+      2557: [requires(4575, 'Input Loader', true)]
+    }
+    const installed = context({ nexus, installed: ['archivexl', 'redscript'] })
+
+    expect(missingForBulkDeploy([refract, alwaysFirstEquip], installed)).toEqual([
+      { mod: refract, missing: ['Blur Begone'] }
+    ])
+  })
+
+  it('does not count what is in the library, because Deploy all deploys it too', () => {
+    const library = context({ library: [radioPack, radioExt], installed: ['cet'] })
+    expect(missingForBulkDeploy([radioPack], library)).toEqual([])
+  })
+})
+
+describe('deployNotice', () => {
+  it('says what a freshly deployed mod still needs', () => {
+    const notice = deployNotice(
+      radioPack,
+      context({ library: [radioPack, radioExt], installed: ['cet'] })
+    )
+    expect(notice).toBe(
+      'Outrun Waves is deployed, but it still needs: RadioExt (in your library, not deployed).'
+    )
+  })
+
+  it('stays quiet when everything required is there', () => {
+    const nexus = { 2557: [requires(4575, 'Input Loader', true)] }
+    const installed = context({ nexus, installed: ['archivexl', 'redscript'] })
+    expect(deployNotice(alwaysFirstEquip, installed)).toBeNull()
   })
 })

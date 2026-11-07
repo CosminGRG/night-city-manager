@@ -13,3 +13,32 @@
   border-radius: var(--radius);
   padding: 6px 10px;
 }
+
+.bulk-missing {
+  display: grid;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+  padding: var(--space-3);
+  font-size: 13px;
+  background: color-mix(in srgb, var(--warning) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--warning) 35%, transparent);
+  border-radius: var(--radius);
+}
+
+.bulk-missing > .with-icon {
+  color: var(--warning);
+  font-weight: 600;
+}
+
+.bulk-missing summary {
+  cursor: pointer;
+  color: var(--text-muted);
+}
+
+.bulk-missing ul {
+  max-height: 160px;
+  overflow-y: auto;
+  margin-top: var(--space-2);
+  padding-left: var(--space-6);
+  list-style: disc;
+}

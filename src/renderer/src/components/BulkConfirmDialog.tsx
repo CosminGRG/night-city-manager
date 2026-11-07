@@ -1,7 +1,9 @@
 import { useRef, useState } from 'react'
+import { TriangleAlert } from 'lucide-react'
 import type { BulkRequest, BulkScope } from '@shared/types'
 import { ConfirmDialog } from './ConfirmDialog'
 import { TrashLeftoversOption } from './TrashLeftoversOption'
+import type { MissingRequirements } from '@renderer/requirementsView'
 import './BulkConfirmDialog.css'
 
 const CONFIRM_WORD = 'remove'
@@ -54,6 +56,7 @@ function dialogText({ action, scope }: BulkRequest, count: number): DialogText {
 interface BulkConfirmDialogProps {
   request: BulkRequest
   count: number
+  missing: MissingRequirements[]
   onConfirm: (trashLeftovers: boolean) => void
   onClose: () => void
 }
@@ -61,6 +64,7 @@ interface BulkConfirmDialogProps {
 export function BulkConfirmDialog({
   request,
   count,
+  missing,
   onConfirm,
   onClose
 }: BulkConfirmDialogProps): React.JSX.Element {
@@ -83,6 +87,26 @@ export function BulkConfirmDialog({
     >
       <p>{text.body}</p>
       <p className="muted">{text.note}</p>
+      {missing.length > 0 && (
+        <div className="bulk-missing">
+          <p className="with-icon">
+            <TriangleAlert size={16} aria-hidden="true" />
+            {missing.length === 1 ? '1 mod needs' : `${missing.length} mods need`} something that
+            isn&apos;t installed
+          </p>
+          <details>
+            <summary>Show mods</summary>
+            <ul>
+              {missing.map((entry) => (
+                <li key={entry.mod.id}>
+                  <strong>{entry.mod.name}</strong>: {entry.missing.join(', ')}
+                </li>
+              ))}
+            </ul>
+          </details>
+          <p className="muted">They will deploy but may not work until you add these.</p>
+        </div>
+      )}
       {canTrash && (
         <TrashLeftoversOption
           checked={trashLeftovers}

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { ModRecord, ModType, Framework, DeployStatus } from '@shared/types'
-import { filterMods, pageNumbers, paginate, sortMods, bulkCounts } from './modListView'
+import { filterMods, pageNumbers, paginate, sortMods, bulkCounts, bulkTargets } from './modListView'
 
 function mod(name: string, types: ModType[] = [], providers: Framework[] = []): ModRecord {
   return {
@@ -121,5 +121,15 @@ describe('bulkCounts', () => {
       purge: { all: 2, core: 0, 'non-core': 2 },
       remove: { all: 5, core: 1, 'non-core': 4 }
     })
+  })
+
+  it('hands out the same mods it counts', () => {
+    const cet = withFiles(mod('CET', [], ['cet']))
+    const fresh = withFiles(mod('Fresh'))
+    const deployed = withFiles(mod('Deployed'))
+    const deployments: Record<string, DeployStatus> = { Deployed: 'deployed' }
+
+    expect(bulkTargets([cet, fresh, deployed], deployments, 'deploy', 'non-core')).toEqual([fresh])
+    expect(bulkTargets([cet, fresh, deployed], deployments, 'purge', 'all')).toEqual([deployed])
   })
 })

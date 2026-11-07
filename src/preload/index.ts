@@ -14,6 +14,11 @@ const api: NightCityApi = {
   getPathForFile: (file) => webUtils.getPathForFile(file),
   getInstalledDependencies: () => ipcRenderer.invoke(IpcChannels.getInstalledDependencies),
   getNexusRequirements: () => ipcRenderer.invoke(IpcChannels.getNexusRequirements),
+  onNexusUpdated: (callback) => {
+    const listener = (): void => callback()
+    ipcRenderer.on(IpcChannels.nexusUpdated, listener)
+    return () => ipcRenderer.removeListener(IpcChannels.nexusUpdated, listener)
+  },
   listDeployments: () => ipcRenderer.invoke(IpcChannels.listDeployments),
   deployMod: (modId) => ipcRenderer.invoke(IpcChannels.deployMod, modId),
   undeployMod: (modId) => ipcRenderer.invoke(IpcChannels.undeployMod, modId),

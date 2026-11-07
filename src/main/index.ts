@@ -3,6 +3,7 @@ import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { registerIpcHandlers } from './ipc'
+import { IpcChannels } from '@shared/ipc'
 import { initPaths } from './services/paths'
 import { dialog } from 'electron'
 import { SettingsStore } from './services/settings'
@@ -93,7 +94,12 @@ app.whenReady().then(async () => {
     fetch: (url, init) => net.fetch(url, init),
     appVersion: app.getVersion(),
     enabled: () => settings.get().nexusLookup,
-    mods: () => library.list()
+    mods: () => library.list(),
+    onUpdated: () => {
+      for (const window of BrowserWindow.getAllWindows()) {
+        window.webContents.send(IpcChannels.nexusUpdated)
+      }
+    }
   })
 
   // Set app user model id for windows

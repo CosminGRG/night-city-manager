@@ -27,6 +27,7 @@ export const IpcChannels = {
   importMod: 'mod:import',
   getInstalledDependencies: 'dependencies:installed',
   getNexusRequirements: 'nexus:requirements',
+  nexusUpdated: 'nexus:updated',
   listDeployments: 'deploy:list',
   deployMod: 'mod:deploy',
   undeployMod: 'mod:undeploy',
@@ -66,6 +67,7 @@ export interface NightCityApi {
   getPathForFile(file: File): string
   getInstalledDependencies(): Promise<Dependency[]>
   getNexusRequirements(): Promise<Record<number, NexusRequirement[]>>
+  onNexusUpdated(callback: () => void): () => void
   listDeployments(): Promise<Record<string, DeployStatus>>
   deployMod(modId: string): Promise<Result<null>>
   undeployMod(modId: string): Promise<Result<UndeployResult>>

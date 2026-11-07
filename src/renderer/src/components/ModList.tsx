@@ -148,6 +148,12 @@ export function ModList({
     loadDeployState().then(applyDeployState)
   }, [])
 
+  useEffect(() => {
+    return window.api.onNexusUpdated(() => {
+      window.api.getNexusRequirements().then(setNexus)
+    })
+  }, [])
+
   async function handleDeploy(mod: ModRecord): Promise<void> {
     setBusy({ id: mod.id, label: 'Deploying...' })
     setError(null)

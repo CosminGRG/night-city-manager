@@ -52,13 +52,19 @@ function requestedIds(fetch: ReturnType<typeof vi.fn<Fetch>>, call: number): num
   return ids.map(({ modId }: { modId: number }) => modId)
 }
 
-function lookup(fetch: Fetch, mods: ModRecord[], enabled = true): NexusLookup {
+function lookup(
+  fetch: Fetch,
+  mods: ModRecord[],
+  enabled = true,
+  onUpdated?: () => void
+): NexusLookup {
   return new NexusLookup({
     cache,
     fetch,
     appVersion: '1.0.0',
     enabled: () => enabled,
-    mods: () => mods
+    mods: () => mods,
+    onUpdated
   })
 }
 
@@ -127,5 +133,21 @@ describe('NexusLookup', () => {
     await vi.waitFor(() => expect(warn).toHaveBeenCalledOnce())
     expect(warn.mock.calls[0][0]).toContain('HTTP 503')
     warn.mockRestore()
+  })
+
+  it('reports new answers from a background refresh', async () => {
+    const onUpdated = vi.fn()
+    lookup(nexusFetch(), [mod(2557)], true, onUpdated).refreshInBackground()
+    await vi.waitFor(() => expect(onUpdated).toHaveBeenCalledOnce())
+  })
+
+  it('stays quiet when a background refresh finds nothing new', async () => {
+    const onUpdated = vi.fn()
+    const nexus = lookup(nexusFetch(), [mod(2557)], true, onUpdated)
+    await nexus.refresh()
+
+    nexus.refreshInBackground()
+    expect(await nexus.refresh()).toBe(false)
+    expect(onUpdated).not.toHaveBeenCalled()
   })
 })

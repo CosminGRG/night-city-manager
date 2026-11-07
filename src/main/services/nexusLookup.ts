@@ -9,6 +9,7 @@ export interface NexusLookupOptions {
   appVersion: string
   enabled: () => boolean
   mods: () => ModRecord[]
+  onUpdated: () => void
 }
 
 export class NexusLookup {
@@ -43,9 +44,15 @@ export class NexusLookup {
   }
 
   refreshInBackground(): void {
-    this.refresh().catch((error: unknown) => {
-      const message = error instanceof Error ? error.message : String(error)
-      console.warn(`Nexus lookup failed, keeping the saved answeres: ${message}`)
-    })
+    this.refresh()
+      .then((update) => {
+        if (update) {
+          this.options.onUpdated?.()
+        }
+      })
+      .catch((error: unknown) => {
+        const message = error instanceof Error ? error.message : String(error)
+        console.warn(`Nexus lookup failed, keeping the saved answeres: ${message}`)
+      })
   }
 }

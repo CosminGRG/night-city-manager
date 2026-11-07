@@ -9,7 +9,7 @@ export interface NexusLookupOptions {
   appVersion: string
   enabled: () => boolean
   mods: () => ModRecord[]
-  onUpdated: () => void
+  onUpdated?: () => void
 }
 
 export class NexusLookup {

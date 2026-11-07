@@ -5,6 +5,8 @@ import {
   missingForBulkDeploy,
   deployNotice,
   deployMessage,
+  brokenBy,
+  undeployWarning,
   type RequirementContext
 } from './requirementsView'
 
@@ -273,5 +275,42 @@ describe('deployMessage', () => {
 
   it('says nothing when nothing was added and nothing is missing', () => {
     expect(deployMessage(radioPack, [], ready)).toBeNull()
+  })
+})
+
+describe('undeployWarning', () => {
+  it('names deployed mods that needed the mod just switched off', () => {
+    const afterUndeploy = context({
+      library: [radioPack, radioExt],
+      installed: ['cet'],
+      deployments: { 'Outrun Waves': 'deployed' }
+    })
+    expect(undeployWarning(radioExt, afterUndeploy)).toBe(
+      'Outrun Waves still needs RadioExt 2.92 and may not work without it.'
+    )
+  })
+
+  it('stays quiet when another copy still provides it, or nothing deployed needs it', () => {
+    const stillInstalled = context({
+      library: [radioPack, radioExt],
+      installed: ['cet', 'radioext'],
+      deployments: { 'Outrun Waves': 'deployed' }
+    })
+    expect(undeployWarning(radioExt, stillInstalled)).toBeNull()
+
+    const packOff = context({ library: [radioPack, radioExt], installed: ['cet'] })
+    expect(undeployWarning(radioExt, packOff)).toBeNull()
+  })
+
+  it('follows Nexus requirements, and ignores problems the mod did not cause', () => {
+    const nexus = { 34858: [requires(12345, 'Blur Begone'), requires(4575, 'Input Loader')] }
+    const afterRemove = context({
+      library: [refract],
+      nexus,
+      deployments: { ReFRACT: 'deployed' }
+    })
+
+    expect(brokenBy(blurBegone, afterRemove)).toEqual(['ReFRACT'])
+    expect(brokenBy(radioExt, afterRemove)).toEqual([])
   })
 })

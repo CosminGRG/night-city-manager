@@ -21,6 +21,7 @@ import type { Dependency } from '@shared/requirements'
 import {
   requirementBadges,
   deployMessage,
+  undeployWarning,
   missingForBulkDeploy,
   type RequirementBadge,
   type RequirementContext
@@ -86,6 +87,12 @@ async function loadDeployState(): Promise<DeployState> {
     window.api.getBisect()
   ])
   return { deployments, installed, nexus, bisecting: bisect.ok && bisect.value !== null }
+}
+
+function noticeOf(warning: string | null, info: string[]): Notice | null {
+  const parts = [warning, ...info].filter((part) => part !== null)
+  if (parts.length === 0) return null
+  return { text: parts.join(' '), tone: warning ? 'warning' : 'info' }
 }
 
 function keptMessage(mod: ModRecord, kept: string[]): string {
@@ -190,13 +197,17 @@ export function ModList({
     setNotice(null)
     try {
       const result = await window.api.undeployMod(mod.id)
+      const state = await loadDeployState()
+      applyDeployState(state)
+
       if (!result.ok) {
         setError(result.error)
-      } else if (result.value.kept.length > 0) {
-        setNotice({ text: keptMessage(mod, result.value.kept), tone: 'info' })
+      } else {
+        const { kept } = result.value
+        const warning = undeployWarning(mod, { ...state, library: mods ?? [] })
+        setNotice(noticeOf(warning, kept.length > 0 ? [keptMessage(mod, kept)] : []))
       }
     } finally {
-      await refresh()
       setBusy(null)
     }
   }
@@ -205,20 +216,25 @@ export function ModList({
     setBusy({ id: mod.id, label: 'Removing...' })
     setError(null)
     setNotice(null)
+    const wasDeployed = deployments[mod.id] === 'deployed'
     try {
       const result = await window.api.removeMod(mod.id, trashLeftover)
+      const library = await window.api.listMods()
+      setMods(library)
+      const state = await loadDeployState()
+      applyDeployState(state)
+
       if (!result.ok) {
         setError(result.error)
       } else {
         const { kept, cleaned } = result.value
-        const parts: string[] = []
-        if (kept.length > 0) parts.push(keptMessage(mod, kept))
-        if (cleaned) parts.push(cleanedMessage(cleaned))
-        if (parts.length > 0) setNotice({ text: parts.join(' '), tone: 'info' })
+        const info: string[] = []
+        if (kept.length > 0) info.push(keptMessage(mod, kept))
+        if (cleaned) info.push(cleanedMessage(cleaned))
+        const warning = wasDeployed ? undeployWarning(mod, { ...state, library }) : null
+        setNotice(noticeOf(warning, info))
       }
     } finally {
-      setMods(await window.api.listMods())
-      await refresh()
       setBusy(null)
     }
   }

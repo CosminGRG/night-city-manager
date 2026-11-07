@@ -164,3 +164,37 @@ export function deployMessage(
 
   return also ? { text: also, tone: 'info' } : null
 }
+
+function keysOf(mod: ModRecord): Set<string> {
+  const keys = new Set<string>(provides(mod.plan))
+  if (mod.nexusModId !== null) {
+    keys.add(`nexus-${mod.nexusModId}`)
+    const known = DEPENDENCIES.find(
+      (dependency) => KNOWN_DEPENDENCIES[dependency].nexusId === mod.nexusModId
+    )
+
+    if (known) {
+      keys.add(known)
+    }
+  }
+
+  return keys
+}
+
+export function brokenBy(removed: ModRecord, context: RequirementContext): string[] {
+  const keys = keysOf(removed)
+  return context.library
+    .filter((mod) => mod.id !== removed.id && context.deployments[mod.id] === 'deployed')
+    .filter((mod) => unmetRequired(mod, context).some((badge) => keys.has(badge.key)))
+    .map((mod) => mod.name)
+}
+
+export function undeployWarning(removed: ModRecord, context: RequirementContext): string | null {
+  const names = brokenBy(removed, context)
+  if (names.length === 0) {
+    return null
+  }
+
+  const verb = names.length === 1 ? 'needs' : 'need'
+  return `${names.join(', ')} still ${verb} ${removed.name} and may not work without it.`
+}

@@ -63,7 +63,7 @@ export const KNOWN_DEPENDENCIES: Record<Dependency, KnownDependency> = {
   redmod: { label: 'REDmod DLC', file: 'tools/redmod/bin/redmod.exe', nexusId: null },
   modsettings: {
     label: 'Mod Settings',
-    file: '/red4ext/plugins/mod_settings/mod_settings.dll',
+    file: 'red4ext/plugins/mod_settings/mod_settings.dll',
     nexusId: 4885
   },
   virtualatelier: {

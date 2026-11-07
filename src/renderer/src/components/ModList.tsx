@@ -14,7 +14,8 @@ import type {
   Result,
   BulkAction,
   BulkRequest,
-  BulkResult
+  BulkResult,
+  NexusRequirement
 } from '@shared/types'
 import type { Dependency } from '@shared/requirements'
 import { requirementBadges, type RequirementBadge } from '@renderer/requirementsView'
@@ -39,6 +40,7 @@ const INTERRUPTED = 'The last deploy or undeploy was interrupted. Undeploy to cl
 interface DeployState {
   deployments: Record<string, DeployStatus>
   installed: Dependency[]
+  nexus: Record<number, NexusRequirement[]>
   bisecting: boolean
 }
 
@@ -66,12 +68,13 @@ const BULK_DONE: Record<BulkAction, string> = {
 }
 
 async function loadDeployState(): Promise<DeployState> {
-  const [deployments, installed, bisect] = await Promise.all([
+  const [deployments, installed, nexus, bisect] = await Promise.all([
     window.api.listDeployments(),
     window.api.getInstalledDependencies(),
+    window.api.getNexusRequirements(),
     window.api.getBisect()
   ])
-  return { deployments, installed, bisecting: bisect.ok && bisect.value !== null }
+  return { deployments, installed, nexus, bisecting: bisect.ok && bisect.value !== null }
 }
 
 function keptMessage(mod: ModRecord, kept: string[]): string {
@@ -110,6 +113,7 @@ export function ModList({
   const [mods, setMods] = useState<ModRecord[] | null>(null)
   const [deployments, setDeployments] = useState<Record<string, DeployStatus>>({})
   const [installed, setInstalled] = useState<Dependency[]>([])
+  const [nexus, setNexus] = useState<Record<number, NexusRequirement[]>>({})
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [query, setQuery] = useState('')
@@ -124,6 +128,7 @@ export function ModList({
     setDeployments(state.deployments)
     setInstalled(state.installed)
     setBisecting(state.bisecting)
+    setNexus(state.nexus)
   }
 
   async function refresh(): Promise<void> {
@@ -336,7 +341,13 @@ export function ModList({
                   key={mod.id}
                   mod={mod}
                   status={deployments[mod.id]}
-                  requirements={requirementBadges(mod, mods, installed)}
+                  requirements={requirementBadges(mod, {
+                    library: mods,
+                    installed,
+                    deployments,
+                    nexus
+                  })}
+
                   busyLabel={busy?.id === mod.id ? busy.label : null}
                   locked={changesLocked}
                   actions={actions}

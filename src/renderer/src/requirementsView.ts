@@ -1,10 +1,10 @@
-import { FRAMEWORKS, type ModRecord } from '@shared/types'
+import { FRAMEWORKS, type DeployStatus, type ModRecord, type NexusRequirement } from '@shared/types'
 import {
+  DEPENDENCIES,
   KNOWN_DEPENDENCIES,
   needs,
-  unmetRequirements,
-  type Dependency,
-  type UnmetRequirement
+  provides,
+  type Dependency
 } from '@shared/requirements'
 
 export type RequirementState = 'met' | 'not-deployed' | 'missing'
@@ -13,56 +13,95 @@ export interface RequirementBadge {
   key: string
   label: string
   state: RequirementState
+  optional: boolean
   title: string
 }
 
-const ORDER: Record<RequirementState, number> = { missing: 0, 'not-deployed': 1, met: 2 }
+export interface RequirementContext {
+  library: ModRecord[]
+  installed: Dependency[]
+  deployments: Record<string, DeployStatus>
+  nexus: Record<number, NexusRequirement[]>
+}
 
 function isFramework(dependency: Dependency): boolean {
   return FRAMEWORKS.some((framework) => framework === dependency)
 }
 
-function stateOf(problem: UnmetRequirement | undefined): RequirementState {
-  if (!problem) return 'met'
-  return problem.provider ? 'not-deployed' : 'missing'
+function rank(badge: RequirementBadge): number {
+  if (badge.optional) return 3
+  if (badge.state === 'missing') return 0
+  return badge.state === 'not-deployed' ? 1 : 2
 }
 
-function explain(dependency: Dependency, problem: UnmetRequirement | undefined): string {
+function withTitle(badge: Omit<RequirementBadge, 'title'>, title: string): RequirementBadge {
+  return { ...badge, title: badge.optional ? `Optional: ${title}` : title }
+}
+
+function knownBadge(
+  dependency: Dependency,
+  optional: boolean,
+  context: RequirementContext
+): RequirementBadge | null {
   const { label, nexusId } = KNOWN_DEPENDENCIES[dependency]
-  if (!problem) {
-    return `${label} is installed.`
+  const provider = context.library.find((other) => provides(other.plan).includes(dependency))
+
+  if (context.installed.includes(dependency)) {
+    if (isFramework(dependency)) return null
+    return withTitle({ key: dependency, label, state: 'met', optional }, `${label} is installed.`)
   }
-  if (problem.provider) {
-    return `${label} is in your library (${problem.provider.name}) but not deployed.`
-  }
-  if (nexusId === null) {
-    return `${label} is not installed. It is free in your game store.`
+  if (provider) {
+    const title = `${label} is in your library (${provider.name}) but not deployed.`
+    return withTitle({ key: dependency, label, state: 'not-deployed', optional }, title)
   }
 
-  return `${label} is not installed. Get it on Nexus Mods.`
+  const where = nexusId === null ? 'It is free in your game store.' : 'Get it on Nexus Mods.'
+  const title = `${label} is not installed. ${where}`
+  return withTitle({ key: dependency, label, state: 'missing', optional }, title)
 }
 
-export function requirementBadges(
-  mod: ModRecord,
-  library: ModRecord[],
-  installed: Dependency[]
-): RequirementBadge[] {
-  const unmet = unmetRequirements(mod, library, installed)
-  const badges: RequirementBadge[] = []
+function nexusBadge(requirement: NexusRequirement, context: RequirementContext): RequirementBadge {
+  const { nexusId, name: label, optional } = requirement
+  const key = `nexus-${nexusId}`
+  const provider = context.library.find((other) => other.nexusModId === nexusId)
 
-  for (const dependency of needs(mod.plan)) {
-    const problem = unmet.find((item) => item.dependency === dependency)
-    if (!problem && isFramework(dependency)) {
-      continue
-    }
-
-    badges.push({
-      key: dependency,
-      label: KNOWN_DEPENDENCIES[dependency].label,
-      state: stateOf(problem),
-      title: explain(dependency, problem)
-    })
+  if (provider && context.deployments[provider.id] === 'deployed') {
+    return withTitle({ key, label, state: 'met', optional }, `${label} is deployed.`)
+  }
+  if (provider) {
+    const title = `${label} is in your library (${provider.name}) but not deployed.`
+    return withTitle({ key, label, state: 'not-deployed', optional }, title)
   }
 
-  return badges.sort((a, b) => ORDER[a.state] - ORDER[b.state])
+  const title = `${label} is not in your library. Get it on Nexus Mods.`
+  return withTitle({ key, label, state: 'missing', optional }, title)
+}
+
+export function requirementBadges(mod: ModRecord, context: RequirementContext): RequirementBadge[] {
+  const own = provides(mod.plan)
+  const known = new Map<Dependency, boolean>(
+    needs(mod.plan).map((dependency) => [dependency, false])
+  )
+  const unknown: NexusRequirement[] = []
+
+  const fromNexus = mod.nexusModId === null ? [] : (context.nexus[mod.nexusModId] ?? [])
+  for (const requirement of fromNexus) {
+    if (requirement.nexusId === mod.nexusModId) continue
+
+    const dependency = DEPENDENCIES.find(
+      (candidate) => KNOWN_DEPENDENCIES[candidate].nexusId === requirement.nexusId
+    )
+    if (!dependency) {
+      unknown.push(requirement)
+    } else if (!own.includes(dependency)) {
+      known.set(dependency, requirement.optional)
+    }
+  }
+
+  const badges = [
+    ...[...known].map(([dependency, optional]) => knownBadge(dependency, optional, context)),
+    ...unknown.map((requirement) => nexusBadge(requirement, context))
+  ].filter((badge) => badge !== null)
+
+  return badges.sort((a, b) => rank(a) - rank(b))
 }

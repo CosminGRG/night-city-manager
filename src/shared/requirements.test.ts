@@ -49,6 +49,13 @@ describe('KNOWN_DEPENDENCIES', () => {
       if (addons) expect(file.startsWith(addons)).toBe(true)
     }
   })
+
+  it('stores paths relative to the game folder, without a leading slash', () => {
+    for (const { file, addons } of Object.values(KNOWN_DEPENDENCIES)) {
+      expect(file.startsWith('/')).toBe(false)
+      if (addons) expect(addons.startsWith('/')).toBe(false)
+    }
+  })
 })
 
 describe('needs', () => {

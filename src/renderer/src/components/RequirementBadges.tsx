@@ -14,21 +14,26 @@ interface RequirementBadgesProp {
   badges: RequirementBadge[]
 }
 
+function isWarning(badge: RequirementBadge): boolean {
+  return badge.state !== 'met' && !badge.optional
+}
+
 export function RequirementBadges({ badges }: RequirementBadgesProp): React.JSX.Element {
   const shown = badges.slice(0, MAX_VISIBLE)
   const hidden = badges.slice(MAX_VISIBLE)
-  const hiddenUnmet = hidden.some((badge) => badge.state !== 'met')
+  const hiddenUnmet = hidden.some(isWarning)
 
   return (
     <>
       {shown.map((badge) => (
         <span
           key={badge.key}
-          className={badge.state === 'met' ? 'badge' : 'badge badge-unmet'}
+          className={isWarning(badge) ? 'badge badge-unmet' : 'badge'}
           title={badge.title}
         >
-          {badge.state !== 'met' && <TriangleAlert size={12} aria-hidden="true" />}
+          {isWarning(badge) && <TriangleAlert size={12} aria-hidden="true" />}
           {badge.label}
+          {badge.optional && ' (optional)'}
           <span className="sr-only"> ({STATE_TEXT[badge.state]})</span>
         </span>
       ))}

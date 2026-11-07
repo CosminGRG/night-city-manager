@@ -1,6 +1,6 @@
-import type { BisectStatus, DeployStatus, ModRecord } from '@shared/types'
+import type { BisectStatus, DeployStatus, ModRecord, NexusRequirement } from '@shared/types'
 import { isCoreMod } from '@shared/mods'
-import { provides } from '@shared/requirements'
+import { needs, provides } from '@shared/requirements'
 
 export function bisectCandidates(
   mods: ModRecord[],
@@ -9,12 +9,49 @@ export function bisectCandidates(
   return mods.filter((mod) => deployments[mod.id] === 'deployed' && !isCoreMod(mod))
 }
 
-export function isLibrary(mod: ModRecord): boolean {
-  return provides(mod.plan).length > 0
+function requiresOnNexus(
+  other: ModRecord,
+  mod: ModRecord,
+  nexus: Record<number, NexusRequirement[]>
+): boolean {
+  if (other.nexusModId === null || mod.nexusModId === null) {
+    return false
+  }
+
+  const requirements = nexus[other.nexusModId] ?? []
+  return requirements.some((item) => !item.optional && item.nexusId === mod.nexusModId)
 }
 
-export function defaultSuspects(candidates: ModRecord[]): Set<string> {
-  const tested = candidates.filter((mod) => !isLibrary(mod))
+export function neededBy(
+  mod: ModRecord,
+  candidates: ModRecord[],
+  nexus: Record<number, NexusRequirement[]>
+): string[] {
+  const provided = provides(mod.plan)
+
+  return candidates
+    .filter((other) => other.id !== mod.id)
+    .filter(
+      (other) =>
+        needs(other.plan).some((dependency) => provided.includes(dependency)) ||
+        requiresOnNexus(other, mod, nexus)
+    )
+    .map((other) => other.name)
+}
+
+export function isLibrary(
+  mod: ModRecord,
+  candidates: ModRecord[],
+  nexus: Record<number, NexusRequirement[]>
+): boolean {
+  return provides(mod.plan).length > 0 || neededBy(mod, candidates, nexus).length > 0
+}
+
+export function defaultSuspects(
+  candidates: ModRecord[],
+  nexus: Record<number, NexusRequirement[]>
+): Set<string> {
+  const tested = candidates.filter((mod) => !isLibrary(mod, candidates, nexus))
   return new Set(tested.map((mod) => mod.id))
 }
 

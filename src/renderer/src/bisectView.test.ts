@@ -1,6 +1,19 @@
 import { describe, expect, it } from 'vitest'
-import type { BisectStatus, DeployStatus, Framework, ModRecord } from '@shared/types'
-import { bisectCandidates, defaultSuspects, namesOf, roundCount, roundSummary } from './bisectView'
+import type {
+  BisectStatus,
+  DeployStatus,
+  Framework,
+  ModRecord,
+  NexusRequirement
+} from '@shared/types'
+import {
+  bisectCandidates,
+  defaultSuspects,
+  namesOf,
+  roundCount,
+  roundSummary,
+  neededBy
+} from './bisectView'
 
 function mod(
   id: string,
@@ -55,7 +68,44 @@ describe('defaultSuspects', () => {
       [],
       ['bin/x64/plugins/cyber_engine_tweaks/mods/radioExt/radios/Station/song.mp3']
     )
-    expect(defaultSuspects([...library, pack, mod('a', 'A')])).toEqual(new Set(['pack', 'a']))
+    expect(defaultSuspects([...library, pack, mod('a', 'A')], {})).toEqual(new Set(['pack', 'a']))
+  })
+
+  it('keeps mods on that another tested mod requires on Nexus', () => {
+    const refract = { ...mod('refract', 'ReFRACT'), nexusModId: 34858 }
+    const blurBegone = { ...mod('blur', 'Blur Begone'), nexusModId: 12345 }
+    const browserExtension = { ...mod('browser', 'Browser Extension'), nexusModId: 10038 }
+    const nexus: Record<number, NexusRequirement[]> = {
+      34858: [
+        { nexusId: 12345, name: 'Blur Begone', optional: false },
+        { nexusId: 10038, name: 'Browser Extension', optional: true }
+      ]
+    }
+
+    const candidates = [refract, blurBegone, browserExtension]
+    expect(defaultSuspects(candidates, nexus)).toEqual(new Set(['refract', 'browser']))
+  })
+})
+
+describe('neededBy', () => {
+  it('names the tested mods that need a mod, from files and from Nexus', () => {
+    const radioExt = mod(
+      'rx',
+      'RadioExt',
+      [],
+      ['bin/x64/plugins/cyber_engine_tweaks/mods/radioExt/init.lua']
+    )
+    const pack = mod(
+      'pack',
+      'Outrun Waves',
+      [],
+      ['bin/x64/plugins/cyber_engine_tweaks/mods/radioExt/radios/Station/song.mp3']
+    )
+    const selfListed = { ...mod('self', 'Self'), nexusModId: 1 }
+    const nexus = { 1: [{ nexusId: 1, name: 'Self', optional: false }] }
+
+    expect(neededBy(radioExt, [radioExt, pack], {})).toEqual(['Outrun Waves'])
+    expect(neededBy(selfListed, [selfListed], nexus)).toEqual([])
   })
 })
 

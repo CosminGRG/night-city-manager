@@ -1,12 +1,20 @@
 import { useEffect, useState } from 'react'
 import { CircleCheck, CircleX, Play, RotateCcw, Undo2 } from 'lucide-react'
-import type { BisectAnswer, BisectView, DeployStatus, ModRecord, Result } from '@shared/types'
+import type {
+  BisectAnswer,
+  BisectView,
+  DeployStatus,
+  ModRecord,
+  Result,
+  NexusRequirement
+} from '@shared/types'
 import {
   bisectCandidates,
   defaultSuspects,
   namesOf,
   roundCount,
-  roundSummary
+  roundSummary,
+  neededBy
 } from '@renderer/bisectView'
 import { toggleItems } from '@renderer/leftoversView'
 import { ConfirmDialog } from './ConfirmDialog'
@@ -16,15 +24,17 @@ interface BisectState {
   view: Result<BisectView | null>
   mods: ModRecord[]
   deployments: Record<string, DeployStatus>
+  nexus: Record<number, NexusRequirement[]>
 }
 
 async function loadBisectState(): Promise<BisectState> {
-  const [view, mods, deployments] = await Promise.all([
+  const [view, mods, deployments, nexus] = await Promise.all([
     window.api.getBisect(),
     window.api.listMods(),
-    window.api.listDeployments()
+    window.api.listDeployments(),
+    window.api.getNexusRequirements()
   ])
-  return { view, mods, deployments }
+  return { view, mods, deployments, nexus }
 }
 
 interface ModNamesProps {
@@ -50,6 +60,7 @@ function ModNames({ title, names }: ModNamesProps): React.JSX.Element {
 export function BisectPanel(): React.JSX.Element {
   const [view, setView] = useState<BisectView | null | undefined>(undefined)
   const [mods, setMods] = useState<ModRecord[]>([])
+  const [nexus, SetNexus] = useState<Record<number, NexusRequirement[]>>({})
   const [candidates, setCandidates] = useState<ModRecord[]>([])
   const [suspects, setSuspects] = useState<Set<string>>(new Set())
   const [checkFirst, setCheckFirst] = useState(true)
@@ -61,7 +72,8 @@ export function BisectPanel(): React.JSX.Element {
     const offered = bisectCandidates(state.mods, state.deployments)
     setMods(state.mods)
     setCandidates(offered)
-    setSuspects(defaultSuspects(offered))
+    SetNexus(state.nexus)
+    setSuspects(defaultSuspects(offered, state.nexus))
 
     if (state.view.ok) {
       setView(state.view.value)
@@ -108,6 +120,11 @@ export function BisectPanel(): React.JSX.Element {
 
   const locked = busy !== null
 
+  function keptTitle(mod: ModRecord): string | undefined {
+    const users = neededBy(mod, candidates, nexus)
+    return users.length > 0 ? `Needed by ${users.join(', ')}` : undefined
+  }
+
   function renderSetup(): React.ReactNode {
     if (candidates.length < 2) {
       return (
@@ -139,7 +156,11 @@ export function BisectPanel(): React.JSX.Element {
                   }
                 />
                 <span className="bisect-mod-name">{mod.name}</span>
-                {!suspects.has(mod.id) && <span className="muted bisect-kept">Always on</span>}
+                {!suspects.has(mod.id) && (
+                  <span className="muted bisect-kept" title={keptTitle(mod)}>
+                    Always on
+                  </span>
+                )}
               </label>
             </li>
           ))}

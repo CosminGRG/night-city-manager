@@ -15,7 +15,8 @@ import type {
   BulkAction,
   BulkRequest,
   BulkResult,
-  NexusRequirement
+  NexusRequirement,
+  ModUpdate
 } from '@shared/types'
 import type { Dependency } from '@shared/requirements'
 import {
@@ -31,9 +32,11 @@ import { isCoreMod } from '@shared/mods'
 import { FRAMEWORK_LABELS, MOD_TYPE_LABELS } from '@renderer/modLabels'
 import { filterMods, paginate, sortMods, bulkCounts, bulkTargets } from '@renderer/modListView'
 import { cleanedMessage } from '@renderer/leftoversView'
+import { coreUpdates } from '@renderer/updatesView'
 import { CoreModStatus } from './CoreModStatus'
 import { Pagination } from './Pagination'
 import { SearchBox } from './SearchBox'
+import { UpdateButton } from './UpdateButton'
 import { RemoveConfirmDialog } from './RemoveConfirmDialog'
 import { type ModActions, ModControls } from './ModControls'
 import { ActionsMenu } from './ActionsMenu'
@@ -48,6 +51,7 @@ interface DeployState {
   deployments: Record<string, DeployStatus>
   installed: Dependency[]
   nexus: Record<number, NexusRequirement[]>
+  updates: Record<string, ModUpdate>
   bisecting: boolean
 }
 
@@ -80,13 +84,20 @@ const BULK_DONE: Record<BulkAction, string> = {
 }
 
 async function loadDeployState(): Promise<DeployState> {
-  const [deployments, installed, nexus, bisect] = await Promise.all([
+  const [deployments, installed, nexus, updates, bisect] = await Promise.all([
     window.api.listDeployments(),
     window.api.getInstalledDependencies(),
     window.api.getNexusRequirements(),
+    window.api.getModUpdates(),
     window.api.getBisect()
   ])
-  return { deployments, installed, nexus, bisecting: bisect.ok && bisect.value !== null }
+  return {
+    deployments,
+    installed,
+    nexus,
+    updates,
+    bisecting: bisect.ok && bisect.value !== null
+  }
 }
 
 function noticeOf(warning: string | null, info: string[]): Notice | null {
@@ -132,6 +143,7 @@ export function ModList({
   const [deployments, setDeployments] = useState<Record<string, DeployStatus>>({})
   const [installed, setInstalled] = useState<Dependency[]>([])
   const [nexus, setNexus] = useState<Record<number, NexusRequirement[]>>({})
+  const [updates, setUpdates] = useState<Record<string, ModUpdate>>({})
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<Notice | null>(null)
   const [query, setQuery] = useState('')
@@ -147,6 +159,7 @@ export function ModList({
     setInstalled(state.installed)
     setBisecting(state.bisecting)
     setNexus(state.nexus)
+    setUpdates(state.updates)
   }
 
   async function refresh(): Promise<void> {
@@ -159,7 +172,12 @@ export function ModList({
   }
 
   useEffect(() => {
-    window.api.listMods().then(setMods)
+    Promise.all([window.api.listMods(), window.api.getModUpdates()]).then(
+      ([library, modUpdates]) => {
+        setMods(library)
+        setUpdates(modUpdates)
+      }
+    )
   }, [importedCount])
 
   useEffect(() => {
@@ -169,6 +187,7 @@ export function ModList({
   useEffect(() => {
     return window.api.onNexusUpdated(() => {
       window.api.getNexusRequirements().then(setNexus)
+      window.api.getModUpdates().then(setUpdates)
     })
   }, [])
 
@@ -273,7 +292,8 @@ export function ModList({
     undeploy: handleUndeploy,
     remove: setPendingRemoval,
     reveal: (mod) => showFailure(window.api.revealMod(mod.id)),
-    openNexus: (mod) => showFailure(window.api.openNexusPage(mod.id))
+    openNexus: (mod) => showFailure(window.api.openNexusPage(mod.id)),
+    openNexusFiles: (mod) => showFailure(window.api.openNexusFiles(mod.id))
   }
 
   const visible = mods && paginate(filterMods(sortMods(mods), query), page)
@@ -294,7 +314,11 @@ export function ModList({
 
   return (
     <section className="mods">
-      <CoreModStatus installed={installed} />
+      <CoreModStatus
+        installed={installed}
+        updates={coreUpdates(mods ?? [], deployments, updates)}
+        onOpenFiles={actions.openNexusFiles}
+      />
       <header className="mods-header">
         <div className="mods-title">
           <div className="mods-heading">
@@ -393,6 +417,7 @@ export function ModList({
                   mod={mod}
                   status={deployments[mod.id]}
                   requirements={requirementBadges(mod, requirementContext)}
+                  update={updates[mod.id]}
                   busyLabel={busy?.id === mod.id ? busy.label : null}
                   locked={changesLocked}
                   actions={actions}
@@ -470,6 +495,7 @@ interface ModRowProps {
   mod: ModRecord
   status: DeployStatus | undefined
   requirements: RequirementBadge[]
+  update: ModUpdate | undefined
   busyLabel: string | null
   locked: boolean
   actions: ModActions
@@ -479,6 +505,7 @@ function ModRow({
   mod,
   status,
   requirements,
+  update,
   busyLabel,
   locked,
   actions
@@ -497,6 +524,14 @@ function ModRow({
           {mod.name}
         </span>
         {mod.version && <span className="mod-version">{mod.version}</span>}
+        {update && (
+          <UpdateButton
+            update={update}
+            label={update.version}
+            onClick={() => actions.openNexusFiles(mod)}
+          />
+        )}
+
         {warnings.length > 0 && (
           <span
             className="mod-warning"

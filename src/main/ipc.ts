@@ -90,6 +90,15 @@ export function registerIpcHandlers({
     return mod
   }
 
+  function nexusPageOf(modId: unknown): string {
+    const { nexusModId } = findMod(modId)
+    if (!Number.isSafeInteger(nexusModId) || nexusModId === null || nexusModId <= 0) {
+      throw new Error('This mod has no Nexus page.')
+    }
+
+    return `https://www.nexusmods.com/cyberpunk2077/mods/${nexusModId}`
+  }
+
   function modsDir(): string {
     return settings.get().modsPath ?? paths.mods
   }
@@ -345,11 +354,16 @@ export function registerIpcHandlers({
 
   ipcMain.handle(IpcChannels.openNexusPage, (_event, modId: unknown): Promise<Result<null>> =>
     toResult(async () => {
-      const { nexusModId } = findMod(modId)
-      if (!Number.isSafeInteger(nexusModId) || nexusModId === null || nexusModId <= 0) {
-        throw new Error('This mod has no Nexus page.')
-      }
-      await shell.openExternal(`https://www.nexusmods.com/cyberpunk2077/mods/${nexusModId}`)
+      await shell.openExternal(nexusPageOf(modId))
+
+      return null
+    })
+  )
+
+  ipcMain.handle(IpcChannels.openNexusFiles, (_event, modId: unknown): Promise<Result<null>> =>
+    toResult(async () => {
+      await shell.openExternal(`${nexusPageOf(modId)}?tab=files`)
+
       return null
     })
   )

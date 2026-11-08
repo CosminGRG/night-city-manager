@@ -30,6 +30,7 @@ const api: NightCityApi = {
   removeMod: (modId, trashLeftovers) =>
     ipcRenderer.invoke(IpcChannels.removeMod, modId, trashLeftovers),
   revealMod: (modId) => ipcRenderer.invoke(IpcChannels.revealMod, modId),
+  openNexusFiles: (modId) => ipcRenderer.invoke(IpcChannels.openNexusFiles, modId),
   openNexusPage: (modId) => ipcRenderer.invoke(IpcChannels.openNexusPage, modId),
   runBulk: (request) => ipcRenderer.invoke(IpcChannels.runBulk, request),
   getModsFolder: () => ipcRenderer.invoke(IpcChannels.getModsFolder),

@@ -12,7 +12,8 @@ import type {
   CleanResult,
   BisectView,
   BisectAnswer,
-  NexusRequirement
+  NexusRequirement,
+  GameLogs
 } from './types'
 import type { Dependency } from './requirements'
 
@@ -48,7 +49,11 @@ export const IpcChannels = {
   answerBisect: 'bisect:answer',
   undoBisect: 'bisect:undo',
   applyBisect: 'bisect:apply',
-  endBisect: 'bisect:end'
+  endBisect: 'bisect:end',
+  listLogs: 'logs:list',
+  openLog: 'logs:open',
+  openLogFolder: 'logs:open-folder',
+  openCrashReports: 'logs:open-crash-reports'
 } as const
 
 export interface AppInfo {
@@ -91,4 +96,8 @@ export interface NightCityApi {
   undoBisect(): Promise<Result<BisectView>>
   applyBisect(): Promise<Result<BisectView>>
   endBisect(keepCulpritOff: boolean): Promise<Result<null>>
+  listLogs(): Promise<Result<GameLogs>>
+  openLog(path: string): Promise<Result<null>>
+  openLogFolder(path: string): Promise<Result<null>>
+  openCrashReports(): Promise<Result<null>>
 }

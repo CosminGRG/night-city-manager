@@ -144,3 +144,20 @@ export interface NexusRequirement {
   name: string
   optional: boolean
 }
+
+export type LogSource = 'cet' | 'redscript' | 'red4ext'
+
+export interface LogFile {
+  path: string
+  title: string
+  source: LogSource
+  modifiedAt: string
+  size: number
+  older: number
+}
+
+export interface GameLogs {
+  logs: LogFile[]
+  crashReports: number
+  lastCrashAt: string | null
+}

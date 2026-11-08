@@ -15,7 +15,8 @@ import type {
   LeftoverGroup,
   CleanResult,
   BisectView,
-  NexusRequirement
+  NexusRequirement,
+  GameLogs
 } from '@shared/types'
 import { detectInstalled } from './services/frameworks'
 import type { SettingsStore } from './services/settings'
@@ -49,6 +50,7 @@ import {
   undoRound
 } from './services/bisectSession'
 import { NexusLookup } from './services/nexusLookup'
+import { checkCrashReports, findLog, scanLogs } from './services/logs'
 
 interface IpcDependencies {
   settings: SettingsStore
@@ -503,6 +505,22 @@ export function registerIpcHandlers({
   ipcMain.handle(IpcChannels.getNexusRequirements, (): Record<number, NexusRequirement[]> =>
     nexus.requirements()
   )
+
+  ipcMain.handle(IpcChannels.listLogs, (): Promise<Result<GameLogs>> =>
+    toResult(() => scanLogs(currentGame(), crashReportsDir()))
+  )
+
+  ipcMain.handle(IpcChannels.openLog, (_event, path: unknown): Promise<Result<null>> =>
+    toResult(async () => openInShell(await findLog(currentGame(), path)))
+  )
+
+  ipcMain.handle(IpcChannels.openLogFolder, (_event, path: unknown): Promise<Result<null>> =>
+    toResult(async () => openInShell(win32.dirname(await findLog(currentGame(), path))))
+  )
+
+  ipcMain.handle(IpcChannels.openCrashReports, (): Promise<Result<null>> =>
+    toResult(async () => openInShell(await checkCrashReports(crashReportsDir())))
+  )
 }
 
 function isBulkRequest(value: unknown): value is BulkRequest {
@@ -524,4 +542,18 @@ async function refuseWhileGameRuns(): Promise<void> {
 
 function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every((item) => typeof item === 'string')
+}
+
+function crashReportsDir(): string {
+  const localAppData = process.env.LOCALAPPDATA ?? join(app.getPath('home'), 'AppData', 'Local')
+  return join(localAppData, 'REDEngine', 'ReportQueue')
+}
+
+async function openInShell(path: string): Promise<null> {
+  const error = await shell.openPath(path)
+  if (error) {
+    throw new Error(error)
+  }
+
+  return null
 }

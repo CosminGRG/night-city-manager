@@ -41,7 +41,11 @@ const api: NightCityApi = {
   answerBisect: (answer) => ipcRenderer.invoke(IpcChannels.answerBisect, answer),
   undoBisect: () => ipcRenderer.invoke(IpcChannels.undoBisect),
   applyBisect: () => ipcRenderer.invoke(IpcChannels.applyBisect),
-  endBisect: (keepCulpritOff) => ipcRenderer.invoke(IpcChannels.endBisect, keepCulpritOff)
+  endBisect: (keepCulpritOff) => ipcRenderer.invoke(IpcChannels.endBisect, keepCulpritOff),
+  listLogs: () => ipcRenderer.invoke(IpcChannels.listLogs),
+  openLog: (path) => ipcRenderer.invoke(IpcChannels.openLog, path),
+  openLogFolder: (path) => ipcRenderer.invoke(IpcChannels.openLogFolder, path),
+  openCrashReports: () => ipcRenderer.invoke(IpcChannels.openCrashReports)
 }
 
 contextBridge.exposeInMainWorld('api', api)

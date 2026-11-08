@@ -1,0 +1,99 @@
+.log-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.log-group-title {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.log-list {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.log-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding-right: var(--space-2);
+  background: var(--surface-2);
+}
+
+.log-row + .log-row {
+  border-top: 1px solid var(--border);
+}
+
+.log-row button {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+}
+
+.log-row button:hover:not(:disabled) {
+  background: var(--surface-3);
+  box-shadow: none;
+}
+
+.log-row button:focus-visible {
+  outline-offset: -2px;
+}
+
+.log-open {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  min-height: 36px;
+  padding: 0 var(--space-3);
+  text-align: left;
+}
+
+.log-title {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.log-meta,
+.log-older {
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.log-meta {
+  margin-left: auto;
+}
+
+.log-folder {
+  display: inline-flex;
+  padding: 6px;
+  color: var(--text-muted);
+}
+
+.log-folder:hover:not(:disabled) {
+  color: var(--text);
+}
+
+.log-crashes {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border);
+  font-size: 13px;
+}
+
+.log-crashes > svg {
+  color: var(--warning);
+}
+
+.log-crashes button {
+  margin-left: auto;
+}

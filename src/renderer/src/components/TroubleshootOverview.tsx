@@ -1,4 +1,4 @@
-import { ExternalLink, FlaskConical, FolderSearch, type LucideIcon } from 'lucide-react'
+import { ExternalLink, FlaskConical, FolderSearch, ScrollText, type LucideIcon } from 'lucide-react'
 import type { TroubleshootTab } from '@renderer/views/TroubleshootView'
 import './TroubleshootOverview.css'
 
@@ -28,6 +28,13 @@ const TOOLS: Tool[] = [
     text: "The game crashes or something behaves oddly, you suspect a mod causes it but you don't know whihc. The app switches half of your mods off per round; you launch the game and say whether the problem is still there.",
     action: 'Find the mod',
     Icon: FlaskConical
+  },
+  {
+    tab: 'logs',
+    title: 'Logs',
+    text: 'What CET, redscript and RED4ext wrote during your last launch, plus crash reports. Mod authors and the modding Discord ask for these first.',
+    action: 'Open logs',
+    Icon: ScrollText
   },
   {
     tab: 'leftovers',

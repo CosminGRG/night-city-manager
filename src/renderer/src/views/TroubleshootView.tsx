@@ -1,15 +1,17 @@
 import * as Tabs from '@radix-ui/react-tabs'
-import { FlaskConical, FolderSearch, LifeBuoy, type LucideIcon } from 'lucide-react'
+import { FlaskConical, FolderSearch, LifeBuoy, ScrollText, type LucideIcon } from 'lucide-react'
 import { BisectPanel } from '@renderer/components/BisectPanel'
 import { LeftoversPanel } from '@renderer/components/LeftoversPanel'
+import { LogsPanel } from '@renderer/components/LogsPanel'
 import { TroubleshootOverview } from '@renderer/components/TroubleshootOverview'
 import './TroubleshootView.css'
 
-export type TroubleshootTab = 'overview' | 'bisect' | 'leftovers'
+export type TroubleshootTab = 'overview' | 'bisect' | 'logs' | 'leftovers'
 
 const TABS: { tab: TroubleshootTab; label: string; Icon: LucideIcon }[] = [
   { tab: 'overview', label: 'Overview', Icon: LifeBuoy },
   { tab: 'bisect', label: 'Find a broken mod', Icon: FlaskConical },
+  { tab: 'logs', label: 'Logs', Icon: ScrollText },
   { tab: 'leftovers', label: 'Leftover files', Icon: FolderSearch }
 ]
 
@@ -44,6 +46,9 @@ export function TroubleshootView({ tab, onTabChange }: TroubleshootViewProps): R
         </Tabs.Content>
         <Tabs.Content value="bisect" className="troubleshoot-content">
           <BisectPanel />
+        </Tabs.Content>
+        <Tabs.Content value="logs" className="troubleshoot-content">
+          <LogsPanel />
         </Tabs.Content>
         <Tabs.Content value="leftovers" className="troubleshoot-content">
           <LeftoversPanel />

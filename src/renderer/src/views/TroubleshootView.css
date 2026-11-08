@@ -38,6 +38,7 @@
 
 .troubleshoot-tab[data-state='active'] {
   color: var(--primary);
+  background: var(--surface-1);
   border-bottom-color: var(--primary);
 }
 

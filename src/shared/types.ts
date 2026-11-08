@@ -161,3 +161,5 @@ export interface GameLogs {
   crashReports: number
   lastCrashAt: string | null
 }
+
+export type NexusFileRef = { kind: 'sqid'; sqid: string } | { kind: 'uploaded'; uploadedAt: number }

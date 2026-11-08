@@ -179,7 +179,7 @@ export function filesQuery(count: number): string {
   return `query Files($gameId: ID!, ${params}) { ${fields.join(' ')} }`
 }
 
-function isCategory(value: unknown): value is NexusFileCategory {
+export function isCategory(value: unknown): value is NexusFileCategory {
   return FILE_CATEGORIES.some((category) => category === value)
 }
 

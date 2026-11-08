@@ -35,21 +35,45 @@ function mod(nexusModId: number | null): ModRecord {
   }
 }
 
-// Answers every requested id: each mod needs redscript.
+const FILE = {
+  fileId: 1,
+  sqid: 'abc',
+  groupId: 2,
+  name: 'Main file',
+  version: '1.0',
+  category: 'MAIN',
+  date: 1792978138
+}
+
+function variablesOf(init: RequestInit): Record<string, unknown> {
+  return JSON.parse(String(init.body)).variables
+}
+
+// Answers every requested id: each mod needs redscript and has one file.
 function nexusFetch(): ReturnType<typeof vi.fn<Fetch>> {
   return vi.fn<Fetch>(async (_url, init) => {
-    const { ids } = JSON.parse(String(init.body)).variables
-    const nodes = ids.map(({ modId }: { modId: number }) => ({
-      modId,
-      modRequirements: { nexusRequirements: { nodes: [REDSCRIPT] } }
-    }))
-    return new Response(JSON.stringify({ data: { legacyMods: { nodes } } }))
+    const variables = variablesOf(init)
+
+    if (Array.isArray(variables.ids)) {
+      const nodes = variables.ids.map(({ modId }: { modId: number }) => ({
+        modId,
+        modRequirements: { nexusRequirements: { nodes: [REDSCRIPT] } }
+      }))
+      return new Response(JSON.stringify({ data: { legacyMods: { nodes } } }))
+    }
+
+    const count = Object.keys(variables).length - 1
+    const data = Object.fromEntries(Array.from({ length: count }, (_, i) => [`f${i}`, [FILE]]))
+    return new Response(JSON.stringify({ data }))
   })
 }
 
-function requestedIds(fetch: ReturnType<typeof vi.fn<Fetch>>, call: number): number[] {
-  const { ids } = JSON.parse(String(fetch.mock.calls[call][1].body)).variables
-  return ids.map(({ modId }: { modId: number }) => modId)
+// The ids of each requirements request (every refresh also sends one files request).
+function requestedIds(fetch: ReturnType<typeof vi.fn<Fetch>>): number[][] {
+  return fetch.mock.calls
+    .map(([, init]) => variablesOf(init).ids)
+    .filter((ids) => Array.isArray(ids))
+    .map((ids) => ids.map(({ modId }: { modId: number }) => modId))
 }
 
 function lookup(
@@ -74,10 +98,11 @@ describe('NexusLookup', () => {
     const nexus = lookup(fetch, [mod(2557), mod(null)])
 
     expect(await nexus.refresh(NOW)).toBe(true)
-    expect(requestedIds(fetch, 0)).toEqual([2557])
+    expect(requestedIds(fetch)).toEqual([[2557]])
     expect(nexus.requirements()).toEqual({
       2557: [{ nexusId: 1511, name: 'redscript', optional: false }]
     })
+    expect(cache.files()[2557].map((file) => file.sqid)).toEqual(['abc'])
   })
 
   it('asks only for mods without a fresh answer', async () => {
@@ -88,10 +113,10 @@ describe('NexusLookup', () => {
 
     mods.push(mod(790))
     expect(await nexus.refresh(NOW)).toBe(true)
-    expect(requestedIds(fetch, 1)).toEqual([790])
+    expect(requestedIds(fetch)).toEqual([[2557], [790]])
 
     expect(await nexus.refresh(NOW)).toBe(false)
-    expect(fetch).toHaveBeenCalledTimes(2)
+    expect(fetch).toHaveBeenCalledTimes(4)
   })
 
   it('runs overlapping refreshes one after the other, without asking twice', async () => {
@@ -99,7 +124,7 @@ describe('NexusLookup', () => {
     const nexus = lookup(fetch, [mod(2557)])
 
     await Promise.all([nexus.refresh(NOW), nexus.refresh(NOW)])
-    expect(fetch).toHaveBeenCalledTimes(1)
+    expect(fetch).toHaveBeenCalledTimes(2)
   })
 
   it('does nothing and shows nothing while the setting is off', async () => {
@@ -123,6 +148,18 @@ describe('NexusLookup', () => {
 
     await expect(nexus.refresh(later)).rejects.toThrow('fetch failed')
     expect(nexus.requirements()[2557]).toHaveLength(1)
+  })
+
+  it('stores nothing when one of the two lookups fails', async () => {
+    const answers = nexusFetch()
+    const filesFail = vi.fn<Fetch>(async (url, init) =>
+      Array.isArray(variablesOf(init).ids) ? answers(url, init) : new Response('', { status: 500 })
+    )
+    const nexus = lookup(filesFail, [mod(2557)])
+
+    await expect(nexus.refresh(NOW)).rejects.toThrow('HTTP 500')
+    expect(nexus.requirements()).toEqual({})
+    expect(cache.staleIds([2557], NOW)).toEqual([2557])
   })
 
   it('only logs a failed background refresh', async () => {

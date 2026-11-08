@@ -1,12 +1,16 @@
 import type { NexusRequirement } from '@shared/types'
 import { readJsonFile, writeJsonFile } from './jsonFile'
-import { toNexusId } from './nexus'
+import { toNexusId, isCategory, type NexusFile } from './nexus'
 
 export const MAX_AGE_MS = 24 * 60 * 60 * 1000 //24h
 
-interface CacheEntry {
-  fetchedAt: string
+export interface NexusAnswer {
   requirements: NexusRequirement[]
+  files: NexusFile[]
+}
+
+interface CacheEntry extends NexusAnswer {
+  fetchedAt: string
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -23,6 +27,20 @@ function isRequirement(value: unknown): value is NexusRequirement {
   )
 }
 
+function isFile(value: unknown): value is NexusFile {
+  return (
+    isRecord(value) &&
+    toNexusId(value.fileId) === value.fileId &&
+    typeof value.sqid === 'string' &&
+    value.sqid !== '' &&
+    (value.groupId === null || toNexusId(value.groupId) === value.groupId) &&
+    typeof value.name === 'string' &&
+    typeof value.version === 'string' &&
+    isCategory(value.category) &&
+    toNexusId(value.uploadedAt) === value.uploadedAt
+  )
+}
+
 function parseEntry(value: unknown): CacheEntry | null {
   if (!isRecord(value) || typeof value.fetchedAt !== 'string') {
     return null
@@ -34,7 +52,11 @@ function parseEntry(value: unknown): CacheEntry | null {
     return null
   }
 
-  return { fetchedAt: value.fetchedAt, requirements: value.requirements }
+  if (!Array.isArray(value.files) || !value.files.every(isFile)) {
+    return null
+  }
+
+  return { fetchedAt: value.fetchedAt, requirements: value.requirements, files: value.files }
 }
 
 export class NexusCache {
@@ -72,6 +94,16 @@ export class NexusCache {
     return result
   }
 
+  files(): Record<number, NexusFile[]> {
+    const result: Record<number, NexusFile[]> = {}
+
+    for (const [nexusId, entry] of this.entries) {
+      result[nexusId] = structuredClone(entry.files)
+    }
+
+    return result
+  }
+
   staleIds(ids: number[], now: Date): number[] {
     return [...new Set(ids)].filter((nexusId) => {
       const entry = this.entries.get(nexusId)
@@ -82,12 +114,12 @@ export class NexusCache {
     })
   }
 
-  async store(results: Map<number, NexusRequirement[]>, now: Date): Promise<void> {
+  async store(results: Map<number, NexusAnswer>, now: Date): Promise<void> {
     if (results.size === 0) return
 
     const fetchedAt = now.toISOString()
-    for (const [nexusId, requirements] of results) {
-      this.entries.set(nexusId, { fetchedAt, requirements: structuredClone(requirements) })
+    for (const [nexusId, answer] of results) {
+      this.entries.set(nexusId, { fetchedAt, ...structuredClone(answer) })
     }
 
     await writeJsonFile(this.filePath, { version: 1, mods: Object.fromEntries(this.entries) })

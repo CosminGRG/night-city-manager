@@ -1,6 +1,6 @@
 import type { ModRecord, NexusRequirement } from '@shared/types'
-import { fetchRequirements, type Fetch } from './nexus'
-import type { NexusCache } from './nexusCache'
+import { fetchFiles, fetchRequirements, type Fetch } from './nexus'
+import type { NexusAnswer, NexusCache } from './nexusCache'
 import { createQueue } from './queue'
 
 export interface NexusLookupOptions {
@@ -37,8 +37,19 @@ export class NexusLookup {
 
       if (stale.length === 0) return false
 
-      const results = await fetchRequirements(stale, this.options.fetch, this.options.appVersion)
-      await this.options.cache.store(results, now)
+      const { fetch, appVersion } = this.options
+      const [requirements, files] = await Promise.all([
+        fetchRequirements(stale, fetch, appVersion),
+        fetchFiles(stale, fetch, appVersion)
+      ])
+
+      const answers = new Map<number, NexusAnswer>()
+      for (const [nexusId, modRequirements] of requirements) {
+        answers.set(nexusId, { requirements: modRequirements, files: files.get(nexusId) ?? [] })
+      }
+
+      await this.options.cache.store(answers, now)
+
       return true
     })
   }

@@ -16,7 +16,8 @@ import type {
   CleanResult,
   BisectView,
   NexusRequirement,
-  GameLogs
+  GameLogs,
+  ModUpdate
 } from '@shared/types'
 import { detectInstalled } from './services/frameworks'
 import type { SettingsStore } from './services/settings'
@@ -505,6 +506,8 @@ export function registerIpcHandlers({
   ipcMain.handle(IpcChannels.getNexusRequirements, (): Record<number, NexusRequirement[]> =>
     nexus.requirements()
   )
+
+  ipcMain.handle(IpcChannels.getModUpdates, (): Record<string, ModUpdate> => nexus.updates())
 
   ipcMain.handle(IpcChannels.listLogs, (): Promise<Result<GameLogs>> =>
     toResult(() => scanLogs(currentGame(), crashReportsDir()))

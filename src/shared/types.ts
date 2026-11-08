@@ -163,3 +163,9 @@ export interface GameLogs {
 }
 
 export type NexusFileRef = { kind: 'sqid'; sqid: string } | { kind: 'uploaded'; uploadedAt: number }
+
+export interface ModUpdate {
+  name: string
+  version: string
+  uploadedAt: string
+}

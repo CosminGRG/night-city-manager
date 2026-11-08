@@ -13,7 +13,8 @@ import type {
   BisectView,
   BisectAnswer,
   NexusRequirement,
-  GameLogs
+  GameLogs,
+  ModUpdate
 } from './types'
 import type { Dependency } from './requirements'
 
@@ -31,6 +32,7 @@ export const IpcChannels = {
   importMod: 'mod:import',
   getInstalledDependencies: 'dependencies:installed',
   getNexusRequirements: 'nexus:requirements',
+  getModUpdates: 'nexus:updates',
   nexusUpdated: 'nexus:updated',
   listDeployments: 'deploy:list',
   deployMod: 'mod:deploy',
@@ -78,6 +80,7 @@ export interface NightCityApi {
   getPathForFile(file: File): string
   getInstalledDependencies(): Promise<Dependency[]>
   getNexusRequirements(): Promise<Record<number, NexusRequirement[]>>
+  getModUpdates(): Promise<Record<string, ModUpdate>>
   onNexusUpdated(callback: () => void): () => void
   listDeployments(): Promise<Record<string, DeployStatus>>
   deployMod(modId: string): Promise<Result<string[]>>

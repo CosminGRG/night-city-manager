@@ -18,6 +18,7 @@ const api: NightCityApi = {
   getPathForFile: (file) => webUtils.getPathForFile(file),
   getInstalledDependencies: () => ipcRenderer.invoke(IpcChannels.getInstalledDependencies),
   getNexusRequirements: () => ipcRenderer.invoke(IpcChannels.getNexusRequirements),
+  getModUpdates: () => ipcRenderer.invoke(IpcChannels.getModUpdates),
   onNexusUpdated: (callback) => {
     const listener = (): void => callback()
     ipcRenderer.on(IpcChannels.nexusUpdated, listener)

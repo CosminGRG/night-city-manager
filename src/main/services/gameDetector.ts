@@ -5,6 +5,10 @@ import { readRegistryValue } from './registry'
 
 const GAME_EXE = join('bin', 'x64', 'Cyberpunk2077.exe')
 
+export function gameExe(gamePath: string): string {
+  return join(gamePath, GAME_EXE)
+}
+
 export async function isGameFolder(dir: string): Promise<boolean> {
   try {
     return (await stat(join(dir, GAME_EXE))).isFile()

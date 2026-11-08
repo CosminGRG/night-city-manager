@@ -1,4 +1,5 @@
 import { List, Settings, PackagePlus, Wrench, type LucideIcon } from 'lucide-react'
+import { LaunchButton } from './LaunchButton'
 import './Sidebar.css'
 
 export type View = 'mods' | 'import' | 'troubleshoot' | 'settings'
@@ -13,9 +14,10 @@ const ITEMS: { view: View; label: string; Icon: LucideIcon }[] = [
 interface SidebarProps {
   view: View
   onChange: (view: View) => void
+  gamePath: string | null
 }
 
-export function Sidebar({ view, onChange }: SidebarProps): React.JSX.Element {
+export function Sidebar({ view, onChange, gamePath }: SidebarProps): React.JSX.Element {
   return (
     <nav className="sidebar" aria-label="Main">
       {ITEMS.map(({ view: item, label, Icon }) => (
@@ -30,6 +32,7 @@ export function Sidebar({ view, onChange }: SidebarProps): React.JSX.Element {
           <Icon size={22} aria-hidden="true" />
         </button>
       ))}
+      <LaunchButton gamePath={gamePath} />
     </nav>
   )
 }

@@ -19,7 +19,7 @@ import type {
 } from '@shared/types'
 import { detectInstalled } from './services/frameworks'
 import type { SettingsStore } from './services/settings'
-import { detectGames, findGameRoot } from './services/gameDetector'
+import { detectGames, findGameRoot, gameExe, isGameFolder } from './services/gameDetector'
 import type { ModLibrary } from './services/modLibrary'
 import type { AppPaths } from './services/paths'
 import { importMod } from './services/importer'
@@ -31,7 +31,7 @@ import { ARCHIVE_EXTENSIONS, checkArchivePath } from './services/archivePath'
 import { stagingFolderFor } from './services/staging'
 import { deployAll, purgeAll, removeAll, deployStatuses } from './services/bulk'
 import { undeployAndRemove, type RemoveContext } from './services/removal'
-import { isGameRunning } from './services/gameProcess'
+import { isGameRunning, launchExe } from './services/gameProcess'
 import { checkNewModsFolder, moveMods, sameDrive } from './services/modsFolder'
 import { deployWithRequirements, requirementsToDeploy } from './services/autoRequirements'
 import {
@@ -167,6 +167,37 @@ export function registerIpcHandlers({
 
       return toResult(() => settings.update({ autoDeployRequirements: enabled }))
     }
+  )
+
+  ipcMain.handle(IpcChannels.getGameIcon, async (): Promise<string | null> => {
+    const { gamePath } = settings.get()
+    if (!gamePath) {
+      return null
+    }
+
+    try {
+      const icon = await app.getFileIcon(gameExe(gamePath), { size: 'large' })
+      return icon.isEmpty() ? null : icon.toDataURL()
+    } catch {
+      return null
+    }
+  })
+
+  ipcMain.handle(IpcChannels.launchGame, (): Promise<Result<null>> =>
+    runExclusive(() =>
+      toResult(async () => {
+        const gamePath = currentGame()
+        if (await isGameRunning()) {
+          throw new Error('Cyberpunk 2077 is already running.')
+        }
+        if (!(await isGameFolder(gamePath))) {
+          throw new Error(`Cyberpunk2077.exe was not found in "${gamePath}".`)
+        }
+
+        await launchExe(gameExe(gamePath))
+        return null
+      })
+    )
   )
 
   ipcMain.handle(IpcChannels.detectGames, (): Promise<DetectedGame[]> => detectGames())

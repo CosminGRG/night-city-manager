@@ -1,0 +1,41 @@
+.launch {
+  position: relative;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border);
+}
+
+.launch-button {
+  --glow: var(--primary);
+}
+
+.launch-button:disabled {
+  opacity: 0.5;
+}
+
+.launch-icon {
+  width: 28px;
+  height: 28px;
+}
+
+.launch-spinner {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  color: var(--primary);
+}
+
+.launch-error {
+  position: absolute;
+  left: calc(100% + var(--space-3));
+  bottom: 0;
+  z-index: 10;
+  width: max-content;
+  max-width: 320px;
+  padding: var(--space-2) var(--space-3);
+  color: var(--danger-text);
+  font-size: 13px;
+  background: var(--surface-2);
+  border: 1px solid color-mix(in srgb, var(--danger) 45%, transparent);
+  border-radius: var(--radius);
+  box-shadow: 0 4px 16px rgb(0 0 0 / 40%);
+}

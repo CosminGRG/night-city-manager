@@ -56,7 +56,7 @@ function App(): React.JSX.Element {
 
   return (
     <div className="app">
-      <Sidebar view={view} onChange={setView} />
+      <Sidebar view={view} onChange={setView} gamePath={settings?.gamePath ?? null} />
       <main className="content">
         <div className="content-inner">{renderContent()}</div>
       </main>

@@ -17,7 +17,9 @@ import type {
   BisectView,
   NexusRequirement,
   GameLogs,
-  ModUpdate
+  ModUpdate,
+  ImportOutcome,
+  VersionGroup
 } from '@shared/types'
 import { detectInstalled } from './services/frameworks'
 import type { SettingsStore } from './services/settings'
@@ -52,6 +54,7 @@ import {
 } from './services/bisectSession'
 import { NexusLookup } from './services/nexusLookup'
 import { checkCrashReports, findLog, scanLogs } from './services/logs'
+import { versionGroups } from './services/versions'
 
 interface IpcDependencies {
   settings: SettingsStore
@@ -246,17 +249,20 @@ export function registerIpcHandlers({
     return canceled ? null : filePaths
   })
 
-  ipcMain.handle(IpcChannels.importMod, (_event, path: unknown): Promise<Result<ModRecord>> =>
+  ipcMain.handle(IpcChannels.importMod, (_event, path: unknown): Promise<Result<ImportOutcome>> =>
     runImport(() =>
       toResult(async () => {
         const archive = await checkArchivePath(path)
-        const mod = await importMod(
+        const outcome = await importMod(
           { sevenZip: paths.sevenZip, modsDir: modsDir(), library },
           archive
         )
 
-        nexus.refreshInBackground()
-        return mod
+        if (outcome.kind === 'imported') {
+          nexus.refreshInBackground()
+        }
+
+        return outcome
       })
     )
   )
@@ -522,6 +528,10 @@ export function registerIpcHandlers({
   )
 
   ipcMain.handle(IpcChannels.getModUpdates, (): Record<string, ModUpdate> => nexus.updates())
+
+  ipcMain.handle(IpcChannels.getVersionGroups, (): VersionGroup[] =>
+    versionGroups(library.list(), nexus.files())
+  )
 
   ipcMain.handle(IpcChannels.listLogs, (): Promise<Result<GameLogs>> =>
     toResult(() => scanLogs(currentGame(), crashReportsDir()))

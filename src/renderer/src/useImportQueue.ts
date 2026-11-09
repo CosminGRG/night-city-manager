@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 
-export type ImportStatus = 'queued' | 'importing' | 'done' | 'failed'
+export type ImportStatus = 'queued' | 'importing' | 'done' | 'duplicate' | 'failed'
 
 export interface ImportItem {
   key: number
@@ -18,6 +18,10 @@ export interface ImportQueue {
 }
 
 let nextKey = 1
+
+export function isFinished(item: ImportItem): boolean {
+  return item.status !== 'queued' && item.status !== 'importing'
+}
 
 function fileName(path: string): string {
   return path.split(/[\\/]/).pop() ?? path
@@ -39,11 +43,14 @@ export function useImportQueue(): ImportQueue {
       for (let item = pending.current.shift(); item; item = pending.current.shift()) {
         update(item.key, { status: 'importing' })
         const result = await window.api.importMod(item.path)
-        if (result.ok) {
-          update(item.key, { status: 'done', name: result.value.name })
-          setImported((count) => count + 1)
-        } else {
+        if (!result.ok) {
           update(item.key, { status: 'failed', message: result.error })
+        } else if (result.value.kind === 'duplicate') {
+          const message = `Already in your library as "${result.value.mod.name}"`
+          update(item.key, { status: 'duplicate', message })
+        } else {
+          update(item.key, { status: 'done', name: result.value.mod.name })
+          setImported((count) => count + 1)
         }
       }
     } finally {
@@ -65,9 +72,7 @@ export function useImportQueue(): ImportQueue {
   }
 
   function clearFinished(): void {
-    setItems((current) =>
-      current.filter((item) => item.status === 'queued' || item.status === 'importing')
-    )
+    setItems((current) => current.filter((item) => !isFinished(item)))
   }
 
   return { items, imported, add, clearFinished }

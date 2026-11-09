@@ -19,6 +19,7 @@ const api: NightCityApi = {
   getInstalledDependencies: () => ipcRenderer.invoke(IpcChannels.getInstalledDependencies),
   getNexusRequirements: () => ipcRenderer.invoke(IpcChannels.getNexusRequirements),
   getModUpdates: () => ipcRenderer.invoke(IpcChannels.getModUpdates),
+  getVersionGroups: () => ipcRenderer.invoke(IpcChannels.getVersionGroups),
   onNexusUpdated: (callback) => {
     const listener = (): void => callback()
     ipcRenderer.on(IpcChannels.nexusUpdated, listener)

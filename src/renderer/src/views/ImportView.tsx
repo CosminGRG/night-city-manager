@@ -5,9 +5,15 @@ import {
   ExternalLink,
   LoaderCircle,
   PackagePlus,
+  CopyCheck,
   type LucideIcon
 } from 'lucide-react'
-import type { ImportItem, ImportQueue, ImportStatus } from '@renderer/useImportQueue'
+import {
+  isFinished,
+  type ImportItem,
+  type ImportQueue,
+  type ImportStatus
+} from '@renderer/useImportQueue'
 import './ImportView.css'
 
 const NEXUS_URL = 'https://www.nexusmods.com/cyberpunk2077'
@@ -16,6 +22,7 @@ const STATUS_ICONS: Record<ImportStatus, LucideIcon> = {
   queued: Clock,
   importing: LoaderCircle,
   done: CircleCheck,
+  duplicate: CopyCheck,
   failed: CircleX
 }
 
@@ -23,6 +30,7 @@ const STATUS_LABELS: Record<ImportStatus, string> = {
   queued: 'Waiting',
   importing: 'Importing',
   done: 'Imported',
+  duplicate: 'Already in your library',
   failed: 'Failed'
 }
 
@@ -38,17 +46,18 @@ function summary(items: ImportItem[], finished: number): string {
     return `Importing ${finished + 1} of ${items.length}...`
   }
 
-  const failed = items.filter((item) => item.status === 'failed').length
-  if (failed === 0) {
-    return `${items.length} imported`
-  }
+  const count = (status: ImportStatus): number =>
+    items.filter((item) => item.status === status).length
+  const parts = [`${count('done')} imported`]
+  if (count('duplicate') > 0) parts.push(`${count('duplicate')} already in your library`)
+  if (count('failed') > 0) parts.push(`${count('failed')} failed`)
 
-  return `${items.length - failed} imported, ${failed} failed`
+  return parts.join(', ')
 }
 
 export function ImportView({ queue, onPick }: ImportViewProps): React.JSX.Element {
   const { items, clearFinished } = queue
-  const finished = items.filter((item) => item.status === 'done' || item.status === 'failed')
+  const finished = items.filter(isFinished)
 
   return (
     <section className="import">

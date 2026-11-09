@@ -1,5 +1,5 @@
 import type { ModRecord, NexusRequirement, ModUpdate } from '@shared/types'
-import { fetchFiles, fetchRequirements, type Fetch } from './nexus'
+import { fetchFiles, fetchRequirements, type Fetch, type NexusFile } from './nexus'
 import type { NexusAnswer, NexusCache } from './nexusCache'
 import { createQueue } from './queue'
 import { findUpdates } from './updates'
@@ -23,6 +23,10 @@ export class NexusLookup {
 
   requirements(): Record<number, NexusRequirement[]> {
     return this.options.enabled() ? this.options.cache.requirements() : {}
+  }
+
+  files(): Record<number, NexusFile[]> {
+    return this.options.enabled() ? this.options.cache.files() : {}
   }
 
   updates(): Record<string, ModUpdate> {

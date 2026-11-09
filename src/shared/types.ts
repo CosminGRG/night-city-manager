@@ -169,3 +169,11 @@ export interface ModUpdate {
   version: string
   uploadedAt: string
 }
+
+export type ImportOutcome =
+  { kind: 'imported'; mod: ModRecord } | { kind: 'duplicate'; mod: ModRecord }
+
+export interface VersionGroup {
+  key: string
+  modIds: string[]
+}

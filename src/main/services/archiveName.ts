@@ -12,6 +12,17 @@ export interface ArchiveName {
   nexusFile: NexusFileRef | null
 }
 
+export function sameNexusFile(a: NexusFileRef, b: NexusFileRef): boolean {
+  if (a.kind === 'sqid' && b.kind === 'sqid') {
+    return a.sqid === b.sqid
+  }
+  if (a.kind === 'uploaded' && b.kind === 'uploaded') {
+    return a.uploadedAt === b.uploadedAt
+  }
+
+  return false
+}
+
 export function parseArchiveName(fileName: string): ArchiveName {
   const base = posix.parse(fileName).name
   const original = base.replace(DOWNLOADED_AGAIN, '')

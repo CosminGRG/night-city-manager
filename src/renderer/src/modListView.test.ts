@@ -132,4 +132,15 @@ describe('bulkCounts', () => {
     expect(bulkTargets([cet, fresh, deployed], deployments, 'deploy', 'non-core')).toEqual([fresh])
     expect(bulkTargets([cet, fresh, deployed], deployments, 'purge', 'all')).toEqual([deployed])
   })
+
+  it('does not count versions Deploy all skips, but still removes them', () => {
+    const newer = withFiles(mod('Mod 2.0'))
+    const older = withFiles(mod('Mod 1.0'))
+    const skip = new Set(['Mod 1.0'])
+
+    expect(bulkCounts([newer, older], {}, skip)).toMatchObject({
+      deploy: { all: 1 },
+      remove: { all: 2 }
+    })
+  })
 })

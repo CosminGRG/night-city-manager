@@ -84,10 +84,11 @@ export function pageNumbers(page: number, pageCount: number): PageLink[] {
 function isTarget(
   mod: ModRecord,
   action: BulkAction,
-  deployments: Record<string, DeployStatus>
+  deployments: Record<string, DeployStatus>,
+  skip: ReadonlySet<string>
 ): boolean {
   if (action === 'deploy') {
-    return deployments[mod.id] === undefined && mod.plan.files.length > 0
+    return deployments[mod.id] === undefined && mod.plan.files.length > 0 && !skip.has(mod.id)
   }
   if (action === 'purge') {
     return deployments[mod.id] !== undefined
@@ -111,19 +112,21 @@ export function bulkTargets(
   mods: ModRecord[],
   deployments: Record<string, DeployStatus>,
   action: BulkAction,
-  scope: BulkScope
+  scope: BulkScope,
+  skip: ReadonlySet<string> = new Set()
 ): ModRecord[] {
-  return mods.filter((mod) => isTarget(mod, action, deployments) && inScope(mod, scope))
+  return mods.filter((mod) => isTarget(mod, action, deployments, skip) && inScope(mod, scope))
 }
 
 export function bulkCounts(
   mods: ModRecord[],
-  deployments: Record<string, DeployStatus>
+  deployments: Record<string, DeployStatus>,
+  skip: ReadonlySet<string> = new Set()
 ): BulkCounts {
   const count = (action: BulkAction): Record<BulkScope, number> => ({
-    all: bulkTargets(mods, deployments, action, 'all').length,
-    core: bulkTargets(mods, deployments, action, 'core').length,
-    'non-core': bulkTargets(mods, deployments, action, 'non-core').length
+    all: bulkTargets(mods, deployments, action, 'all', skip).length,
+    core: bulkTargets(mods, deployments, action, 'core', skip).length,
+    'non-core': bulkTargets(mods, deployments, action, 'non-core', skip).length
   })
 
   return { deploy: count('deploy'), purge: count('purge'), remove: count('remove') }

@@ -86,7 +86,7 @@ describe('deployAll', () => {
     const fake = await staged('Fake Loader', ['bin/x64/version.dll'])
     const cet = await staged('CET', ['bin/x64/version.dll'], ['cet'])
 
-    const result = await deployAll(context, gamePath, 'all')
+    const result = await deployAll(context, gamePath, 'all', [])
 
     expect(result).toMatchObject({ done: 1, skipped: 0, failed: [{ name: fake.name }] })
     expect(result.failed[0].error).toMatch(/would overwrite files from CET/)
@@ -107,7 +107,7 @@ describe('deployAll', () => {
     })
     await staged('Fresh', ['archive/pc/mod/c.archive'])
 
-    expect(await deployAll(context, gamePath, 'all')).toEqual({
+    expect(await deployAll(context, gamePath, 'all', [])).toEqual({
       done: 1,
       skipped: 2,
       kept: [],
@@ -119,7 +119,7 @@ describe('deployAll', () => {
     const cet = await staged('CET', ['bin/x64/plugins/cyber_engine_tweaks.asi'], ['cet'])
     await staged('Faster Elevators', ['archive/pc/mod/a.archive'])
 
-    expect(await deployAll(context, gamePath, 'core')).toEqual({
+    expect(await deployAll(context, gamePath, 'core', [])).toEqual({
       done: 1,
       skipped: 0,
       kept: [],
@@ -204,5 +204,26 @@ describe('removeAll', () => {
     expect(result).toMatchObject({ done: 1, failed: [{ name: 'Elsewhere' }] })
     expect(result.failed[0].error).toMatch(/still deployed in .*other-game/)
     expect(names(context.library.list())).toEqual(['Elsewhere'])
+  })
+})
+
+describe('deployAll with versions', () => {
+  it('deploys one version per group, keeping the one already deployed', async () => {
+    const newer = await staged('Mod 2.0', ['archive/pc/mod/a.archive'])
+    const older = await staged('Mod 1.0', ['archive/pc/mod/a.archive'])
+    const other = await staged('Other 2.0', ['archive/pc/mod/b.archive'])
+    const otherOld = await deployed('Other 1.0', 'archive/pc/mod/b.archive')
+    const groups = [
+      { key: 'nexus:1', modIds: [newer.id, older.id] },
+      { key: 'nexus:2', modIds: [other.id, otherOld.id] }
+    ]
+
+    expect(await deployAll(context, gamePath, 'all', groups)).toEqual({
+      done: 1,
+      skipped: 0,
+      kept: [],
+      failed: []
+    })
+    expect((await deployedIds()).toSorted()).toEqual([newer.id, otherOld.id].toSorted())
   })
 })

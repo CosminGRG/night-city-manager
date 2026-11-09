@@ -1,7 +1,8 @@
-import type { BulkResult, BulkScope, DeployStatus, ModRecord } from '@shared/types'
+import type { BulkResult, BulkScope, DeployStatus, ModRecord, VersionGroup } from '@shared/types'
 import { isCoreMod } from '@shared/mods'
 import { deployMod, undeployMod, type DeployContext } from './deployer'
 import { undeployAndRemove, type RemoveContext } from './removal'
+import { versionsToSkip } from './versions'
 
 type Task = (mod: ModRecord) => Promise<string[]>
 
@@ -35,10 +36,13 @@ export async function deployStatuses(context: DeployContext): Promise<Map<string
 export async function deployAll(
   context: DeployContext,
   gamePath: string,
-  scope: BulkScope
+  scope: BulkScope,
+  groups: VersionGroup[]
 ): Promise<BulkResult> {
   const statuses = await deployStatuses(context)
-  const mods = context.library.list().filter((mod) => inScope(mod, scope))
+  const library = context.library.list()
+  const skip = versionsToSkip(groups, library, statuses)
+  const mods = library.filter((mod) => inScope(mod, scope) && !skip.has(mod.id))
   const ordered = [...mods.filter(isCoreMod), ...mods.filter((mod) => !isCoreMod(mod))]
   const pending = ordered.filter((mod) => statuses.get(mod.id) !== 'deployed')
   const targets = pending.filter((mod) => !statuses.has(mod.id) && mod.plan.files.length > 0)

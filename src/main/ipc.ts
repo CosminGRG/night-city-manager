@@ -30,7 +30,7 @@ import { importMod } from './services/importer'
 import type { Dependency } from '@shared/requirements'
 import { gameKey, type GameManifests } from './services/manifests'
 import { createQueue } from './services/queue'
-import { type DeployContext, deployMod, undeployMod } from './services/deployer'
+import { type DeployContext, undeployMod } from './services/deployer'
 import { ARCHIVE_EXTENSIONS, checkArchivePath } from './services/archivePath'
 import { stagingFolderFor } from './services/staging'
 import { deployAll, purgeAll, removeAll, deployStatuses } from './services/bulk'
@@ -55,6 +55,7 @@ import {
 import { NexusLookup } from './services/nexusLookup'
 import { checkCrashReports, findLog, scanLogs } from './services/logs'
 import { versionGroups } from './services/versions'
+import { deployVersion } from './services/versionSwitch'
 
 interface IpcDependencies {
   settings: SettingsStore
@@ -300,8 +301,9 @@ export function registerIpcHandlers({
             })
           : []
 
+        const groups = versionGroups(library.list(), nexus.files())
         return deployWithRequirements(mod, requirements, (target) =>
-          deployMod(context, gamePath, target)
+          deployVersion(context, gamePath, target, groups)
         )
       })
     )
@@ -387,7 +389,7 @@ export function registerIpcHandlers({
 
         const { action, scope, trashLeftovers } = request
         if (action === 'deploy') {
-          return deployAll(context, gamePath, scope)
+          return deployAll(context, gamePath, scope, versionGroups(library.list(), nexus.files()))
         }
 
         const result =

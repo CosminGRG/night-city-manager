@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { ModRecord } from '@shared/types'
 import type { NexusFile } from './nexus'
-import { versionGroups } from './versions'
+import { versionGroups, versionsToSkip, deployedSiblings } from './versions'
 
 function mod(
   id: string,
@@ -102,5 +102,46 @@ describe('versionGroups', () => {
       mod('second', CET_1381, 107, '2026-11-02')
     ]
     expect(versionGroups(current, {})[0].modIds).toEqual(['second', 'first'])
+  })
+})
+
+describe('deployedSiblings', () => {
+  const groups = [{ key: 'nexus:107', modIds: ['new', 'old', 'older'] }]
+
+  it('lists the other versions of the group that have a deploy status', () => {
+    const statuses = new Map([['old', 'deployed' as const]])
+    expect(deployedSiblings('new', groups, statuses)).toEqual(['old'])
+    expect(deployedSiblings('old', groups, statuses)).toEqual([])
+  })
+
+  it('counts an interrupted version too, so it gets cleaned up first', () => {
+    const statuses = new Map([['older', 'deploying' as const]])
+    expect(deployedSiblings('new', groups, statuses)).toEqual(['older'])
+  })
+
+  it('finds nothing for a mod in no group', () => {
+    expect(deployedSiblings('alone', groups, new Map([['old', 'deployed' as const]]))).toEqual([])
+  })
+})
+
+describe('versionsToSkip', () => {
+  function withFiles(id: string): ModRecord {
+    const placed = mod(id, `${id}.zip`, 1)
+    return { ...placed, plan: { ...placed.plan, files: [{ source: 'a', target: 'a' }] } }
+  }
+
+  const mods = [withFiles('new'), withFiles('old'), mod('variants', 'v.zip', 1), withFiles('next')]
+  const groups = [
+    { key: 'nexus:1', modIds: ['new', 'old'] },
+    { key: 'nexus:2', modIds: ['variants', 'next'] }
+  ]
+
+  it('keeps the newest version that has files', () => {
+    expect(versionsToSkip(groups, mods, new Map())).toEqual(new Set(['old', 'variants']))
+  })
+
+  it('keeps the version that is already deployed', () => {
+    const statuses = new Map([['old', 'deployed' as const]])
+    expect(versionsToSkip(groups, mods, statuses)).toEqual(new Set(['new', 'variants']))
   })
 })

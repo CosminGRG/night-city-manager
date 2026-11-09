@@ -1,4 +1,4 @@
-import type { ModRecord, VersionGroup } from '@shared/types'
+import type { ModRecord, VersionGroup, DeployStatus } from '@shared/types'
 import { parseArchiveName } from './archiveName'
 import type { NexusFile } from './nexus'
 import { identifyFile } from './updates'
@@ -70,4 +70,35 @@ export function versionGroups(
     key,
     modIds: members.toSorted(newestFirst).map(({ mod }) => mod.id)
   }))
+}
+
+export function deployedSiblings(
+  modId: string,
+  groups: VersionGroup[],
+  statuses: Map<string, DeployStatus>
+): string[] {
+  const group = groups.find(({ modIds }) => modIds.includes(modId))
+  return (group?.modIds ?? []).filter((id) => id !== modId && statuses.has(id))
+}
+
+export function versionsToSkip(
+  groups: VersionGroup[],
+  mods: ModRecord[],
+  statuses: Map<string, DeployStatus>
+): Set<string> {
+  const hasFiles = (id: string): boolean =>
+    mods.some((mod) => mod.id === id && mod.plan.files.length > 0)
+
+  const skip = new Set<string>()
+  for (const { modIds } of groups) {
+    const chosen = modIds.find((id) => statuses.has(id)) ?? modIds.find(hasFiles) ?? modIds[0]
+
+    for (const id of modIds) {
+      if (id !== chosen) {
+        skip.add(id)
+      }
+    }
+  }
+
+  return skip
 }

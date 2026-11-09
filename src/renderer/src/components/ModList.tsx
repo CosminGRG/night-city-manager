@@ -16,7 +16,8 @@ import type {
   BulkRequest,
   BulkResult,
   NexusRequirement,
-  ModUpdate
+  ModUpdate,
+  VersionGroup
 } from '@shared/types'
 import type { Dependency } from '@shared/requirements'
 import {
@@ -33,9 +34,11 @@ import { FRAMEWORK_LABELS, MOD_TYPE_LABELS } from '@renderer/modLabels'
 import { filterMods, paginate, sortMods, bulkCounts, bulkTargets } from '@renderer/modListView'
 import { cleanedMessage } from '@renderer/leftoversView'
 import { coreUpdates } from '@renderer/updatesView'
+import { versionRows, type VersionRow } from '@renderer/versionsView'
 import { CoreModStatus } from './CoreModStatus'
 import { Pagination } from './Pagination'
 import { SearchBox } from './SearchBox'
+import { VersionPicker } from './VersionPicker'
 import { UpdateButton } from './UpdateButton'
 import { RemoveConfirmDialog } from './RemoveConfirmDialog'
 import { type ModActions, ModControls } from './ModControls'
@@ -52,6 +55,7 @@ interface DeployState {
   installed: Dependency[]
   nexus: Record<number, NexusRequirement[]>
   updates: Record<string, ModUpdate>
+  groups: VersionGroup[]
   bisecting: boolean
 }
 
@@ -84,11 +88,12 @@ const BULK_DONE: Record<BulkAction, string> = {
 }
 
 async function loadDeployState(): Promise<DeployState> {
-  const [deployments, installed, nexus, updates, bisect] = await Promise.all([
+  const [deployments, installed, nexus, updates, groups, bisect] = await Promise.all([
     window.api.listDeployments(),
     window.api.getInstalledDependencies(),
     window.api.getNexusRequirements(),
     window.api.getModUpdates(),
+    window.api.getVersionGroups(),
     window.api.getBisect()
   ])
   return {
@@ -96,6 +101,7 @@ async function loadDeployState(): Promise<DeployState> {
     installed,
     nexus,
     updates,
+    groups,
     bisecting: bisect.ok && bisect.value !== null
   }
 }
@@ -144,6 +150,8 @@ export function ModList({
   const [installed, setInstalled] = useState<Dependency[]>([])
   const [nexus, setNexus] = useState<Record<number, NexusRequirement[]>>({})
   const [updates, setUpdates] = useState<Record<string, ModUpdate>>({})
+  const [groups, setGroups] = useState<VersionGroup[]>([])
+  const [picked, setPicked] = useState<Record<string, string>>({})
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<Notice | null>(null)
   const [query, setQuery] = useState('')
@@ -160,6 +168,7 @@ export function ModList({
     setBisecting(state.bisecting)
     setNexus(state.nexus)
     setUpdates(state.updates)
+    setGroups(state.groups)
   }
 
   async function refresh(): Promise<void> {
@@ -172,12 +181,15 @@ export function ModList({
   }
 
   useEffect(() => {
-    Promise.all([window.api.listMods(), window.api.getModUpdates()]).then(
-      ([library, modUpdates]) => {
-        setMods(library)
-        setUpdates(modUpdates)
-      }
-    )
+    Promise.all([
+      window.api.listMods(),
+      window.api.getModUpdates(),
+      window.api.getVersionGroups()
+    ]).then(([library, modUpdates, versionGroups]) => {
+      setMods(library)
+      setUpdates(modUpdates)
+      setGroups(versionGroups)
+    })
   }, [importedCount])
 
   useEffect(() => {
@@ -188,11 +200,12 @@ export function ModList({
     return window.api.onNexusUpdated(() => {
       window.api.getNexusRequirements().then(setNexus)
       window.api.getModUpdates().then(setUpdates)
+      window.api.getVersionGroups().then(setGroups)
     })
   }, [])
 
-  async function handleDeploy(mod: ModRecord): Promise<void> {
-    setBusy({ id: mod.id, label: 'Deploying...' })
+  async function handleDeploy(mod: ModRecord, rowId = mod.id): Promise<void> {
+    setBusy({ id: rowId, label: rowId === mod.id ? 'Deploying...' : 'Switching...' })
     setError(null)
     setNotice(null)
     try {
@@ -282,6 +295,14 @@ export function ModList({
     }
   }
 
+  function handlePickVersion(row: VersionRow, version: ModRecord): void {
+    if (deployments[row.mod.id] !== undefined) {
+      handleDeploy(version, row.mod.id)
+    } else {
+      setPicked((current) => ({ ...current, [row.key]: version.id }))
+    }
+  }
+
   async function showFailure(action: Promise<Result<null>>): Promise<void> {
     const result = await action
     if (!result.ok) setError(result.error)
@@ -296,10 +317,12 @@ export function ModList({
     openNexusFiles: (mod) => showFailure(window.api.openNexusFiles(mod.id))
   }
 
-  const visible = mods && paginate(filterMods(sortMods(mods), query), page)
+  const { rows, skip } = versionRows(mods ?? [], groups, deployments, picked)
+  const rowOf = new Map(rows.map((row) => [row.mod.id, row]))
+  const visible = mods && paginate(filterMods(sortMods(rows.map((row) => row.mod)), query), page)
   const locked = busy !== null || bulkLabel !== null
   const changesLocked = locked || bisecting
-  const counts = bulkCounts(mods ?? [], deployments)
+  const counts = bulkCounts(mods ?? [], deployments, skip)
   const statuses = (mods ?? []).map((mod) => deployments[mod.id])
   const activeCount = statuses.filter((status) => status === 'deployed').length
   const interrupedCount = statuses.filter(
@@ -323,7 +346,7 @@ export function ModList({
         <div className="mods-title">
           <div className="mods-heading">
             <h2>
-              Mods <span className="mods-count">{mods?.length ?? 0}</span>
+              Mods <span className="mods-count">{rows.length}</span>
             </h2>
             <span
               className={activeCount > 0 ? 'stat-chip' : 'stat-chip idle'}
@@ -405,6 +428,7 @@ export function ModList({
             <div className="mod-row mod-head" aria-hidden="true">
               <span />
               <span>Name</span>
+              <span>Ver.</span>
               <span>Type</span>
               <span>Requires</span>
               <span>Imported</span>
@@ -418,6 +442,13 @@ export function ModList({
                   status={deployments[mod.id]}
                   requirements={requirementBadges(mod, requirementContext)}
                   update={updates[mod.id]}
+                  versions={rowOf.get(mod.id)?.versions ?? [mod]}
+                  onPickVersion={(version) => {
+                    const row = rowOf.get(mod.id)
+                    if (row) {
+                      handlePickVersion(row, version)
+                    }
+                  }}
                   busyLabel={busy?.id === mod.id ? busy.label : null}
                   locked={changesLocked}
                   actions={actions}
@@ -451,7 +482,7 @@ export function ModList({
           missing={
             pendingBulk.action === 'deploy'
               ? missingForBulkDeploy(
-                  bulkTargets(mods ?? [], deployments, 'deploy', pendingBulk.scope),
+                  bulkTargets(mods ?? [], deployments, 'deploy', pendingBulk.scope, skip),
                   requirementContext
                 )
               : []
@@ -496,6 +527,8 @@ interface ModRowProps {
   status: DeployStatus | undefined
   requirements: RequirementBadge[]
   update: ModUpdate | undefined
+  versions: ModRecord[]
+  onPickVersion: (version: ModRecord) => void
   busyLabel: string | null
   locked: boolean
   actions: ModActions
@@ -506,6 +539,8 @@ function ModRow({
   status,
   requirements,
   update,
+  versions,
+  onPickVersion,
   busyLabel,
   locked,
   actions
@@ -523,14 +558,6 @@ function ModRow({
         <span className="mod-name" title={mod.name}>
           {mod.name}
         </span>
-        {mod.version && <span className="mod-version">{mod.version}</span>}
-        {update && (
-          <UpdateButton
-            update={update}
-            label={update.version}
-            onClick={() => actions.openNexusFiles(mod)}
-          />
-        )}
 
         {warnings.length > 0 && (
           <span
@@ -541,6 +568,23 @@ function ModRow({
           >
             <TriangleAlert size={14} aria-hidden="true" />
           </span>
+        )}
+      </span>
+
+      <span className="mod-cell mod-version-cell">
+        <VersionPicker
+          mod={mod}
+          versions={versions}
+          deployed={status !== undefined}
+          locked={locked}
+          onPick={onPickVersion}
+        />
+        {update && (
+          <UpdateButton
+            update={update}
+            label={update.version}
+            onClick={() => actions.openNexusFiles(mod)}
+          />
         )}
       </span>
 

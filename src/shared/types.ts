@@ -70,6 +70,7 @@ export interface ModRecord {
   folder: string
   plan: InstallPlan
   importedAt: string
+  versionOf?: string
 }
 
 export type DeployStatus = 'deploying' | 'deployed' | 'undeploying'

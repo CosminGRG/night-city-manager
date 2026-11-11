@@ -3,6 +3,7 @@ import { parseArchiveName } from './archiveName'
 import type { NexusFile } from './nexus'
 import { identifyFile } from './updates'
 import { chooseVersion } from '@shared/versions'
+import { rootOf } from './versionLinks'
 
 interface Placed {
   mod: ModRecord
@@ -60,10 +61,14 @@ export function versionGroups(
 ): VersionGroup[] {
   const placed = mods.map((mod) => place(mod, filesByMod))
   const splitPages = splitPagesOf(placed)
+  const byId = new Map(mods.map((mod) => [mod.id, mod]))
+  const placedById = new Map(placed.map((entry) => [entry.mod.id, entry]))
 
   const byKey = new Map<string, Placed[]>()
   for (const entry of placed) {
-    const key = keyOf(entry, splitPages)
+    const root = placedById.get(rootOf(entry.mod, byId).id) ?? entry
+    const key = keyOf(root, splitPages)
+
     byKey.set(key, [...(byKey.get(key) ?? []), entry])
   }
 

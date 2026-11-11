@@ -1,5 +1,6 @@
 import type { ModRecord } from '@shared/types'
 import { readJsonFile, writeJsonFile } from './jsonFile'
+import { afterRemoval } from './versionLinks'
 
 interface LibraryFile {
   version: 1
@@ -38,15 +39,29 @@ export class ModLibrary {
   }
 
   async remove(modId: string): Promise<void> {
-    const index = this.mods.findIndex((mod) => mod.id === modId)
-    if (index === -1) return
+    if (!this.mods.some((mod) => mod.id === modId)) {
+      return
+    }
 
-    const [removed] = this.mods.splice(index, 1)
+    await this.replace(afterRemoval(this.mods, modId))
+  }
+
+  async setVersionOf(modId: string, versionOf: string | null): Promise<void> {
+    await this.replace(
+      this.mods.map((mod) =>
+        mod.id === modId ? { ...mod, versionOf: versionOf ?? undefined } : mod
+      )
+    )
+  }
+
+  private async replace(mods: ModRecord[]): Promise<void> {
+    const previous = this.mods
+    this.mods = mods
 
     try {
       await this.save()
     } catch (error) {
-      this.mods.splice(index, 0, removed)
+      this.mods = previous
       throw error
     }
   }

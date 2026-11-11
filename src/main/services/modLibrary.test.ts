@@ -112,4 +112,34 @@ describe('ModLibrary', () => {
     await expect(library.remove(library.list()[0].id)).rejects.toThrow()
     expect(library.list()).toHaveLength(1)
   })
+
+  it('saves which mod a mod is a version of, and removes the link again', async () => {
+    const a = makeMod('A')
+    const b = makeMod('B')
+    const library = new ModLibrary(file)
+    await library.add(a)
+    await library.add(b)
+
+    await library.setVersionOf(b.id, a.id)
+    const reloaded = new ModLibrary(file)
+    await reloaded.load()
+    expect(reloaded.list()[1].versionOf).toBe(a.id)
+
+    await library.setVersionOf(b.id, null)
+    expect(library.list()[1].versionOf).toBeUndefined()
+  })
+
+  it('keeps versions together when the mod they point to is removed', async () => {
+    const root = makeMod('Root')
+    const library = new ModLibrary(file)
+    await library.add(root)
+    await library.add({ ...makeMod('A'), nexusModId: null, versionOf: root.id })
+    await library.add({ ...makeMod('B'), nexusModId: null, versionOf: root.id })
+
+    await library.remove(root.id)
+
+    const [a, b] = library.list()
+    expect(a.versionOf).toBeUndefined()
+    expect(b.versionOf).toBe(a.id)
+  })
 })

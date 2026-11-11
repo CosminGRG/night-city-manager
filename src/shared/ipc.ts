@@ -42,6 +42,7 @@ export const IpcChannels = {
   undeployMod: 'mod:undeploy',
   removeMod: 'mod:remove',
   openNexusFiles: 'mod:open-nexus-files',
+  setVersionOf: 'mod:set-version-of',
   revealMod: 'mod:reveal',
   openNexusPage: 'mod:open-nexus',
   pickArchives: 'mod:pick-archives',
@@ -94,6 +95,7 @@ export interface NightCityApi {
   revealMod(modId: string): Promise<Result<null>>
   openNexusPage(modId: string): Promise<Result<null>>
   openNexusFiles(modId: string): Promise<Result<null>>
+  setVersionOf(modId: string, targetId: string | null): Promise<Result<null>>
   runBulk(request: BulkRequest): Promise<Result<BulkResult>>
   getModsFolder(): Promise<ModsFolderInfo>
   changeModsFolder(): Promise<Result<Settings> | null>

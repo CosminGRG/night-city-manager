@@ -56,6 +56,7 @@ import { NexusLookup } from './services/nexusLookup'
 import { checkCrashReports, findLog, scanLogs } from './services/logs'
 import { versionGroups } from './services/versions'
 import { deployVersion } from './services/versionSwitch'
+import { checkVersionLink } from './services/versionLinks'
 
 interface IpcDependencies {
   settings: SettingsStore
@@ -374,6 +375,27 @@ export function registerIpcHandlers({
 
       return null
     })
+  )
+
+  ipcMain.handle(
+    IpcChannels.setVersionOf,
+    (_event, modId: unknown, targetId: unknown): Promise<Result<null>> =>
+      runExclusive(() =>
+        toResult(async () => {
+          const mod = findMod(modId)
+          const target = targetId === null ? null : findMod(targetId)
+          const mods = library.list()
+          const { gamePath } = settings.get()
+          const statuses = gamePath ? await deployStatuses(deployContext(gamePath)) : new Map()
+
+          checkVersionLink(mod, target, mods, versionGroups(mods, nexus.files()), (id) =>
+            statuses.has(id)
+          )
+          await library.setVersionOf(mod.id, target?.id ?? null)
+
+          return null
+        })
+      )
   )
 
   ipcMain.handle(IpcChannels.runBulk, (_event, request: unknown): Promise<Result<BulkResult>> =>

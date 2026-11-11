@@ -145,3 +145,14 @@ describe('versionsToSkip', () => {
     expect(versionsToSkip(groups, mods, statuses)).toEqual(new Set(['new', 'variants']))
   })
 })
+
+describe('versionGroups with links', () => {
+  it('puts a renamed archive in the group of the mod it is a version of', () => {
+    const renamed = { ...mod('renamed', 'cet-1.38.2.zip', null), versionOf: 'new' }
+    const mods = [mod('old', CET_1380, 107), mod('new', CET_1381, 107), renamed]
+
+    expect(versionGroups(mods, CET_FILES)).toEqual([
+      { key: 'nexus:107', modIds: ['renamed', 'new', 'old'] }
+    ])
+  })
+})

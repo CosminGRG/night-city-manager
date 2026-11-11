@@ -104,6 +104,12 @@ export function registerIpcHandlers({
     return `https://www.nexusmods.com/cyberpunk2077/mods/${nexusModId}`
   }
 
+  function otherVersionsOf(mod: ModRecord): ModRecord[] {
+    const mods = library.list()
+    const group = versionGroups(mods, nexus.files()).find(({ modIds }) => modIds.includes(mod.id))
+    return mods.filter((other) => other.id !== mod.id && group?.modIds.includes(other.id))
+  }
+
   function modsDir(): string {
     return settings.get().modsPath ?? paths.mods
   }
@@ -326,7 +332,12 @@ export function registerIpcHandlers({
 
   ipcMain.handle(
     IpcChannels.removeMod,
-    (_event, modId: unknown, trashLeftovers: unknown): Promise<Result<UndeployResult>> =>
+    (
+      _event,
+      modId: unknown,
+      trashLeftovers: unknown,
+      allVersions: unknown
+    ): Promise<Result<UndeployResult>> =>
       runExclusive(() =>
         toResult(async () => {
           await refuseWhileGameRuns()
@@ -334,18 +345,24 @@ export function registerIpcHandlers({
           await refuseWhileBisecting(gamePath)
           const context = deployContext(gamePath)
           const mod = findMod(modId)
-          const manifest = await context.manifests.read(mod.id)
+          const targets = allVersions === true ? [mod, ...otherVersionsOf(mod)] : [mod]
 
-          const result = await undeployAndRemove(context, mod)
-          if (trashLeftovers !== true || !manifest) return result
+          const kept: string[] = []
+          let cleaned: CleanResult | undefined
+          for (const target of targets) {
+            const manifest = await context.manifests.read(target.id)
+            const result = await undeployAndRemove(context, target)
+            kept.push(...result.kept)
+            if (trashLeftovers !== true || !manifest) continue
 
-          const cleaned = await cleanModLeftovers(
-            context.manifests,
-            gamePath,
-            { folders: manifest.folders, kept: result.kept },
-            (file) => shell.trashItem(file)
-          )
-          return { ...result, cleaned }
+            cleaned = await cleanModLeftovers(
+              context.manifests,
+              gamePath,
+              { folders: manifest.folders, kept: result.kept },
+              (file) => shell.trashItem(file)
+            )
+          }
+          return { kept, cleaned }
         })
       )
   )

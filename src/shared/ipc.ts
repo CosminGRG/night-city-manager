@@ -91,7 +91,11 @@ export interface NightCityApi {
   listDeployments(): Promise<Record<string, DeployStatus>>
   deployMod(modId: string): Promise<Result<string[]>>
   undeployMod(modId: string): Promise<Result<UndeployResult>>
-  removeMod(modId: string, trashLeftovers: boolean): Promise<Result<UndeployResult>>
+  removeMod(
+    modId: string,
+    trashLeftovers: boolean,
+    allVersions: boolean
+  ): Promise<Result<UndeployResult>>
   revealMod(modId: string): Promise<Result<null>>
   openNexusPage(modId: string): Promise<Result<null>>
   openNexusFiles(modId: string): Promise<Result<null>>

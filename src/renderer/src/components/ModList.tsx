@@ -245,13 +245,17 @@ export function ModList({
     }
   }
 
-  async function handleRemove(mod: ModRecord, trashLeftover: boolean): Promise<void> {
+  async function handleRemove(
+    mod: ModRecord,
+    trashLeftover: boolean,
+    allVersions: boolean
+  ): Promise<void> {
     setBusy({ id: mod.id, label: 'Removing...' })
     setError(null)
     setNotice(null)
     const wasDeployed = deployments[mod.id] === 'deployed'
     try {
-      const result = await window.api.removeMod(mod.id, trashLeftover)
+      const result = await window.api.removeMod(mod.id, trashLeftover, allVersions)
       const library = await window.api.listMods()
       setMods(library)
       const state = await loadDeployState()
@@ -490,8 +494,13 @@ export function ModList({
       {pendingRemoval && (
         <RemoveConfirmDialog
           mod={pendingRemoval}
+          otherVersions={(rowOf.get(pendingRemoval.id)?.versions ?? []).filter(
+            (version) => version.id !== pendingRemoval.id
+          )}
           deployed={deployments[pendingRemoval.id] !== undefined}
-          onConfirm={(trashLeftovers) => handleRemove(pendingRemoval, trashLeftovers)}
+          onConfirm={(trashLeftovers, allVersions) =>
+            handleRemove(pendingRemoval, trashLeftovers, allVersions)
+          }
           onClose={() => setPendingRemoval(null)}
         />
       )}

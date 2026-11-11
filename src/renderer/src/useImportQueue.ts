@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import type { ModRecord } from '@shared/types'
 
 export type ImportStatus = 'queued' | 'importing' | 'done' | 'duplicate' | 'failed'
 
@@ -8,6 +9,8 @@ export interface ImportItem {
   path: string
   status: ImportStatus
   message: string | null
+  mod: ModRecord | null
+  versionNote: string | null
 }
 
 export interface ImportQueue {
@@ -15,6 +18,7 @@ export interface ImportQueue {
   imported: number
   add: (paths: string[]) => void
   clearFinished: () => void
+  noteVersion: (key: number, note: string) => void
 }
 
 let nextKey = 1
@@ -49,7 +53,7 @@ export function useImportQueue(): ImportQueue {
           const message = `Already in your library as "${result.value.mod.name}"`
           update(item.key, { status: 'duplicate', message })
         } else {
-          update(item.key, { status: 'done', name: result.value.mod.name })
+          update(item.key, { status: 'done', name: result.value.mod.name, mod: result.value.mod })
           setImported((count) => count + 1)
         }
       }
@@ -64,7 +68,9 @@ export function useImportQueue(): ImportQueue {
       name: fileName(path),
       path,
       status: 'queued',
-      message: null
+      message: null,
+      mod: null,
+      versionNote: null
     }))
     setItems((current) => [...current, ...fresh])
     pending.current.push(...fresh)
@@ -75,5 +81,9 @@ export function useImportQueue(): ImportQueue {
     setItems((current) => current.filter((item) => !isFinished(item)))
   }
 
-  return { items, imported, add, clearFinished }
+  function noteVersion(key: number, note: string): void {
+    update(key, { versionNote: note })
+  }
+
+  return { items, imported, add, clearFinished, noteVersion }
 }

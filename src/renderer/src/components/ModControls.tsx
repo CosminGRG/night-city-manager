@@ -1,5 +1,5 @@
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
-import { ChevronDown, ExternalLink, FolderOpen, Files, Trash2 } from 'lucide-react'
+import { ChevronDown, ExternalLink, FolderOpen, Files, Trash2, Link2 } from 'lucide-react'
 import type { DeployStatus, ModRecord } from '@shared/types'
 import { MenuItem } from './MenuItem'
 import './ModControls.css'
@@ -11,6 +11,7 @@ export interface ModActions {
   reveal: (mod: ModRecord) => void
   openNexus: (mod: ModRecord) => void
   openNexusFiles: (mod: ModRecord) => void
+  linkVersion: (mod: ModRecord) => void
 }
 
 interface ModControlsProps {
@@ -85,6 +86,12 @@ export function ModControls({
               >
                 View files on Nexus
               </MenuItem>
+              {mod.nexusModId === null && (
+                <MenuItem icon={Link2} disabled={locked} onSelect={() => actions.linkVersion(mod)}>
+                  Set as version of...
+                </MenuItem>
+              )}
+
               <DropdownMenu.Separator className="menu-separator" />
               <MenuItem icon={Trash2} danger disabled={locked} onSelect={() => actions.remove(mod)}>
                 Remove

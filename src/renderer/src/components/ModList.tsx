@@ -34,7 +34,7 @@ import { FRAMEWORK_LABELS, MOD_TYPE_LABELS } from '@renderer/modLabels'
 import { filterMods, paginate, sortMods, bulkCounts, bulkTargets } from '@renderer/modListView'
 import { cleanedMessage } from '@renderer/leftoversView'
 import { coreUpdates } from '@renderer/updatesView'
-import { versionRows, type VersionRow } from '@renderer/versionsView'
+import { versionRows, type VersionRow, type LinkOption } from '@renderer/versionsView'
 import { CoreModStatus } from './CoreModStatus'
 import { Pagination } from './Pagination'
 import { SearchBox } from './SearchBox'
@@ -44,6 +44,7 @@ import { type ModActions, ModControls } from './ModControls'
 import { ActionsMenu } from './ActionsMenu'
 import { BulkConfirmDialog } from './BulkConfirmDialog'
 import { EmptyState } from './EmptyState'
+import { VersionLinkDialog } from './VersionLinkDialog'
 import './ModList.css'
 
 const dateFormat = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' })
@@ -156,6 +157,7 @@ export function ModList({
   const [query, setQuery] = useState('')
   const [page, setPage] = useState(1)
   const [pendingRemoval, setPendingRemoval] = useState<ModRecord | null>(null)
+  const [pendingLink, setPendingLink] = useState<ModRecord | null>(null)
   const [busy, setBusy] = useState<Busy | null>(null)
   const [pendingBulk, setPendingBulk] = useState<BulkRequest | null>(null)
   const [bulkLabel, setBulkLabel] = useState<string | null>(null)
@@ -302,6 +304,24 @@ export function ModList({
     }
   }
 
+  async function handleLink(mod: ModRecord, target: LinkOption | null): Promise<void> {
+    setError(null)
+    setNotice(null)
+    const result = await window.api.setVersionOf(mod.id, target?.id ?? null)
+    setMods(await window.api.listMods())
+    applyDeployState(await loadDeployState())
+
+    if (!result.ok) {
+      setError(result.error)
+    } else {
+      const text = target
+        ? `${mod.name} is now a version of ${target.name}`
+        : `${mod.name} is a separate mod.`
+
+      setNotice({ text, tone: 'info' })
+    }
+  }
+
   async function showFailure(action: Promise<Result<null>>): Promise<void> {
     const result = await action
     if (!result.ok) setError(result.error)
@@ -313,7 +333,8 @@ export function ModList({
     remove: setPendingRemoval,
     reveal: (mod) => showFailure(window.api.revealMod(mod.id)),
     openNexus: (mod) => showFailure(window.api.openNexusPage(mod.id)),
-    openNexusFiles: (mod) => showFailure(window.api.openNexusFiles(mod.id))
+    openNexusFiles: (mod) => showFailure(window.api.openNexusFiles(mod.id)),
+    linkVersion: setPendingLink
   }
 
   const { rows, skip } = versionRows(mods ?? [], groups, deployments, picked)
@@ -465,12 +486,21 @@ export function ModList({
           </footer>
         </>
       )}
+
       {pendingRemoval && (
         <RemoveConfirmDialog
           mod={pendingRemoval}
           deployed={deployments[pendingRemoval.id] !== undefined}
           onConfirm={(trashLeftovers) => handleRemove(pendingRemoval, trashLeftovers)}
           onClose={() => setPendingRemoval(null)}
+        />
+      )}
+
+      {pendingLink && (
+        <VersionLinkDialog
+          mod={pendingLink}
+          onSave={(target) => handleLink(pendingLink, target)}
+          onClose={() => setPendingLink(null)}
         />
       )}
 

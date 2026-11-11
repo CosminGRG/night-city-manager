@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import {
   CircleCheck,
   CircleX,
@@ -14,6 +15,8 @@ import {
   type ImportQueue,
   type ImportStatus
 } from '@renderer/useImportQueue'
+import type { LinkOption } from '@renderer/versionsView'
+import { VersionLinkDialog } from '@renderer/components/VersionLinkDialog'
 import './ImportView.css'
 
 const NEXUS_URL = 'https://www.nexusmods.com/cyberpunk2077'
@@ -39,6 +42,11 @@ interface ImportViewProps {
   onPick: () => void
 }
 
+interface ImportRowProps {
+  item: ImportItem
+  onAskVersion: () => void
+}
+
 function summary(items: ImportItem[], finished: number): string {
   if (items.length === 0) return 'No imports yet'
 
@@ -56,8 +64,24 @@ function summary(items: ImportItem[], finished: number): string {
 }
 
 export function ImportView({ queue, onPick }: ImportViewProps): React.JSX.Element {
-  const { items, clearFinished } = queue
+  const { items, clearFinished, noteVersion } = queue
   const finished = items.filter(isFinished)
+  const [linking, setLinking] = useState<ImportItem | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  async function handleLink(item: ImportItem, target: LinkOption | null): Promise<void> {
+    if (!item.mod) {
+      return
+    }
+
+    setError(null)
+    const result = await window.api.setVersionOf(item.mod.id, target?.id ?? null)
+    if (!result.ok) {
+      setError(result.error)
+    } else {
+      noteVersion(item.key, target ? `Version of ${target.name}` : `Separate mod`)
+    }
+  }
 
   return (
     <section className="import">
@@ -89,16 +113,33 @@ export function ImportView({ queue, onPick }: ImportViewProps): React.JSX.Elemen
         ) : (
           <ul>
             {items.map((item) => (
-              <ImportRow key={item.key} item={item} />
+              <ImportRow key={item.key} item={item} onAskVersion={() => setLinking(item)} />
             ))}
           </ul>
         )}
       </div>
+      {error && (
+        <p role="alert" className="error">
+          {error}
+        </p>
+      )}
+
+      {linking?.mod && (
+        <VersionLinkDialog
+          mod={linking.mod}
+          onSave={(target) => handleLink(linking, target)}
+          onClose={() => setLinking(null)}
+        />
+      )}
     </section>
   )
 }
 
-function ImportRow({ item }: { item: ImportItem }): React.JSX.Element {
+function asksVersion(item: ImportItem): boolean {
+  return item.status === 'done' && item.mod?.nexusModId === null && item.versionNote === null
+}
+
+function ImportRow({ item, onAskVersion }: ImportRowProps): React.JSX.Element {
   const Icon = STATUS_ICONS[item.status]
   const label = STATUS_LABELS[item.status]
 
@@ -115,6 +156,15 @@ function ImportRow({ item }: { item: ImportItem }): React.JSX.Element {
         {item.name}
       </span>
       {item.message && <span className="import-message">{item.message}</span>}
+      {asksVersion(item) && (
+        <span className="import-question">
+          Its name doesn&apos;t say which mod it is. Is it a new version of a mod you have?
+          <button className="small" onClick={onAskVersion}>
+            Choose...
+          </button>
+        </span>
+      )}
+      {item.versionNote && <span className="import-message">{item.versionNote}</span>}
     </li>
   )
 }

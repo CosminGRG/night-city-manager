@@ -12,6 +12,13 @@ export interface VersionRows {
   skip: Set<string>
 }
 
+export interface LinkOption {
+  id: string
+  key: string
+  name: string
+  version: string | null
+}
+
 export function versionRows(
   mods: ModRecord[],
   groups: VersionGroup[],
@@ -60,4 +67,39 @@ export function versionRows(
   }
 
   return { rows, skip }
+}
+
+export function linkOptions(
+  mod: ModRecord,
+  mods: ModRecord[],
+  groups: VersionGroup[]
+): LinkOption[] {
+  const byId = new Map(mods.map((entry) => [entry.id, entry]))
+  const options: LinkOption[] = []
+
+  for (const group of groups) {
+    const first = group.modIds
+      .map((id) => byId.get(id))
+      .find((entry) => entry !== undefined && entry.id !== mod.id && entry.versionOf !== mod.id)
+
+    if (first) {
+      options.push({ id: first.id, key: group.key, name: first.name, version: first.version })
+    }
+  }
+
+  return options.toSorted((a, b) => a.name.localeCompare(b.name))
+}
+
+export function currentLink(
+  mod: ModRecord,
+  groups: VersionGroup[],
+  options: LinkOption[]
+): string | null {
+  const { versionOf } = mod
+  if (versionOf === undefined) {
+    return null
+  }
+
+  const group = groups.find(({ modIds }) => modIds.includes(versionOf))
+  return options.find((option) => option.key === group?.key)?.id ?? null
 }

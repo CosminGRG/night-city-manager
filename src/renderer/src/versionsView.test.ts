@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { ModRecord, VersionGroup } from '@shared/types'
-import { versionRows } from './versionsView'
+import { currentLink, linkOptions, versionRows } from './versionsView'
 
 function mod(id: string, files = 1): ModRecord {
   return {
@@ -65,5 +65,44 @@ describe('versionRows', () => {
     const fresh = mod('Just imported')
     const result = versionRows([...mods, fresh], groups, {}, {})
     expect(shownIds(result)).toEqual(['Other', '2.0', 'Just imported'])
+  })
+})
+
+describe('linkOptions', () => {
+  const renamed = { ...mod('renamed'), nexusModId: null }
+
+  it('offers one option per other mod, by name, with its newest version', () => {
+    const options = linkOptions(
+      renamed,
+      [...mods, renamed],
+      [...groups, { key: 'mod:renamed', modIds: ['renamed'] }]
+    )
+    expect(options.map(({ id, key }) => [id, key])).toEqual([
+      ['2.0', 'nexus:1'],
+      ['Other', 'nexus:2']
+    ])
+  })
+
+  it('offers the mod it is linked to now, and marks it as the current choice', () => {
+    const linked = { ...renamed, versionOf: '1.0' }
+    const linkedGroups: VersionGroup[] = [
+      { key: 'nexus:2', modIds: ['Other'] },
+      { key: 'nexus:1', modIds: ['renamed', '2.0', '1.0'] }
+    ]
+    const options = linkOptions(linked, [...mods, linked], linkedGroups)
+
+    expect(options.map((option) => option.id)).toEqual(['2.0', 'Other'])
+    expect(currentLink(linked, linkedGroups, options)).toBe('2.0')
+    expect(currentLink(renamed, linkedGroups, options)).toBeNull()
+  })
+
+  it('never offers a mod that is already a version of this one', () => {
+    const child = { ...mod('child'), nexusModId: null, versionOf: 'renamed' }
+    const options = linkOptions(
+      renamed,
+      [renamed, child],
+      [{ key: 'mod:renamed', modIds: ['renamed', 'child'] }]
+    )
+    expect(options).toEqual([])
   })
 })

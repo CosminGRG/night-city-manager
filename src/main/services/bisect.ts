@@ -84,17 +84,6 @@ export function undoBisect(session: BisectSession): BisectSession {
   return { ...session, answers: session.answers.slice(0, -1) }
 }
 
-export function deployedDuring(session: BisectSession): string[] {
-  const status = bisectStatus(session)
-  if (status.kind !== 'testing') {
-    return session.original
-  }
-
-  const off = new Set(status.off)
-
-  return session.original.filter((id) => !off.has(id))
-}
-
 function isIdList(data: unknown): data is string[] {
   return Array.isArray(data) && data.every((id) => typeof id === 'string')
 }

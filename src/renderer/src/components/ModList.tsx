@@ -38,8 +38,7 @@ import { versionRows, type VersionRow } from '@renderer/versionsView'
 import { CoreModStatus } from './CoreModStatus'
 import { Pagination } from './Pagination'
 import { SearchBox } from './SearchBox'
-import { VersionPicker } from './VersionPicker'
-import { UpdateButton } from './UpdateButton'
+import { VersionBadge } from './VersionBadge'
 import { RemoveConfirmDialog } from './RemoveConfirmDialog'
 import { type ModActions, ModControls } from './ModControls'
 import { ActionsMenu } from './ActionsMenu'
@@ -571,21 +570,16 @@ function ModRow({
         )}
       </span>
 
-      <span className="mod-cell mod-version-cell">
-        <VersionPicker
+      <span className="mod-cell">
+        <VersionBadge
           mod={mod}
           versions={versions}
+          update={update}
           deployed={status !== undefined}
           locked={locked}
           onPick={onPickVersion}
+          onOpenFiles={() => actions.openNexusFiles(mod)}
         />
-        {update && (
-          <UpdateButton
-            update={update}
-            label={update.version}
-            onClick={() => actions.openNexusFiles(mod)}
-          />
-        )}
       </span>
 
       <span className="mod-cell mod-badges">

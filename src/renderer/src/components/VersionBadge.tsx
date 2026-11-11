@@ -1,10 +1,25 @@
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
-import { Check, ChevronDown } from 'lucide-react'
-import type { ModRecord } from '@shared/types'
+import { Check, ChevronDown, CircleArrowUp } from 'lucide-react'
+import type { ModRecord, ModUpdate } from '@shared/types'
+import { updateTitle } from '@renderer/updatesView'
 import './Menu.css'
-import './VersionPicker.css'
+import './VersionBadge.css'
 
-interface VersionPickerProps {
+interface VersionBadgeProps {
+  mod: ModRecord
+  versions: ModRecord[]
+  update: ModUpdate | undefined
+  deployed: boolean
+  locked: boolean
+  onPick: (version: ModRecord) => void
+  onOpenFiles: () => void
+}
+
+function labelOf(mod: ModRecord): string {
+  return mod.version ?? mod.name
+}
+
+interface VersionMenuProps {
   mod: ModRecord
   versions: ModRecord[]
   deployed: boolean
@@ -12,44 +27,35 @@ interface VersionPickerProps {
   onPick: (version: ModRecord) => void
 }
 
-function labelOf(mod: ModRecord): string {
-  return mod.version ?? mod.name
-}
-
-export function VersionPicker({
+function VersionMenu({
   mod,
   versions,
   deployed,
   locked,
   onPick
-}: VersionPickerProps): React.JSX.Element | null {
-  if (versions.length < 2) {
-    return mod.version ? <span className="mod-version">{mod.version}</span> : null
-  }
-
+}: VersionMenuProps): React.JSX.Element {
   function pick(id: string): void {
     const version = versions.find((candidate) => candidate.id === id)
-    if (version && version.id !== mod.id) {
-      onPick(version)
-    }
+    if (version && version.id !== mod.id) onPick(version)
   }
 
   return (
     <DropdownMenu.Root>
       <DropdownMenu.Trigger asChild>
         <button
-          className="version-trigger"
+          className="version-main"
           disabled={locked}
+          title={labelOf(mod)}
           aria-label={`Version ${labelOf(mod)} of ${mod.name}, ${versions.length} versions`}
         >
-          {labelOf(mod)}
+          <span className="version-text">{labelOf(mod)}</span>
           <ChevronDown size={12} aria-hidden="true" />
         </button>
       </DropdownMenu.Trigger>
       <DropdownMenu.Portal>
         <DropdownMenu.Content className="menu" align="start" sideOffset={4}>
           <DropdownMenu.Label className="menu-label">
-            {deployed ? 'Switch to version' : 'Show version'}
+            {deployed ? 'Switch to version' : 'version'}
           </DropdownMenu.Label>
           <DropdownMenu.RadioGroup value={mod.id} onValueChange={pick}>
             {versions.map((version, index) => (
@@ -72,5 +78,47 @@ export function VersionPicker({
         </DropdownMenu.Content>
       </DropdownMenu.Portal>
     </DropdownMenu.Root>
+  )
+}
+
+export function VersionBadge({
+  mod,
+  versions,
+  update,
+  deployed,
+  locked,
+  onPick,
+  onOpenFiles
+}: VersionBadgeProps): React.JSX.Element | null {
+  if (versions.length < 2 && !mod.version && !update) {
+    return null
+  }
+
+  return (
+    <span className="version-badge">
+      {versions.length > 1 ? (
+        <VersionMenu
+          mod={mod}
+          versions={versions}
+          deployed={deployed}
+          locked={locked}
+          onPick={onPick}
+        />
+      ) : (
+        <span className="version-main" title={labelOf(mod)}>
+          <span className="version-text">{mod.version ?? '?'}</span>
+        </span>
+      )}
+      {update && (
+        <button
+          className="version-update"
+          title={updateTitle(update)}
+          aria-label={updateTitle(update)}
+          onClick={onOpenFiles}
+        >
+          <CircleArrowUp size={12} aria-hidden="true" />
+        </button>
+      )}
+    </span>
   )
 }

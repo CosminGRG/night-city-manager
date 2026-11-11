@@ -1,0 +1,76 @@
+.version-badge {
+  display: inline-flex;
+  max-width: 100%;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 18px;
+}
+
+.version-main,
+.version-update {
+  display: inline-flex;
+  align-items: center;
+  border: none;
+  border-radius: var(--radius-sm);
+}
+
+.version-main {
+  gap: 2px;
+  justify-content: center;
+  min-width: 4.5em;
+  padding: 0 6px;
+  color: var(--text);
+  background: color-mix(in srgb, var(--text-muted) 16%, transparent);
+}
+
+.version-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The update segment sits flush against the version. */
+.version-main:not(:last-child) {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.version-update {
+  --glow: var(--accent);
+  flex-shrink: 0;
+  padding: 0 5px;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+}
+
+button.version-main:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--text-muted) 28%, transparent);
+}
+
+.version-update:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 28%, transparent);
+}
+
+.menu-label {
+  padding: 4px var(--space-2);
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.version-check {
+  display: inline-flex;
+  width: 14px;
+}
+
+.version-tag {
+  margin-left: auto;
+  padding-left: var(--space-3);
+  color: var(--text-muted);
+  font-size: 11px;
+}

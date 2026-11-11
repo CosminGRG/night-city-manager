@@ -3,7 +3,6 @@ import type { BisectAnswer } from '@shared/types'
 import {
   answerBisect,
   bisectStatus,
-  deployedDuring,
   startBisect,
   undoBisect,
   isBisectSession,
@@ -82,14 +81,6 @@ describe('answers and undo', () => {
     expect(() => answerBisect(session, 'works')).toThrow(/already ended/)
     expect(bisectStatus(undoBisect(session))).toMatchObject({ round: 1 })
     expect(() => undoBisect(undoBisect(session))).toThrow(/no answer/)
-  })
-})
-
-describe('deployedDuring', () => {
-  it('keeps everything on except the half being tested, and restores at the end', () => {
-    const session = startBisect(['core', 'a', 'b', 'c'], ['a', 'b', 'c'], false)
-    expect(deployedDuring(session)).toEqual(['core', 'c'])
-    expect(deployedDuring(answered(session, 'works', 'works'))).toEqual(['core', 'a', 'b', 'c'])
   })
 })
 

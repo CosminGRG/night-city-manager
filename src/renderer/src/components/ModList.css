@@ -131,12 +131,6 @@
   color: var(--warning);
 }
 
-.mod-version-cell {
-  flex-wrap: wrap;
-  row-gap: var(--space-1);
-  padding: 6px 0;
-}
-
 .mod-badges {
   flex-wrap: wrap;
   row-gap: var(--space-1);

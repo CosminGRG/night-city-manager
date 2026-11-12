@@ -31,11 +31,11 @@ describe('launchExe', () => {
     const child = fakeProcess()
     const start = vi.fn<StartProcess>(() => child)
 
-    const launched = launchExe('E:\\Game\\bin\\x64\\Cyberpunk2077.exe', start)
+    const launched = launchExe('E:\\Game\\bin\\x64\\Cyberpunk2077.exe', ['-modded'], start)
     child.emit('spawn')
     await launched
 
-    expect(start).toHaveBeenCalledWith('E:\\Game\\bin\\x64\\Cyberpunk2077.exe', [], {
+    expect(start).toHaveBeenCalledWith('E:\\Game\\bin\\x64\\Cyberpunk2077.exe', ['-modded'], {
       cwd: 'E:\\Game\\bin\\x64',
       detached: true,
       stdio: 'ignore'
@@ -45,7 +45,7 @@ describe('launchExe', () => {
 
   it('reports a game that could not be started', async () => {
     const child = fakeProcess()
-    const launched = launchExe('E:\\Game\\bin\\x64\\Cyberpunk2077.exe', () => child)
+    const launched = launchExe('E:\\Game\\bin\\x64\\Cyberpunk2077.exe', [], () => child)
     child.emit('error', new Error('spawn UNKNOWN'))
 
     await expect(launched).rejects.toThrow('spawn UNKNOWN')

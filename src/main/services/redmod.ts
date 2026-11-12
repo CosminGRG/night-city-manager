@@ -101,7 +101,7 @@ export function runRedMod(exe: string, args: string[]): Promise<RunResult> {
 
     let stdout = ''
     let stderr = ''
-    child.stdout.on('date', (chunk: Buffer) => (stdout += chunk.toString()))
+    child.stdout.on('data', (chunk: Buffer) => (stdout += chunk.toString()))
     child.stderr.on('data', (chunk: Buffer) => (stderr += chunk.toString()))
     child.once('error', reject)
     child.once('close', (code) => resolve({ code, stdout, stderr }))
@@ -121,4 +121,18 @@ export async function compileRedMods(
   }
 
   checkDeploy(await run(exe, deployArgs(gamePath, folders)))
+}
+
+export async function prepareRedMods(
+  gamePath: string,
+  ours: string[],
+  run: RunProcess = runRedMod
+): Promise<string[]> {
+  const folders = [...ours, ...(await otherRedModFolders(gamePath, ours))]
+  if (folders.length === 0) {
+    return []
+  }
+
+  await compileRedMods(gamePath, folders, run)
+  return ['-modded']
 }

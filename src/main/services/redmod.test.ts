@@ -10,6 +10,7 @@ import {
   otherRedModFolders,
   redModExe,
   redModFolders,
+  prepareRedMods,
   type RunProcess
 } from './redmod'
 
@@ -161,5 +162,36 @@ describe('with a game folder', () => {
     const run = vi.fn<RunProcess>(async () => SUCCESS)
     await expect(compileRedMods(game, ['NIGHT CITY ALIVE'], run)).rejects.toThrow('REDmod DLC')
     expect(run).not.toHaveBeenCalled()
+  })
+
+  it('compiles nothing and adds no argument when there are no REDmod mods', async () => {
+    const run = vi.fn<RunProcess>(async () => SUCCESS)
+
+    expect(await prepareRedMods(game, [], run)).toEqual([])
+    expect(run).not.toHaveBeenCalled()
+  })
+
+  it('compiles ours first, then the ones placed by hand, and asks for -modded', async () => {
+    await put('tools/redmod/bin/redMod.exe')
+    await put('mods/NIGHT CITY ALIVE/info.json')
+    await put('mods/Manual Mod/info.json')
+    const run = vi.fn<RunProcess>(async () => SUCCESS)
+
+    expect(await prepareRedMods(game, ['NIGHT CITY ALIVE'], run)).toEqual(['-modded'])
+    expect(run).toHaveBeenCalledWith(redModExe(game), [
+      'deploy',
+      `-root="${game}"`,
+      '-mod="NIGHT CITY ALIVE"',
+      '-mod="Manual Mod"'
+    ])
+  })
+
+  it('does not launch when the compile fails', async () => {
+    await put('tools/redmod/bin/redMod.exe')
+    const run = vi.fn<RunProcess>(async () => FAILURE)
+
+    await expect(prepareRedMods(game, ['DOES NOT EXIST'], run)).rejects.toThrow(
+      'Non-existant mod selected'
+    )
   })
 })

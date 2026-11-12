@@ -34,9 +34,9 @@ export async function isGameRunning(): Promise<boolean> {
   return isImageListed(stdout, GAME_IMAGE)
 }
 
-export function launchExe(exe: string, start: StartProcess = spawn): Promise<void> {
+export function launchExe(exe: string, args: string[], start: StartProcess = spawn): Promise<void> {
   return new Promise((resolve, reject) => {
-    const child = start(exe, [], { cwd: dirname(exe), detached: true, stdio: 'ignore' })
+    const child = start(exe, args, { cwd: dirname(exe), detached: true, stdio: 'ignore' })
     child.once('error', reject)
     child.once('spawn', () => {
       child.unref()

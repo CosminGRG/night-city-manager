@@ -57,6 +57,7 @@ import { checkCrashReports, findLog, scanLogs } from './services/logs'
 import { versionGroups } from './services/versions'
 import { deployVersion } from './services/versionSwitch'
 import { checkVersionLink } from './services/versionLinks'
+import { prepareRedMods, redModFolders } from './services/redmod'
 
 interface IpcDependencies {
   settings: SettingsStore
@@ -217,7 +218,12 @@ export function registerIpcHandlers({
           throw new Error(`Cyberpunk2077.exe was not found in "${gamePath}".`)
         }
 
-        await launchExe(gameExe(gamePath))
+        const statuses = await deployStatuses(deployContext(gamePath))
+        const ours = redModFolders(library.list(), (id) => statuses.get(id) === 'deployed')
+        const args = await prepareRedMods(gamePath, ours)
+
+        await launchExe(gameExe(gamePath), args)
+
         return null
       })
     )

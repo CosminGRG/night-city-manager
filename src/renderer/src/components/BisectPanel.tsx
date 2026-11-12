@@ -214,7 +214,7 @@ export function BisectPanel(): React.JSX.Element {
           </p>
           <p className="muted">
             The problem follows this mod. Check its Nexus page for a newer version or for
-            requirements you might be missing
+            requirements you might be missing,
           </p>
           <div className="bisect-actions">
             {undoButton}

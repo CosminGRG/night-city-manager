@@ -45,6 +45,23 @@ export async function removeEmptyTree(root: string): Promise<void> {
   await removeEmptyFolders([...folders, root])
 }
 
+export async function removeIfNoFiles(folder: string): Promise<boolean> {
+  let entries
+  try {
+    entries = await readdir(folder, { recursive: true, withFileTypes: true })
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return true
+    throw error
+  }
+
+  if (entries.some((entry) => !entry.isDirectory())) {
+    return false
+  }
+
+  await removeEmptyTree(folder)
+  return !(await exists(folder))
+}
+
 export function deepestFirst(folders: string[]): string[] {
   return [...folders].sort((a, b) => b.length - a.length)
 }

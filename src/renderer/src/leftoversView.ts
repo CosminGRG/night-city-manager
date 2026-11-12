@@ -44,6 +44,10 @@ export function selectedTotals(
   return { count: files.length, size: files.reduce((sum, file) => sum + file.size, 0) }
 }
 
+export function cleanedAnything({ trashed, failed }: CleanResult): boolean {
+  return trashed > 0 || failed.length > 0
+}
+
 export function cleanedMessage({ trashed, failed }: CleanResult): string {
   const parts = [
     `Moved ${trashed} leftover ${trashed === 1 ? 'file' : 'files'} to the Recycle Bin.`

@@ -276,4 +276,17 @@ describe('created folders', () => {
     expect((await context.manifests.read(mod.id))?.folders).toEqual(['engine/tools'])
     expect(await context.manifests.createdFolders()).toEqual(['engine/tools'])
   })
+
+  it('removes a created folder that only holds empty folders a mod made while running', async () => {
+    const dll = 'red4ext/plugins/Plugin/plugin.dll'
+    const mod = makeMod('Plugin', [[dll, dll]])
+    await stage(mod, 'plugin')
+    await deployMod(context, gamePath, mod)
+    await mkdir(game('red4ext', 'plugins', 'Plugin', 'Logs'))
+
+    await undeployMod(context, mod)
+
+    expect(await exists(game('red4ext', 'plugins', 'Plugin'))).toBe(false)
+    expect(await context.manifests.createdFolders()).toEqual([])
+  })
 })

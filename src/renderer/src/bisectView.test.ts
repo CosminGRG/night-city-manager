@@ -137,5 +137,8 @@ describe('roundSummary', () => {
   it('says how many mods are off', () => {
     expect(roundSummary(testing(true))).toBe('All 3 tested mods are switched off.')
     expect(roundSummary(testing(false))).toBe('2 of the 3 remaining suspects are switched off.')
+    expect(roundSummary({ ...testing(false), suspects: ['a', 'b'], off: ['a'] })).toBe(
+      '1 of the 2 remaining suspects is switched off.'
+    )
   })
 })

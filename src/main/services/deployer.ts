@@ -3,7 +3,7 @@ import { join, win32 } from 'path'
 import type { ModRecord, UndeployResult } from '@shared/types'
 import { planDeploy, type DeployOperation } from './deployPlan'
 import { backUp, backupPathFor, restore } from './backups'
-import { deepestFirst, exists, missingFolders, removeEmptyTree, removeIfEmpty } from './folders'
+import { deepestFirst, exists, missingFolders, removeEmptyTree, removeIfNoFiles } from './folders'
 import type { ModLibrary } from './modLibrary'
 import { findConflicts, type Manifest, type ManifestEntry, type ManifestStore } from './manifests'
 import { linkOrCopy } from './place'
@@ -135,7 +135,7 @@ export async function removeEmptyCreatedFolders(
 ): Promise<void> {
   const remaining: string[] = []
   for (const folder of deepestFirst(await manifests.createdFolders())) {
-    if (!(await removeIfEmpty(gameFile(gamePath, folder)))) {
+    if (!(await removeIfNoFiles(gameFile(gamePath, folder)))) {
       remaining.push(folder)
     }
   }

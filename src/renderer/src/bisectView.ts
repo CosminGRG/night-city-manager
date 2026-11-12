@@ -71,5 +71,6 @@ export function roundSummary(status: Extract<BisectStatus, { kind: 'testing' }>)
     return `All ${suspects.length} tested mods are switched off.`
   }
 
-  return `${off.length} of the ${suspects.length} remaining suspects are switched off.`
+  const verb = off.length === 1 ? 'is' : 'are'
+  return `${off.length} of the ${suspects.length} remaining suspects ${verb} switched off.`
 }

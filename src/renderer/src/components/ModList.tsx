@@ -32,7 +32,7 @@ import { RequirementBadges } from './RequirementBadges'
 import { isCoreMod } from '@shared/mods'
 import { FRAMEWORK_LABELS, MOD_TYPE_LABELS } from '@renderer/modLabels'
 import { filterMods, paginate, sortMods, bulkCounts, bulkTargets } from '@renderer/modListView'
-import { cleanedMessage } from '@renderer/leftoversView'
+import { cleanedMessage, cleanedAnything } from '@renderer/leftoversView'
 import { coreUpdates } from '@renderer/updatesView'
 import { versionRows, type VersionRow, type LinkOption } from '@renderer/versionsView'
 import { CoreModStatus } from './CoreModStatus'
@@ -125,7 +125,7 @@ function bulkMessage(action: BulkAction, { done, skipped, kept, cleaned }: BulkR
 
   if (skipped > 0) {
     parts.push(
-      `Skipped ${skipped} that can't be deployed automatically (nothing to place or and interrupted deploy, needs undeploy first).`
+      `Skipped ${skipped} that can't be deployed automatically (nothing to place, or an interrupted deploy that needs an undeploy first).`
     )
   }
   if (kept.length > 0) {
@@ -133,7 +133,7 @@ function bulkMessage(action: BulkAction, { done, skipped, kept, cleaned }: BulkR
     parts.push(`Left in place because they changed after deploy: ${files}`)
   }
 
-  if (cleaned) {
+  if (cleaned && cleanedAnything(cleaned)) {
     parts.push(cleanedMessage(cleaned))
   }
 
@@ -273,7 +273,7 @@ export function ModList({
         if (kept.length > 0) {
           info.push(keptMessage(mod, kept))
         }
-        if (cleaned) {
+        if (cleaned && cleanedAnything(cleaned)) {
           info.push(cleanedMessage(cleaned))
         }
 

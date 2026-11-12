@@ -79,6 +79,7 @@ export function ModControls({
               >
                 Open Nexus page
               </MenuItem>
+
               <MenuItem
                 icon={Files}
                 disabled={mod.nexusModId === null}

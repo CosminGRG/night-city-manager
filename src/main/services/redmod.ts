@@ -83,7 +83,11 @@ export function checkDeploy({ code, stdout, stderr }: RunResult): void {
   }
 
   const reason =
-    stderr.trim().split(/\r?\n/)[0] ||
+    stderr
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter((line) => line !== '')
+      .join(' ') ||
     (code === null ? 'it took too long and was stopped.' : `it stopped with exit code ${code}.`)
 
   throw new Error(`REDmod could not compile your mods: ${reason}`)

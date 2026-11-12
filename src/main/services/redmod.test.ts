@@ -99,6 +99,20 @@ describe('checkDeploy', () => {
     )
   })
 
+  it('shows every line redMod.exe gives, not just the first', () => {
+    // Real output for a hand-installed folder with a broken info.json (2026-11-12).
+    const brokenInfo = {
+      code: 131072,
+      stdout: '[DEPLOY] Stage 1/5 - Initialization\r\nCommandlet deploy has failed.\r\n',
+      stderr:
+        'info.json for mod Broken Test cannot be read! Skipping...\r\nMod "NIGHT CITY ALIVE" is enabled, but not found on the disk!\r\nNon-existant mod selected: "Broken Test"!'
+    }
+
+    expect(() => checkDeploy(brokenInfo)).toThrow(
+      'REDmod could not compile your mods: info.json for mod Broken Test cannot be read! Skipping... Mod "NIGHT CITY ALIVE" is enabled, but not found on the disk! Non-existant mod selected: "Broken Test"!'
+    )
+  })
+
   it('does not trust "succeeded" when redMod.exe did not see the game folder', () => {
     const misread = {
       ...SUCCESS,

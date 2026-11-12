@@ -17,6 +17,13 @@
   font-weight: 600;
 }
 
+.core-chip .update-button {
+  align-self: stretch;
+  margin: -3px -10px -3px 0;
+  padding: 0 10px 0 7px;
+  border-radius: 0 999px 999px 0;
+}
+
 .dot {
   width: 7px;
   height: 7px;

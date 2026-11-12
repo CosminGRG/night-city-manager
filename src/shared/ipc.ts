@@ -28,6 +28,7 @@ export const IpcChannels = {
   browseGame: 'game:browse',
   getGameIcon: 'game:icon',
   launchGame: 'game:launch',
+  launchCompiling: 'game:compiling',
   setNexusLookup: 'settings:set-nexus-lookup',
   setAutoDeployRequirements: 'settings:set-auto-deploy-requirements',
   listMods: 'mod:list',
@@ -77,6 +78,7 @@ export interface NightCityApi {
   browseGame(): Promise<Result<Settings> | null>
   getGameIcon(): Promise<string | null>
   launchGame(): Promise<Result<null>>
+  onLaunchCompiling(callback: () => void): () => void
   setNexusLookup(enabled: boolean): Promise<Result<Settings>>
   setAutoDeployRequirements(enabled: boolean): Promise<Result<Settings>>
   listMods(): Promise<ModRecord[]>

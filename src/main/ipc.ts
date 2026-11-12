@@ -57,7 +57,7 @@ import { checkCrashReports, findLog, scanLogs } from './services/logs'
 import { versionGroups } from './services/versions'
 import { deployVersion } from './services/versionSwitch'
 import { checkVersionLink } from './services/versionLinks'
-import { prepareRedMods, redModFolders } from './services/redmod'
+import { prepareRedMods, redModFolders, runRedMod } from './services/redmod'
 
 interface IpcDependencies {
   settings: SettingsStore
@@ -207,7 +207,7 @@ export function registerIpcHandlers({
     }
   })
 
-  ipcMain.handle(IpcChannels.launchGame, (): Promise<Result<null>> =>
+  ipcMain.handle(IpcChannels.launchGame, (event): Promise<Result<null>> =>
     runExclusive(() =>
       toResult(async () => {
         const gamePath = currentGame()
@@ -220,7 +220,12 @@ export function registerIpcHandlers({
 
         const statuses = await deployStatuses(deployContext(gamePath))
         const ours = redModFolders(library.list(), (id) => statuses.get(id) === 'deployed')
-        const args = await prepareRedMods(gamePath, ours)
+        const args = await prepareRedMods(gamePath, ours, (exe, redModArgs) => {
+          if (!event.sender.isDestroyed()) {
+            event.sender.send(IpcChannels.launchCompiling)
+          }
+          return runRedMod(exe, redModArgs)
+        })
 
         await launchExe(gameExe(gamePath), args)
 

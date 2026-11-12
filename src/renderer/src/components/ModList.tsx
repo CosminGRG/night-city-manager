@@ -264,10 +264,19 @@ export function ModList({
       if (!result.ok) {
         setError(result.error)
       } else {
-        const { kept, cleaned } = result.value
+        const { kept, cleaned, deployedInstead } = result.value
         const info: string[] = []
-        if (kept.length > 0) info.push(keptMessage(mod, kept))
-        if (cleaned) info.push(cleanedMessage(cleaned))
+
+        if (deployedInstead) {
+          info.push(`${deployedInstead} is deployed in its place.`)
+        }
+        if (kept.length > 0) {
+          info.push(keptMessage(mod, kept))
+        }
+        if (cleaned) {
+          info.push(cleanedMessage(cleaned))
+        }
+
         const warning = wasDeployed ? undeployWarning(mod, { ...state, library }) : null
         setNotice(noticeOf(warning, info))
       }

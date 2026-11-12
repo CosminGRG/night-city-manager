@@ -34,7 +34,7 @@ import { type DeployContext, undeployMod } from './services/deployer'
 import { ARCHIVE_EXTENSIONS, checkArchivePath } from './services/archivePath'
 import { stagingFolderFor } from './services/staging'
 import { deployAll, purgeAll, removeAll, deployStatuses } from './services/bulk'
-import { undeployAndRemove, type RemoveContext } from './services/removal'
+import type { RemoveContext } from './services/removal'
 import { isGameRunning, launchExe, readLaunchEnvironment } from './services/gameProcess'
 import { checkNewModsFolder, moveMods, sameDrive } from './services/modsFolder'
 import { deployWithRequirements, requirementsToDeploy } from './services/autoRequirements'
@@ -55,7 +55,7 @@ import {
 import { NexusLookup } from './services/nexusLookup'
 import { checkCrashReports, findLog, scanLogs } from './services/logs'
 import { versionGroups } from './services/versions'
-import { deployVersion } from './services/versionSwitch'
+import { deployVersion, removeVersions } from './services/versionSwitch'
 import { checkVersionLink } from './services/versionLinks'
 import { prepareRedMods, redModFolders, runRedMod } from './services/redmod'
 
@@ -108,7 +108,8 @@ export function registerIpcHandlers({
   function otherVersionsOf(mod: ModRecord): ModRecord[] {
     const mods = library.list()
     const group = versionGroups(mods, nexus.files()).find(({ modIds }) => modIds.includes(mod.id))
-    return mods.filter((other) => other.id !== mod.id && group?.modIds.includes(other.id))
+    const ids = group?.modIds.filter((id) => id !== mod.id) ?? []
+    return ids.flatMap((id) => mods.filter((other) => other.id === id))
   }
 
   function modsDir(): string {
@@ -356,24 +357,30 @@ export function registerIpcHandlers({
           await refuseWhileBisecting(gamePath)
           const context = deployContext(gamePath)
           const mod = findMod(modId)
-          const targets = allVersions === true ? [mod, ...otherVersionsOf(mod)] : [mod]
+          const { removed, deployedInstead } = await removeVersions(
+            context,
+            gamePath,
+            mod,
+            otherVersionsOf(mod),
+            allVersions === true
+          )
 
-          const kept: string[] = []
           let cleaned: CleanResult | undefined
-          for (const target of targets) {
-            const manifest = await context.manifests.read(target.id)
-            const result = await undeployAndRemove(context, target)
-            kept.push(...result.kept)
-            if (trashLeftovers !== true || !manifest) continue
-
+          for (const { deployed, folders, kept } of removed) {
+            if (trashLeftovers !== true || !deployed) continue
             cleaned = await cleanModLeftovers(
               context.manifests,
               gamePath,
-              { folders: manifest.folders, kept: result.kept },
+              { folders, kept },
               (file) => shell.trashItem(file)
             )
           }
-          return { kept, cleaned }
+
+          return {
+            kept: removed.flatMap(({ kept }) => kept),
+            cleaned,
+            deployedInstead: deployedInstead?.name
+          }
         })
       )
   )

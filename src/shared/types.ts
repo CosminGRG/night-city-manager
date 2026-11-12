@@ -78,6 +78,7 @@ export type DeployStatus = 'deploying' | 'deployed' | 'undeploying'
 export interface UndeployResult {
   kept: string[]
   cleaned?: CleanResult
+  deployedInstead?: string
 }
 
 export type BulkAction = 'deploy' | 'purge' | 'remove'

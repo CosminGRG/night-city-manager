@@ -7,13 +7,14 @@ import type { ModRecord, VersionGroup } from '@shared/types'
 import { deployMod, type DeployContext } from './deployer'
 import { GameManifests } from './manifests'
 import { ModLibrary } from './modLibrary'
-import { deployVersion } from './versionSwitch'
+import type { RemoveContext } from './removal'
+import { deployVersion, removeVersions } from './versionSwitch'
 
 const TARGET = 'archive/pc/mod/a.archive'
 
 let dir: string
 let gamePath: string
-let context: DeployContext
+let context: DeployContext & RemoveContext
 
 async function put(path: string, content: string): Promise<void> {
   await mkdir(dirname(path), { recursive: true })
@@ -54,12 +55,15 @@ const group = (...mods: ModRecord[]): VersionGroup[] => [
 beforeEach(async () => {
   dir = await mkdtemp(join(tmpdir(), 'ncm-switch-'))
   gamePath = join(dir, 'game')
+  const games = new GameManifests(join(dir, 'data', 'manifests'))
   context = {
     modsDir: join(dir, 'mods'),
     backupsDir: join(dir, 'data', 'backups'),
-    manifests: new GameManifests(join(dir, 'data', 'manifests')).forGame(gamePath),
-    library: new ModLibrary(join(dir, 'data', 'mods.json'))
+    manifests: games.forGame(gamePath),
+    library: new ModLibrary(join(dir, 'data', 'mods.json')),
+    games
   }
+
   await put(join(gamePath, 'bin', 'x64', 'Cyberpunk2077.exe'), 'game')
   await mkdir(join(gamePath, 'archive', 'pc', 'mod'), { recursive: true })
 })
@@ -102,5 +106,69 @@ describe('deployVersion', () => {
 
     expect((await deployedIds()).toSorted()).toEqual([v1.id, other.id].toSorted())
     expect(await readFile(join(gamePath, TARGET), 'utf8')).toBe('v1')
+  })
+})
+
+describe('removeVersions', () => {
+  it('deploys the newest remaining version when the deployed one is removed', async () => {
+    const v1 = await staged('v1', [TARGET])
+    const v2 = await staged('v2', [TARGET])
+    const v3 = await staged('v3', [TARGET])
+    await deployMod(context, gamePath, v1)
+
+    const result = await removeVersions(context, gamePath, v1, [v3, v2], false)
+
+    expect(result.deployedInstead?.id).toBe(v3.id)
+    expect(await deployedIds()).toEqual([v3.id])
+    expect(await readFile(join(gamePath, TARGET), 'utf8')).toBe('v3')
+    expect(context.library.list().map((mod) => mod.name)).toEqual(['v2', 'v3'])
+  })
+
+  it('skips versions with nothing to place', async () => {
+    const v1 = await staged('v1', [TARGET])
+    const v2 = await staged('v2', [TARGET])
+    const empty = await staged('v3', [])
+    await deployMod(context, gamePath, v2)
+
+    const result = await removeVersions(context, gamePath, v2, [empty, v1], false)
+
+    expect(result.deployedInstead?.id).toBe(v1.id)
+  })
+
+  it('deploys nothing when the removed version was not deployed', async () => {
+    const v1 = await staged('v1', [TARGET])
+    const v2 = await staged('v2', [TARGET])
+    await deployMod(context, gamePath, v2)
+
+    const result = await removeVersions(context, gamePath, v1, [v2], false)
+
+    expect(result.deployedInstead).toBeNull()
+    expect(await deployedIds()).toEqual([v2.id])
+  })
+
+  it('deploys nothing when every version is removed', async () => {
+    const v1 = await staged('v1', [TARGET])
+    const v2 = await staged('v2', [TARGET])
+    await deployMod(context, gamePath, v2)
+
+    const result = await removeVersions(context, gamePath, v2, [v1], true)
+
+    expect(result.deployedInstead).toBeNull()
+    expect(result.removed.map(({ deployed }) => deployed)).toEqual([true, false])
+    expect(await deployedIds()).toEqual([])
+    expect(context.library.list()).toEqual([])
+  })
+
+  it('says so when the newest remaining version cannot be deployed', async () => {
+    const v1 = await staged('v1', ['archive/pc/mod/old.archive'])
+    const v2 = await staged('v2', [TARGET])
+    const other = await staged('Other', [TARGET])
+    await deployMod(context, gamePath, v1)
+    await deployMod(context, gamePath, other)
+
+    await expect(removeVersions(context, gamePath, v1, [v2], false)).rejects.toThrow(
+      /v1 was removed, but v2 could not be deployed in its place: .*Other/
+    )
+    expect(context.library.list().map((mod) => mod.name)).toEqual(['v2', 'Other'])
   })
 })

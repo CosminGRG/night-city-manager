@@ -2,6 +2,18 @@ import type { ModRecord, VersionGroup } from '@shared/types'
 import { deployStatuses } from './bulk'
 import { deployMod, undeployMod, type DeployContext } from './deployer'
 import { deployedSiblings } from './versions'
+import { undeployAndRemove, type RemoveContext } from './removal'
+
+export interface RemovedVersion {
+  deployed: boolean
+  folders: string[]
+  kept: string[]
+}
+
+export interface RemoveVersionsResult {
+  removed: RemovedVersion[]
+  deployedInstead: ModRecord | null
+}
 
 async function redeploy(
   context: DeployContext,
@@ -54,4 +66,40 @@ export async function deployVersion(
 
     throw error
   }
+}
+
+export async function removeVersions(
+  context: DeployContext & RemoveContext,
+  gamePath: string,
+  mod: ModRecord,
+  others: ModRecord[],
+  allVersions: boolean
+): Promise<RemoveVersionsResult> {
+  const wasDeployed = (await context.manifests.read(mod.id))?.status === 'deployed'
+  const targets = allVersions ? [mod, ...others] : [mod]
+
+  const removed: RemovedVersion[] = []
+  for (const target of targets) {
+    const manifest = await context.manifests.read(target.id)
+    const { kept } = await undeployAndRemove(context, target)
+    removed.push({ deployed: manifest !== null, folders: manifest?.folders ?? [], kept })
+  }
+
+  const replacement =
+    wasDeployed && !allVersions ? others.find((other) => other.plan.files.length > 0) : undefined
+  if (!replacement) {
+    return { removed, deployedInstead: null }
+  }
+
+  try {
+    await deployMod(context, gamePath, replacement)
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error)
+    throw new Error(
+      `${mod.name} was removed, but ${replacement.name} could not be deployed in its place: ${reason}`,
+      { cause: error }
+    )
+  }
+
+  return { removed, deployedInstead: replacement }
 }

@@ -35,7 +35,7 @@ import { ARCHIVE_EXTENSIONS, checkArchivePath } from './services/archivePath'
 import { stagingFolderFor } from './services/staging'
 import { deployAll, purgeAll, removeAll, deployStatuses } from './services/bulk'
 import { undeployAndRemove, type RemoveContext } from './services/removal'
-import { isGameRunning, launchExe } from './services/gameProcess'
+import { isGameRunning, launchExe, readLaunchEnvironment } from './services/gameProcess'
 import { checkNewModsFolder, moveMods, sameDrive } from './services/modsFolder'
 import { deployWithRequirements, requirementsToDeploy } from './services/autoRequirements'
 import {
@@ -227,7 +227,7 @@ export function registerIpcHandlers({
           return runRedMod(exe, redModArgs)
         })
 
-        await launchExe(gameExe(gamePath), args)
+        await launchExe(gameExe(gamePath), args, await readLaunchEnvironment(gamePath))
 
         return null
       })

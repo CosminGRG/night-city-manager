@@ -26,9 +26,7 @@ export function LaunchButton({ gamePath }: LaunchButtonProps): React.JSX.Element
     window.api.getGameIcon().then(setIcon)
   }, [gamePath])
 
-  useEffect(() => {
-    window.api.onLaunchCompiling(() => setStage('compiling'))
-  }, [])
+  useEffect(() => window.api.onLaunchCompiling(() => setStage('compiling')), [])
 
   useEffect(() => {
     if (!error) return

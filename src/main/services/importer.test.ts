@@ -74,7 +74,8 @@ describe('importMod', () => {
   it('leaves nothing behind when extraction fails', async () => {
     const zip = await makeZip(work, 'locked.zip', { 'archive/pc/mod/a.archive': 'x' }, 'secret')
 
-    await expect(importMod(context, zip)).rejects.toThrow(/Wrong password/)
+    await expect(importMod(context, zip)).rejects.toThrow('password-protected')
+
     expect(context.library.list()).toEqual([])
     expect(await readdir(context.modsDir).catch(() => [])).toEqual([])
   })

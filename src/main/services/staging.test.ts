@@ -35,7 +35,8 @@ describe('stageArchive', () => {
 
   it('fails fast on an excrypted archive and cleans up', async () => {
     const zip = await makeZip(work, 'enc.zip', { 'a.archive': 'x' }, 'secret')
-    await expect(stageArchive(SEVEN_ZIP, zip, mods, 'Enc')).rejects.toThrow(/Wrong password/)
+    await expect(stageArchive(SEVEN_ZIP, zip, mods, 'Enc')).rejects.toThrow('password-protected')
+
     expect(await readdir(mods)).toEqual([])
   })
 

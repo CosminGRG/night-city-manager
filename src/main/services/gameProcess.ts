@@ -2,6 +2,7 @@ import { execFile, spawn, type SpawnOptions } from 'child_process'
 import { readFile } from 'fs/promises'
 import { join, dirname } from 'path'
 import { promisify } from 'util'
+import { systemTool } from './systemTools'
 
 export interface StartedProcess {
   once(event: 'spawn', listener: () => void): unknown
@@ -27,9 +28,8 @@ export function isImageListed(output: string, image: string): boolean {
 }
 
 export async function isGameRunning(): Promise<boolean> {
-  const tasklist = join(process.env.SystemRoot ?? 'C:\\Windows', 'System32', 'tasklist.exe')
   const { stdout } = await execFileAsync(
-    tasklist,
+    systemTool('tasklist.exe'),
     ['/FI', `IMAGENAME eq ${GAME_IMAGE}`, '/FO', 'CSV', '/NH'],
     { windowsHide: true, timeout: 10_000 }
   )

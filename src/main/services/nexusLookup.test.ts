@@ -80,7 +80,8 @@ function lookup(
   fetch: Fetch,
   mods: ModRecord[],
   enabled = true,
-  onUpdated?: () => void
+  onUpdated?: () => void,
+  onError?: (error: unknown) => void
 ): NexusLookup {
   return new NexusLookup({
     cache,
@@ -88,7 +89,8 @@ function lookup(
     appVersion: '1.0.0',
     enabled: () => enabled,
     mods: () => mods,
-    onUpdated
+    onUpdated,
+    onError
   })
 }
 
@@ -162,14 +164,13 @@ describe('NexusLookup', () => {
     expect(cache.staleIds([2557], NOW)).toEqual([2557])
   })
 
-  it('only logs a failed background refresh', async () => {
-    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+  it('only reports a failed background refresh', async () => {
+    const onError = vi.fn<(error: unknown) => void>()
     const offline = vi.fn<Fetch>(async () => new Response('', { status: 503 }))
 
-    lookup(offline, [mod(2557)]).refreshInBackground()
-    await vi.waitFor(() => expect(warn).toHaveBeenCalledOnce())
-    expect(warn.mock.calls[0][0]).toContain('HTTP 503')
-    warn.mockRestore()
+    lookup(offline, [mod(2557)], true, undefined, onError).refreshInBackground()
+    await vi.waitFor(() => expect(onError).toHaveBeenCalledOnce())
+    expect(String(onError.mock.calls[0][0])).toContain('HTTP 503')
   })
 
   it('reports new answers from a background refresh', async () => {

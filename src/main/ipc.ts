@@ -58,6 +58,7 @@ import { versionGroups } from './services/versions'
 import { deployVersion, removeVersions } from './services/versionSwitch'
 import { checkVersionLink } from './services/versionLinks'
 import { prepareRedMods, redModFolders, runRedMod } from './services/redmod'
+import type { Logger } from './services/logger'
 
 interface IpcDependencies {
   settings: SettingsStore
@@ -65,6 +66,7 @@ interface IpcDependencies {
   paths: AppPaths
   games: GameManifests
   nexus: NexusLookup
+  logger: Logger
 }
 
 export function registerIpcHandlers({
@@ -72,7 +74,8 @@ export function registerIpcHandlers({
   library,
   paths,
   games,
-  nexus
+  nexus,
+  logger
 }: IpcDependencies): void {
   const runExclusive = createQueue()
   const runImport = createQueue()
@@ -136,6 +139,7 @@ export function registerIpcHandlers({
     try {
       return { ok: true, value: await task() }
     } catch (error) {
+      logger.error('An action failed', error)
       return { ok: false, error: error instanceof Error ? error.message : String(error) }
     }
   }
@@ -228,7 +232,9 @@ export function registerIpcHandlers({
           return runRedMod(exe, redModArgs)
         })
 
-        await launchExe(gameExe(gamePath), args, await readLaunchEnvironment(gamePath))
+        const env = await readLaunchEnvironment(gamePath)
+        logger.info(`Launching the game ${[...args, ...Object.keys(env)].join(' ')}`.trim())
+        await launchExe(gameExe(gamePath), args, env)
 
         return null
       })

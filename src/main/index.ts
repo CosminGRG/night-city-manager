@@ -1,4 +1,5 @@
 import { app, shell, BrowserWindow, screen, net } from 'electron'
+import { release } from 'os'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { registerIpcHandlers } from './ipc'
@@ -11,8 +12,36 @@ import { ModLibrary } from './services/modLibrary'
 import { GameManifests } from './services/manifests'
 import { NexusCache } from './services/nexusCache'
 import { NexusLookup } from './services/nexusLookup'
+import { createFileLogger } from './services/logger'
 
 const paths = initPaths()
+
+const logger = createFileLogger(join(paths.data, 'logs', 'fixer.log'), {
+  home: app.getPath('home')
+})
+
+logger.info(
+  `Fixer ${app.getVersion()} started (Electron ${process.versions.electron}, Windows ${release()}, ${app.isPackaged ? 'packaged' : 'dev'}) in ${paths.root}`
+)
+
+process.on('uncaughtExceptionMonitor', (error) => {
+  logger.error('Uncaught error in the main process', error)
+})
+process.on('unhandledRejection', (reason) => {
+  logger.error('Unhandled promise rejection in the main process', reason)
+})
+app.on('render-process-gone', (_event, _contents, details) => {
+  if (details.reason !== 'clean-exit') {
+    logger.error(`The window stopped: ${details.reason} (exit code ${details.exitCode})`)
+  }
+})
+app.on('child-process-gone', (_event, details) => {
+  if (details.reason !== 'clean-exit') {
+    logger.error(
+      `A ${details.type} process stopped: ${details.reason} (exit code ${details.exitCode})`
+    )
+  }
+})
 
 const MIN_SIZE = { width: 960, height: 600 }
 const MAX_START_SIZE = { width: 1440, height: 900 }
@@ -84,7 +113,7 @@ app.whenReady().then(async () => {
 
   const nexusCache = new NexusCache(join(paths.data, 'nexus.json'))
   await nexusCache.load().catch((error: unknown) => {
-    console.warn('Could not read teh saved Nexus answers, starting without them.', error)
+    logger.warn('Could not read the saved Nexus answers, starting without them.', error)
   })
 
   const nexus = new NexusLookup({
@@ -97,7 +126,8 @@ app.whenReady().then(async () => {
       for (const window of BrowserWindow.getAllWindows()) {
         window.webContents.send(IpcChannels.nexusUpdated)
       }
-    }
+    },
+    onError: (error) => logger.warn('Nexus lookup failed, keeping the saved answers.', error)
   })
 
   // Set app user model id for windows
@@ -110,7 +140,7 @@ app.whenReady().then(async () => {
     optimizer.watchWindowShortcuts(window)
   })
 
-  registerIpcHandlers({ settings, library, games, paths, nexus })
+  registerIpcHandlers({ settings, library, games, paths, nexus, logger })
   createWindow()
 
   nexus.refreshInBackground()

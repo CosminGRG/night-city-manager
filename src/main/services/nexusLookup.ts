@@ -11,6 +11,7 @@ export interface NexusLookupOptions {
   enabled: () => boolean
   mods: () => ModRecord[]
   onUpdated?: () => void
+  onError?: (error: unknown) => void
 }
 
 export class NexusLookup {
@@ -73,8 +74,7 @@ export class NexusLookup {
         }
       })
       .catch((error: unknown) => {
-        const message = error instanceof Error ? error.message : String(error)
-        console.warn(`Nexus lookup failed, keeping the saved answeres: ${message}`)
+        this.options.onError?.(error)
       })
   }
 }

@@ -38,7 +38,7 @@ export function GameSetup({ settings, onSettingsChange }: GameSetupProps): React
     <section className="setup">
       <div className="setup-card">
         <Gamepad2 size={40} className="setup-icon" aria-hidden="true" />
-        <h1>Welcome to Night City Mod Manager</h1>
+        <h1>Welcome to Fixer</h1>
         <p className="muted">First, select where Cyberpunk 2077 is installed.</p>
 
         {detected === null && (

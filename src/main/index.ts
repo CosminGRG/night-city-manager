@@ -70,7 +70,7 @@ app.whenReady().then(async () => {
   if (!(await isWritable(paths.data))) {
     dialog.showErrorBox(
       'Cannot write to the app folder',
-      `Night City Mod Manager stores its data next to the exe, but it cannot write to:\n${paths.root}\n\nMove the app to a folder you own, e.g. D:\\Tools\\NightCityModManager.`
+      `Fixer stores its data next to the exe, but it cannot write to:\n${paths.root}\n\nMove the app to a folder you own, e.g. D:\\Tools\\Fixer.`
     )
     app.quit()
     return
@@ -103,7 +103,7 @@ app.whenReady().then(async () => {
   })
 
   // Set app user model id for windows
-  electronApp.setAppUserModelId('com.cosmingrg.nightcitymanager')
+  electronApp.setAppUserModelId('com.cosmingrg.fixer')
 
   // Default open or close DevTools by F12 in development
   // and ignore CommandOrControl + R in production.

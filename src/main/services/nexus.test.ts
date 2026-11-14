@@ -83,9 +83,9 @@ describe('fetchRequirements', () => {
     const [url, init] = fetch.mock.calls[0]
     expect(url).toBe('https://api.nexusmods.com/v2/graphql')
     expect(init.headers).toMatchObject({
-      'Application-Name': 'NightCityModManager',
+      'Application-Name': 'FixerCP2077',
       'Application-Version': '1.2.0',
-      'User-Agent': 'NightCityModManager/1.2.0'
+      'User-Agent': 'FixerCP2077/1.2.0'
     })
     expect(JSON.parse(String(init.body)).variables).toEqual({
       ids: [{ gameId: 3333, modId: 2557 }],

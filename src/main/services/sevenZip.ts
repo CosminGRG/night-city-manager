@@ -39,7 +39,7 @@ export function sevenZipError(error: unknown): Error {
 
   let message: string
   if (code === 'ENOENT') {
-    message = '7-Zip is missing from the app folder. Unzip NightCityModManager again.'
+    message = '7-Zip is missing from the app folder. Unzip Fixer again.'
   } else if (killed === true) {
     message = '7-Zip took too long and was stopped.'
   } else {

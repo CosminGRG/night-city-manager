@@ -1,6 +1,6 @@
 {
   "name": "night-city-manager",
-  "productName": "NightCityModManager",
+  "productName": "Fixer",
   "version": "1.0.0",
   "description": "A mod manager for Cyberpunk 2077",
   "main": "./out/main/index.js",

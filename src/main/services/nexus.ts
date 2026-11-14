@@ -1,7 +1,7 @@
 import type { NexusRequirement } from '@shared/types'
 
 export const NEXUS_GRAPHQL_URL = 'https://api.nexusmods.com/v2/graphql'
-export const APPLICATION_NAME = 'NightCityModManager'
+export const APPLICATION_NAME = 'FixerCP2077'
 export const CYBERPUNK_GAME_ID = 3333
 export const BATCH_SIZE = 50
 const TIMEOUT_MS = 15_000

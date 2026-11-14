@@ -1,5 +1,5 @@
-appId: com.cosmingrg.nightcitymanager
-productName: NightCityModManager
+appId: com.cosmingrg.fixer
+productName: Fixer
 directories:
   buildResources: build
 files:
@@ -12,7 +12,7 @@ files:
 asarUnpack:
   - resources/**
 win:
-  executableName: app
+  executableName: Fixer Mod Manager
 nsis:
   artifactName: ${name}-${version}-setup.${ext}
   shortcutName: ${productName}

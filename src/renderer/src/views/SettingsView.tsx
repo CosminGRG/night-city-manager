@@ -128,6 +128,10 @@ export function SettingsView({ settings, onSettingsChange }: SettingsViewProps):
             Data folder: <code>{info.userDataPath}</code>
           </p>
         )}
+        <p className="muted settings-hint">
+          Fonts: Inter by The Inter Project Authors and Rajdhani by Indian Type Foundry, under the
+          SIL Open Font License 1.1. Fixer is free software under the GNU GPL, version 3 or later.
+        </p>
       </div>
     </section>
   )

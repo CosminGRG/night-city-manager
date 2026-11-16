@@ -5,6 +5,11 @@ directories:
   output: dist
 files:
   - out/**/*
+extraFiles:
+  - from: LICENSE
+    to: LICENSE.txt
+  - from: out/renderer/THIRD-PARTY-NOTICES.txt
+    to: THIRD-PARTY-NOTICES.txt
 extraResources:
   - from: resources/7zip
     to: 7zip

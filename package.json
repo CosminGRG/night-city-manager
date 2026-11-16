@@ -5,6 +5,7 @@
   "description": "A mod manager for Cyberpunk 2077",
   "main": "./out/main/index.js",
   "author": "Cosmin Grigore",
+  "license": "GPL-3.0-or-later",
   "homepage": "https://github.com/CosminGRG/night-city-manager",
   "scripts": {
     "format": "prettier --write .",

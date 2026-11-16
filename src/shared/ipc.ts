@@ -61,7 +61,8 @@ export const IpcChannels = {
   listLogs: 'logs:list',
   openLog: 'logs:open',
   openLogFolder: 'logs:open-folder',
-  openCrashReports: 'logs:open-crash-reports'
+  openCrashReports: 'logs:open-crash-reports',
+  openAppLog: 'logs:open-app-log'
 } as const
 
 export interface AppInfo {
@@ -117,4 +118,5 @@ export interface NightCityApi {
   openLog(path: string): Promise<Result<null>>
   openLogFolder(path: string): Promise<Result<null>>
   openCrashReports(): Promise<Result<null>>
+  openAppLog(): Promise<Result<null>>
 }

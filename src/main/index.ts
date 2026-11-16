@@ -16,7 +16,7 @@ import { createFileLogger } from './services/logger'
 
 const paths = initPaths()
 
-const logger = createFileLogger(join(paths.data, 'logs', 'fixer.log'), {
+const logger = createFileLogger(paths.log, {
   home: app.getPath('home')
 })
 

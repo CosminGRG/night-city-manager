@@ -54,7 +54,8 @@ const api: NightCityApi = {
   listLogs: () => ipcRenderer.invoke(IpcChannels.listLogs),
   openLog: (path) => ipcRenderer.invoke(IpcChannels.openLog, path),
   openLogFolder: (path) => ipcRenderer.invoke(IpcChannels.openLogFolder, path),
-  openCrashReports: () => ipcRenderer.invoke(IpcChannels.openCrashReports)
+  openCrashReports: () => ipcRenderer.invoke(IpcChannels.openCrashReports),
+  openAppLog: () => ipcRenderer.invoke(IpcChannels.openAppLog)
 }
 
 contextBridge.exposeInMainWorld('api', api)

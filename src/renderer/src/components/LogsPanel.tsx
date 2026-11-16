@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { FileText, FolderOpen, RefreshCw, ScrollText, TriangleAlert } from 'lucide-react'
+import { FileText, FolderOpen, RefreshCw, ScrollText, TriangleAlert, Wrench } from 'lucide-react'
 import type { GameLogs, LogFile, Result } from '@shared/types'
 import { EmptyState } from './EmptyState'
 import { formatSize } from '@renderer/leftoversView'
@@ -138,11 +138,13 @@ export function LogsPanel(): React.JSX.Element {
           Refresh
         </button>
       </header>
+
       {error && (
         <p className="error" role="alert">
           {error}
         </p>
       )}
+
       {loaded ? (
         <>
           {renderLogs(loaded.logs, loaded.at)}
@@ -151,6 +153,18 @@ export function LogsPanel(): React.JSX.Element {
       ) : (
         !error && <p className="muted">Looking for logs...</p>
       )}
+
+      <div className="log-app">
+        <Wrench size={16} aria-hidden="true" />
+        <span>
+          Fixer&apos;s own log
+          <span className="muted"> · send this one when something in Fixer goes wrong</span>
+        </span>
+        <button className="small with-icon" onClick={() => open(() => window.api.openAppLog())}>
+          <FileText size={14} aria-hidden="true" />
+          Open
+        </button>
+      </div>
     </section>
   )
 }

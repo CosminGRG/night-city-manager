@@ -7,6 +7,7 @@ export interface AppPaths {
   mods: string
   downloads: string
   sevenZip: string
+  log: string
 }
 
 export function resolveRoot(): string {
@@ -21,12 +22,14 @@ function resolveSevenZip(): string {
 
 export function initPaths(): AppPaths {
   const root = resolveRoot()
+  const data = join(root, 'data')
   const paths: AppPaths = {
     root,
-    data: join(root, 'data'),
+    data,
     mods: join(root, 'mods'),
     downloads: join(root, 'downloads'),
-    sevenZip: resolveSevenZip()
+    sevenZip: resolveSevenZip(),
+    log: join(data, 'logs', 'fixer.log')
   }
 
   app.setPath('userData', paths.data)

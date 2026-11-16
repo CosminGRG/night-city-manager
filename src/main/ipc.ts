@@ -613,6 +613,10 @@ export function registerIpcHandlers({
   ipcMain.handle(IpcChannels.openCrashReports, (): Promise<Result<null>> =>
     toResult(async () => openInShell(await checkCrashReports(crashReportsDir())))
   )
+
+  ipcMain.handle(IpcChannels.openAppLog, (): Promise<Result<null>> =>
+    toResult(() => openInShell(paths.log))
+  )
 }
 
 function isBulkRequest(value: unknown): value is BulkRequest {

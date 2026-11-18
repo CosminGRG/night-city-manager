@@ -3,6 +3,8 @@ import type { AppInfo } from '@shared/ipc'
 import type { Settings, ModsFolderInfo } from '@shared/types'
 import { NexusLookupOption } from '@renderer/components/NexusLookupOption'
 import { SettingToggle } from '@renderer/components/SettingToggle'
+import { LanguagePicker } from '@renderer/components/LanguagePicker'
+import { useT } from '@renderer/i18n/context'
 import './SettingsView.css'
 
 interface SettingsViewProps {
@@ -16,6 +18,8 @@ export function SettingsView({ settings, onSettingsChange }: SettingsViewProps):
   const [modsFolder, setModsFolder] = useState<ModsFolderInfo | null>(null)
   const [moving, setMoving] = useState(false)
   const [modsError, setModsError] = useState<string | null>(null)
+
+  const t = useT()
 
   useEffect(() => {
     window.api.getAppInfo().then(setInfo)
@@ -117,6 +121,11 @@ export function SettingsView({ settings, onSettingsChange }: SettingsViewProps):
       <div className="settings-group">
         <h3>Nexus Mods</h3>
         <NexusLookupOption enabled={settings.nexusLookup} onSettingsChange={onSettingsChange} />
+      </div>
+
+      <div className="settings-group">
+        <h3>{t('settings.language.title')}</h3>
+        <LanguagePicker current={settings.language} onSettingsChange={onSettingsChange} />
       </div>
 
       <div className="settings-group">

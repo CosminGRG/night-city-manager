@@ -1,0 +1,35 @@
+.language-picker {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.language-select {
+  align-self: flex-start;
+  min-width: 280px;
+  max-width: 100%;
+  padding: 6px 10px;
+  font: inherit;
+  color: var(--text);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  /* Without it Chromium draws the open list in light colours. */
+  color-scheme: dark;
+  cursor: pointer;
+}
+
+.language-select:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.language-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.language-notice {
+  overflow-wrap: anywhere;
+}

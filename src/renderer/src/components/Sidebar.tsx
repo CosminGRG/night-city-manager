@@ -23,7 +23,7 @@ export function Sidebar({ view, onChange, gamePath }: SidebarProps): React.JSX.E
   const t = useT()
 
   return (
-    <nav className="sidebar" aria-label="Main">
+    <nav className="sidebar" aria-label={t('nav.main')}>
       {ITEMS.map(({ view: item, label, Icon }) => (
         <button
           key={item}

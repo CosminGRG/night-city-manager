@@ -6,6 +6,7 @@ import type {
   ModRecord,
   NexusRequirement
 } from '@shared/types'
+import { createTranslator } from '@shared/i18n/translate'
 import {
   bisectCandidates,
   defaultSuspects,
@@ -118,9 +119,11 @@ describe('roundCount', () => {
   })
 })
 
+const t = createTranslator('en')
+
 describe('namesOf', () => {
   it('names mods that left the library too', () => {
-    expect(namesOf(['a', 'gone'], MODS)).toEqual(['Appearance Menu Mod', 'A removed mod'])
+    expect(namesOf(['a', 'gone'], MODS, t)).toEqual(['Appearance Menu Mod', 'A removed mod'])
   })
 })
 
@@ -135,9 +138,9 @@ describe('roundSummary', () => {
   })
 
   it('says how many mods are off', () => {
-    expect(roundSummary(testing(true))).toBe('All 3 tested mods are switched off.')
-    expect(roundSummary(testing(false))).toBe('2 of the 3 remaining suspects are switched off.')
-    expect(roundSummary({ ...testing(false), suspects: ['a', 'b'], off: ['a'] })).toBe(
+    expect(roundSummary(testing(true), t)).toBe('All 3 tested mods are switched off.')
+    expect(roundSummary(testing(false), t)).toBe('2 of the 3 remaining suspects are switched off.')
+    expect(roundSummary({ ...testing(false), suspects: ['a', 'b'], off: ['a'] }, t)).toBe(
       '1 of the 2 remaining suspects is switched off.'
     )
   })

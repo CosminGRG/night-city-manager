@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { LogFile, LogSource } from '@shared/types'
+import { createTranslator } from '@shared/i18n/translate'
 import { formatWhen, groupLogs } from './logsView'
 
 function log(source: LogSource, title: string): LogFile {
@@ -38,24 +39,31 @@ describe('formatWhen', () => {
   const now = new Date(2026, 10, 8, 17, 0)
   const at = (...parts: [number, number, number, number, number]): string =>
     new Date(...parts).toISOString()
+  const t = createTranslator('en')
+  const when = (iso: string, language = 'en-GB'): string => formatWhen(iso, now, t, language)
 
   it('says how many minutes ago within the last hour', () => {
-    expect(formatWhen(at(2026, 10, 8, 16, 59), now)).toBe('1 min ago')
-    expect(formatWhen(at(2026, 10, 8, 16, 12), now)).toBe('48 min ago')
-    expect(formatWhen(now.toISOString(), now)).toBe('just now')
+    expect(when(at(2026, 10, 8, 16, 59))).toBe('1 min ago')
+    expect(when(at(2026, 10, 8, 16, 12))).toBe('48 min ago')
+    expect(when(now.toISOString())).toBe('just now')
   })
 
   it('gives the time for today and yesterday', () => {
-    expect(formatWhen(at(2026, 10, 8, 9, 5), now)).toBe('today 09:05')
-    expect(formatWhen(at(2026, 10, 7, 23, 10), now)).toBe('yesterday 23:10')
+    expect(when(at(2026, 10, 8, 9, 5))).toBe('today 09:05')
+    expect(when(at(2026, 10, 7, 23, 10))).toBe('yesterday 23:10')
   })
 
   it('gives the date for older ones, with the year only when it differs', () => {
-    expect(formatWhen(at(2026, 9, 25, 22, 28), now)).toBe('25 Oct, 22:28')
-    expect(formatWhen(at(2025, 9, 25, 22, 28), now)).toBe('25 Oct 2025, 22:28')
+    expect(when(at(2026, 9, 25, 22, 28))).toBe('25 Oct, 22:28')
+    expect(when(at(2025, 9, 25, 22, 28))).toBe('25 Oct 2025, 22:28')
   })
 
   it('treats a time in the future as just now', () => {
-    expect(formatWhen(at(2026, 10, 8, 17, 30), now)).toBe('just now')
+    expect(when(at(2026, 10, 8, 17, 30))).toBe('just now')
+  })
+
+  it('names days and minutes in the chosen language', () => {
+    expect(when(at(2026, 10, 7, 23, 10), 'ro')).toBe('ieri 23:10')
+    expect(when(at(2026, 10, 8, 16, 12), 'ro')).toBe('acum 48 min.')
   })
 })

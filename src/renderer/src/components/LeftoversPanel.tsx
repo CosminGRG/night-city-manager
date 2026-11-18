@@ -20,6 +20,7 @@ interface LeftoverGroupRowProps {
 }
 
 function LeftoverGroupRow({ group, selected, onToggle }: LeftoverGroupRowProps): React.JSX.Element {
+  const t = useT()
   const paths = group.files.map((file) => file.path)
   const count = paths.filter((path) => selected.has(path)).length
   const size = group.files.reduce((sum, file) => sum + file.size, 0)
@@ -35,19 +36,16 @@ function LeftoverGroupRow({ group, selected, onToggle }: LeftoverGroupRowProps):
               if (box) box.indeterminate = count > 0 && count < paths.length
             }}
             onChange={(event) => onToggle(paths, event.target.checked)}
-            aria-label={`Select all files in ${group.folder}`}
+            aria-label={t('leftovers.selectAll', { folder: group.folder })}
           />
           <span className="leftover-folder">{group.folder}</span>
           {group.inUse && (
-            <span
-              className="leftover-badge"
-              title="A deployed mod still has files in this folder, so these may be its live settings."
-            >
-              In use
+            <span className="leftover-badge" title={t('leftovers.inUseTitle')}>
+              {t('leftovers.inUse')}
             </span>
           )}
           <span className="muted leftover-size">
-            {group.files.length} {group.files.length === 1 ? 'file' : 'files'} · {formatSize(size)}
+            {t('leftovers.files', { count: group.files.length })} · {formatSize(size)}
           </span>
         </summary>
         <ul className="leftover-files">
@@ -61,11 +59,8 @@ function LeftoverGroupRow({ group, selected, onToggle }: LeftoverGroupRowProps):
                 />
                 <span className="leftover-path">{file.path.slice(group.folder.length + 1)}</span>
                 {file.changed && (
-                  <span
-                    className="leftover-badge"
-                    title="A mod file that changed after it was deplyed, for example saved mod data."
-                  >
-                    Changed
+                  <span className="leftover-badge" title={t('leftovers.changedTitle')}>
+                    {t('leftovers.changed')}
                   </span>
                 )}
                 <span className="muted leftover-size">{formatSize(file.size)}</span>
@@ -139,13 +134,11 @@ export function LeftoversPanel(): React.JSX.Element {
   const fileCount = groups ? groups.reduce((sum, group) => sum + group.files.length, 0) : 0
 
   function renderBody(): React.ReactNode {
-    if (!groups) return error ? null : <p className="muted">Scanning...</p>
+    if (!groups) return error ? null : <p className="muted">{t('leftovers.scanning')}</p>
     if (groups.length === 0) {
       return (
-        <EmptyState icon={Sparkles} title="No leftover files">
-          <p className="muted">
-            Folders the app created in your game hold only files from deployed mods.
-          </p>
+        <EmptyState icon={Sparkles} title={t('leftovers.empty')}>
+          <p className="muted">{t('leftovers.emptyHint')}</p>
         </EmptyState>
       )
     }
@@ -162,14 +155,14 @@ export function LeftoversPanel(): React.JSX.Element {
             />
           ))}
         </ul>
-        {locked && (
-          <p className="warning">
-            Finish the bisect first: mods switched off for a round keep their settings here.
-          </p>
-        )}
+        {locked && <p className="warning">{t('leftovers.locked')}</p>}
         <div className="leftover-actions">
           <span className="muted">
-            {totals.count} of {fileCount} files selected ({formatSize(totals.size)})
+            {t('leftovers.selected', {
+              selected: totals.count,
+              count: fileCount,
+              size: formatSize(totals.size)
+            })}
           </span>
           <button
             className="danger with-icon"
@@ -177,7 +170,7 @@ export function LeftoversPanel(): React.JSX.Element {
             onClick={() => setConfirming(true)}
           >
             <Trash2 size={16} aria-hidden="true" />
-            Move to Recycle Bin
+            {t('leftovers.trash')}
           </button>
         </div>
       </>
@@ -187,18 +180,15 @@ export function LeftoversPanel(): React.JSX.Element {
     <section className="troubleshoot-panel" aria-labelledby="leftovers-title">
       <header className="troubleshoot-panel-header">
         <div>
-          <h3 id="leftovers-title">Leftover files</h3>
-          <p className="muted">
-            Settings, logs and saved mod data that mods wrote into folders the app created.
-            Undeploying keeps them, so a redeployed mod keeps its settings.
-          </p>
+          <h3 id="leftovers-title">{t('troubleshoot.tab.leftovers')}</h3>
+          <p className="muted">{t('leftovers.intro')}</p>
           <p className="notice" role="status">
             {notice}
           </p>
         </div>
         <button className="primary with-icon" onClick={handleRescan} disabled={!groups || cleaning}>
           <RefreshCw size={16} aria-hidden="true" />
-          Scan again
+          {t('leftovers.scan')}
         </button>
       </header>
       {error && (
@@ -209,13 +199,13 @@ export function LeftoversPanel(): React.JSX.Element {
       {renderBody()}
       {confirming && (
         <ConfirmDialog
-          title={`Move ${totals.count} ${totals.count === 1 ? 'file' : 'files'} to the Recycle Bin?`}
-          confirmLabel="Move to Recycle Bin"
+          title={t('leftovers.confirmTitle', { count: totals.count })}
+          confirmLabel={t('leftovers.trash')}
           onConfirm={handleClean}
           onClose={() => setConfirming(false)}
         >
-          <p>Mods lose what these files hold, for example CET key binds or AMM appearances.</p>
-          <p className="muted">You can restore them from the Recycle Bin.</p>
+          <p>{t('leftovers.confirmBody')}</p>
+          <p className="muted">{t('leftovers.confirmNote')}</p>
         </ConfirmDialog>
       )}
     </section>

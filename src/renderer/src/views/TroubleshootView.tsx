@@ -4,15 +4,17 @@ import { BisectPanel } from '@renderer/components/BisectPanel'
 import { LeftoversPanel } from '@renderer/components/LeftoversPanel'
 import { LogsPanel } from '@renderer/components/LogsPanel'
 import { TroubleshootOverview } from '@renderer/components/TroubleshootOverview'
+import type { MessageKey } from '@shared/i18n/en'
+import { useT } from '@renderer/i18n/context'
 import './TroubleshootView.css'
 
 export type TroubleshootTab = 'overview' | 'bisect' | 'logs' | 'leftovers'
 
-const TABS: { tab: TroubleshootTab; label: string; Icon: LucideIcon }[] = [
-  { tab: 'overview', label: 'Overview', Icon: LifeBuoy },
-  { tab: 'bisect', label: 'Find a broken mod', Icon: FlaskConical },
-  { tab: 'logs', label: 'Logs', Icon: ScrollText },
-  { tab: 'leftovers', label: 'Leftover files', Icon: FolderSearch }
+const TABS: { tab: TroubleshootTab; label: MessageKey; Icon: LucideIcon }[] = [
+  { tab: 'overview', label: 'troubleshoot.tab.overview', Icon: LifeBuoy },
+  { tab: 'bisect', label: 'troubleshoot.tab.bisect', Icon: FlaskConical },
+  { tab: 'logs', label: 'troubleshoot.tab.logs', Icon: ScrollText },
+  { tab: 'leftovers', label: 'troubleshoot.tab.leftovers', Icon: FolderSearch }
 ]
 
 interface TroubleshootViewProps {
@@ -21,6 +23,8 @@ interface TroubleshootViewProps {
 }
 
 export function TroubleshootView({ tab, onTabChange }: TroubleshootViewProps): React.JSX.Element {
+  const t = useT()
+
   function change(value: string): void {
     const item = TABS.find((item) => item.tab === value)
 
@@ -31,13 +35,13 @@ export function TroubleshootView({ tab, onTabChange }: TroubleshootViewProps): R
 
   return (
     <section className="troubleshoot">
-      <h2>Troubleshoot</h2>
+      <h2>{t('nav.troubleshoot')}</h2>
       <Tabs.Root value={tab} onValueChange={change}>
-        <Tabs.List className="troubleshoot-tabs" aria-label="Troubleshooting tools">
+        <Tabs.List className="troubleshoot-tabs" aria-label={t('troubleshoot.tabs')}>
           {TABS.map(({ tab, label, Icon }) => (
             <Tabs.Trigger key={tab} value={tab} className="troubleshoot-tab">
               <Icon size={16} aria-hidden="true" />
-              {label}
+              {t(label)}
             </Tabs.Trigger>
           ))}
         </Tabs.List>

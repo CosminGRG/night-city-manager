@@ -1,19 +1,21 @@
 import { ExternalLink, FlaskConical, FolderSearch, ScrollText, type LucideIcon } from 'lucide-react'
+import type { MessageKey } from '@shared/i18n/en'
+import { useT } from '@renderer/i18n/context'
 import type { TroubleshootTab } from '@renderer/views/TroubleshootView'
 import './TroubleshootOverview.css'
 
-const FIRST_STEPS = [
-  'Update the game and your core mods. After a game patch, core mods often need a new version: check their Nexus pages.',
-  'Check the requirements on the Nexus pages of mods you added recently.',
-  "If the game doesn't start at all, purge all mods (Mod list → Actions → Purge all) and check that it starts without them.",
-  'Still broken without mods? Verify the game files in Steam, GOG Galaxy or the Epic Games Launcher.'
+const FIRST_STEPS: MessageKey[] = [
+  'overview.step.update',
+  'overview.step.requirements',
+  'overview.step.purge',
+  'overview.step.verify'
 ]
 
 interface Tool {
   tab: TroubleshootTab
-  title: string
-  text: string
-  action: string
+  title: MessageKey
+  text: MessageKey
+  action: MessageKey
   Icon: LucideIcon
 }
 
@@ -24,62 +26,71 @@ interface TroubleshootOverviewProps {
 const TOOLS: Tool[] = [
   {
     tab: 'bisect',
-    title: 'Find a broken mod',
-    text: "The game crashes or something behaves oddly, you suspect a mod causes it but you don't know whihc. The app switches half of your mods off per round; you launch the game and say whether the problem is still there.",
-    action: 'Find the mod',
+    title: 'troubleshoot.tab.bisect',
+    text: 'overview.bisect.text',
+    action: 'overview.bisect.action',
     Icon: FlaskConical
   },
   {
     tab: 'logs',
-    title: 'Logs',
-    text: 'What CET, redscript and RED4ext wrote during your last launch, plus crash reports. Mod authors and the modding Discord ask for these first.',
-    action: 'Open logs',
+    title: 'troubleshoot.tab.logs',
+    text: 'overview.logs.text',
+    action: 'overview.logs.action',
     Icon: ScrollText
   },
   {
     tab: 'leftovers',
-    title: 'Leftover files',
-    text: "Settings, logs and saved data that mods wrote into the game folder. Undeploying keeps them, review and delete what you don't need",
-    action: 'Review leftovers',
+    title: 'troubleshoot.tab.leftovers',
+    text: 'overview.leftovers.text',
+    action: 'overview.leftovers.action',
     Icon: FolderSearch
   }
 ]
 
-const RESOURCES = [
+interface Resource {
+  title: MessageKey
+  source: string
+  url: string
+  text: MessageKey
+}
+
+const RESOURCES: Resource[] = [
   {
-    title: 'Troubleshooting guide',
+    title: 'overview.link.guide',
     source: 'REDmodding wiki',
     url: 'https://wiki.redmodding.org/cyberpunk-2077-modding/for-mod-users/user-guide-troubleshooting',
-    text: 'Step-by-step help for crashes, launch failures and script errors.'
+    text: 'overview.link.guideText'
   },
   {
-    title: 'Bisecting by hand',
+    title: 'overview.link.bisect',
     source: 'REDmodding wiki',
     url: 'https://wiki.redmodding.org/cyberpunk-2077-modding/for-mod-users/user-guide-troubleshooting#bisecting',
-    text: 'The method the Find a broken mod tab automates.'
+    text: 'overview.link.bisectText'
   },
   {
-    title: 'Cyber Engine Tweaks troubleshooting',
+    title: 'overview.link.cet',
     source: 'CET wiki',
     url: 'https://wiki.redmodding.org/cyber-engine-tweaks/getting-started/installing/troubleshooting',
-    text: "When the CET overlay doesn't open or CET mods don't load."
+    text: 'overview.link.cetText'
   },
   {
-    title: 'Cyberpunk 2077 Modding Community',
+    title: 'overview.link.discord',
     source: 'Discord',
     url: 'https://discord.gg/redmodding',
-    text: 'Ask for help in the #mod-troubleshooting channel.'
+    text: 'overview.link.discordText'
   }
 ]
 
 export function TroubleshootOverview({ onOpen }: TroubleshootOverviewProps): React.JSX.Element {
+  const t = useT()
+
   return (
     <div className="overview">
       <section className="troubleshoot-panel" aria-labelledby="first-steps-title">
-        <h3 id="first-steps-title">First steps</h3>
+        <h3 id="first-steps-title">{t('overview.firstSteps')}</h3>
         <ol className="overview-steps">
           {FIRST_STEPS.map((step) => (
-            <li key={step}>{step}</li>
+            <li key={step}>{t(step)}</li>
           ))}
         </ol>
       </section>
@@ -89,25 +100,25 @@ export function TroubleshootOverview({ onOpen }: TroubleshootOverviewProps): Rea
           <section key={tab} className="troubleshoot-panel overview-tool">
             <h3 className="with-icon">
               <Icon size={18} aria-hidden="true"></Icon>
-              {title}
+              {t(title)}
             </h3>
-            <p className="muted">{text}</p>
-            <button onClick={() => onOpen(tab)}>{action}</button>
+            <p className="muted">{t(text)}</p>
+            <button onClick={() => onOpen(tab)}>{t(action)}</button>
           </section>
         ))}
       </div>
 
       <section className="troubleshoot-panel" aria-labelledby="help-online-title">
-        <h3 id="help-online-title">Help online</h3>
+        <h3 id="help-online-title">{t('overview.help')}</h3>
         <ul className="overview-links">
-          {RESOURCES.map((resouces) => (
-            <li key={resouces.url}>
-              <a href={resouces.url} target="_blank" rel="noreferrer">
-                {resouces.title}
+          {RESOURCES.map((resource) => (
+            <li key={resource.url}>
+              <a href={resource.url} target="_blank" rel="noreferrer">
+                {t(resource.title)}
                 <ExternalLink size={14} aria-hidden="true" />
               </a>
-              <span className="muted"> · {resouces.source}</span>
-              <p className="muted">{resouces.text}</p>
+              <span className="muted"> · {resource.source}</span>
+              <p className="muted">{t(resource.text)}</p>
             </li>
           ))}
         </ul>

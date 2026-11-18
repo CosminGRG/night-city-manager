@@ -1,4 +1,5 @@
 import type { LogFile, LogSource } from '@shared/types'
+import type { Translate } from '@shared/i18n/translate'
 
 export const SOURCE_LABELS: Record<LogSource, string> = {
   cet: 'Cyber Engine Tweaks',
@@ -21,39 +22,38 @@ export function groupLogs(logs: LogFile[]): LogGroup[] {
   return [...groups].map(([source, logs]) => ({ source, label: SOURCE_LABELS[source], logs }))
 }
 
-const TIME = new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit' })
-const DAY = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short' })
-const DAY_YEAR = new Intl.DateTimeFormat('en-GB', {
-  day: 'numeric',
-  month: 'short',
-  year: 'numeric'
-})
-
 function startOfDay(date: Date): number {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime()
 }
 
-export function formatWhen(iso: string, now: Date): string {
+export function formatWhen(iso: string, now: Date, t: Translate, language: string): string {
   const date = new Date(iso)
   const minutes = Math.floor((now.getTime() - date.getTime()) / 60_000)
 
   if (minutes < 1) {
-    return 'just now'
+    return t('time.justNow')
   }
   if (minutes < 60) {
-    return `${minutes} min ago`
+    const relative = new Intl.RelativeTimeFormat(language, { numeric: 'auto', style: 'short' })
+    return relative.format(-minutes, 'minute')
   }
 
-  const time = TIME.format(date)
+  const time = new Intl.DateTimeFormat(language, { hour: '2-digit', minute: '2-digit' }).format(
+    date
+  )
   const days = Math.round((startOfDay(now) - startOfDay(date)) / 86_400_000)
 
-  if (days === 0) {
-    return `today ${time}`
-  }
-  if (days === 1) {
-    return `yesterday ${time}`
+  if (days <= 1) {
+    // "today" / "yesterday" in the chosen language
+    const day = new Intl.RelativeTimeFormat(language, { numeric: 'auto' }).format(-days, 'day')
+    return t('time.dayAt', { day, time })
   }
 
-  const day = date.getFullYear() === now.getFullYear() ? DAY.format(date) : DAY_YEAR.format(date)
-  return `${day}, ${time}`
+  const sameYear = date.getFullYear() === now.getFullYear()
+  const day = new Intl.DateTimeFormat(language, {
+    day: 'numeric',
+    month: 'short',
+    year: sameYear ? undefined : 'numeric'
+  }).format(date)
+  return t('time.dateAt', { date: day, time })
 }

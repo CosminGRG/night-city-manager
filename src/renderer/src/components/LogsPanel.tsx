@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { FileText, FolderOpen, RefreshCw, ScrollText, TriangleAlert, Wrench } from 'lucide-react'
 import type { GameLogs, LogFile, Result } from '@shared/types'
+import { useI18n } from '@renderer/i18n/context'
 import { EmptyState } from './EmptyState'
 import { formatSize } from '@renderer/leftoversView'
 import { formatWhen, groupLogs } from '@renderer/logsView'
@@ -19,21 +20,26 @@ interface LogRowProps {
 }
 
 function LogRow({ log, now, onOpen, onOpenFolder }: LogRowProps): React.JSX.Element {
+  const { t, language } = useI18n()
+
   return (
     <li className="log-row">
       <button className="log-open" onClick={() => onOpen(log)} title={log.path}>
         <FileText size={16} aria-hidden="true" />
         <span className="log-title">{log.title}</span>
         <span className="muted log-meta">
-          {formatWhen(log.modifiedAt, now)} · {log.size === 0 ? 'empty' : formatSize(log.size)}
+          {formatWhen(log.modifiedAt, now, t, language)} ·{' '}
+          {log.size === 0 ? t('logs.emptyFile') : formatSize(log.size)}
         </span>
       </button>
-      {log.older > 0 && <span className="muted log-older">+{log.older} older</span>}
+      {log.older > 0 && (
+        <span className="muted log-older">{t('logs.older', { count: log.older })}</span>
+      )}
       <button
         className="log-folder"
         onClick={() => onOpenFolder(log)}
-        title="Open folder"
-        aria-label={`Open the folder with all ${log.title} logs`}
+        title={t('logs.openFolder')}
+        aria-label={t('logs.openFolderLabel', { title: log.title })}
       >
         <FolderOpen size={16} aria-hidden="true" />
       </button>
@@ -44,6 +50,7 @@ function LogRow({ log, now, onOpen, onOpenFolder }: LogRowProps): React.JSX.Elem
 export function LogsPanel(): React.JSX.Element {
   const [loaded, setLoaded] = useState<LoadedLogs | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const { t, language } = useI18n()
 
   function apply(result: Result<GameLogs>): void {
     if (result.ok) {
@@ -74,11 +81,8 @@ export function LogsPanel(): React.JSX.Element {
   function renderLogs({ logs }: GameLogs, now: Date): React.ReactNode {
     if (logs.length === 0) {
       return (
-        <EmptyState icon={ScrollText} title="No logs yet">
-          <p className="muted">
-            CET, redscript and RED4ext write their logs when the game starts. Launch the game with
-            your mods, then come back.
-          </p>
+        <EmptyState icon={ScrollText} title={t('logs.empty')}>
+          <p className="muted">{t('logs.emptyHint')}</p>
         </EmptyState>
       )
     }
@@ -106,10 +110,13 @@ export function LogsPanel(): React.JSX.Element {
       <div className="log-crashes">
         <TriangleAlert size={16} aria-hidden="true" />
         <span>
-          {crashReports === 0
-            ? 'No crash reports'
-            : `${crashReports} crash ${crashReports === 1 ? 'report' : 'reports'}`}
-          {lastCrashAt && <span className="muted"> · last {formatWhen(lastCrashAt, now)}</span>}
+          {crashReports === 0 ? t('logs.noCrashes') : t('logs.crashes', { count: crashReports })}
+          {lastCrashAt && (
+            <span className="muted">
+              {' '}
+              · {t('logs.lastCrash', { when: formatWhen(lastCrashAt, now, t, language) })}
+            </span>
+          )}
         </span>
         <button
           className="small with-icon"
@@ -117,7 +124,7 @@ export function LogsPanel(): React.JSX.Element {
           onClick={() => open(() => window.api.openCrashReports())}
         >
           <FolderOpen size={14} aria-hidden="true" />
-          Open folder
+          {t('logs.openFolder')}
         </button>
       </div>
     )
@@ -127,15 +134,12 @@ export function LogsPanel(): React.JSX.Element {
     <section className="troubleshoot-panel" aria-labelledby="logs-title">
       <header className="troubleshoot-panel-header">
         <div>
-          <h3 id="logs-title">Logs</h3>
-          <p className="muted">
-            The newest log of each framework and plugin, from your last game launch. Click one to
-            open it. These are the files people ask for when you look for help.
-          </p>
+          <h3 id="logs-title">{t('troubleshoot.tab.logs')}</h3>
+          <p className="muted">{t('logs.intro')}</p>
         </div>
         <button className="primary with-icon" onClick={refresh} disabled={!loaded && !error}>
           <RefreshCw size={16} aria-hidden="true" />
-          Refresh
+          {t('logs.refresh')}
         </button>
       </header>
 
@@ -151,18 +155,18 @@ export function LogsPanel(): React.JSX.Element {
           {renderCrashes(loaded.logs, loaded.at)}
         </>
       ) : (
-        !error && <p className="muted">Looking for logs...</p>
+        !error && <p className="muted">{t('logs.looking')}</p>
       )}
 
       <div className="log-app">
         <Wrench size={16} aria-hidden="true" />
         <span>
-          Fixer&apos;s own log
-          <span className="muted"> · send this one when something in Fixer goes wrong</span>
+          {t('logs.appLog')}
+          <span className="muted"> · {t('logs.appLogHint')}</span>
         </span>
         <button className="small with-icon" onClick={() => open(() => window.api.openAppLog())}>
           <FileText size={14} aria-hidden="true" />
-          Open
+          {t('logs.open')}
         </button>
       </div>
     </section>

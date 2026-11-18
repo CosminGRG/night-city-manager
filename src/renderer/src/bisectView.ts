@@ -1,6 +1,7 @@
 import type { BisectStatus, DeployStatus, ModRecord, NexusRequirement } from '@shared/types'
 import { isCoreMod } from '@shared/mods'
 import { needs, provides } from '@shared/requirements'
+import type { Translate } from '@shared/i18n/translate'
 
 export function bisectCandidates(
   mods: ModRecord[],
@@ -60,17 +61,19 @@ export function roundCount(suspects: number, checkFirst: boolean): number {
   return Math.ceil(Math.log2(suspects)) + (checkFirst ? 1 : 0)
 }
 
-export function namesOf(ids: string[], mods: ModRecord[]): string[] {
+export function namesOf(ids: string[], mods: ModRecord[], t: Translate): string[] {
   const names = new Map(mods.map((mod) => [mod.id, mod.name]))
-  return ids.map((id) => names.get(id) ?? 'A removed mod')
+  return ids.map((id) => names.get(id) ?? t('bisect.removedMod'))
 }
 
-export function roundSummary(status: Extract<BisectStatus, { kind: 'testing' }>): string {
+export function roundSummary(
+  status: Extract<BisectStatus, { kind: 'testing' }>,
+  t: Translate
+): string {
   const { off, suspects, checking } = status
   if (checking) {
-    return `All ${suspects.length} tested mods are switched off.`
+    return t('bisect.checking', { count: suspects.length })
   }
 
-  const verb = off.length === 1 ? 'is' : 'are'
-  return `${off.length} of the ${suspects.length} remaining suspects ${verb} switched off.`
+  return t('bisect.off', { count: off.length, total: suspects.length })
 }

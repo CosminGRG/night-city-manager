@@ -10,6 +10,7 @@ export const EN = {
   'app.loading': 'Loading...',
 
   // Sidebar
+  'nav.main': 'Main',
   'nav.mods': 'Mod list',
   'nav.import': 'Import',
   'nav.troubleshoot': 'Troubleshoot',
@@ -245,6 +246,138 @@ export const EN = {
     'Settings, logs and saved mod data written into the folders it created in the game.',
 
   // Troubleshoot
+  'troubleshoot.tabs': 'Troubleshooting tools',
+  'troubleshoot.tab.overview': 'Overview',
+  'troubleshoot.tab.bisect': 'Find a broken mod',
+  'troubleshoot.tab.logs': 'Logs',
+  'troubleshoot.tab.leftovers': 'Leftover files',
+  'overview.firstSteps': 'First steps',
+  'overview.step.update':
+    'Update the game and your core mods. After a game patch, core mods often need a new version: check their Nexus pages.',
+  'overview.step.requirements':
+    'Check the requirements on the Nexus pages of mods you added recently.',
+  'overview.step.purge':
+    "If the game doesn't start at all, purge all mods (Mod list → Actions → Purge all) and check that it starts without them.",
+  'overview.step.verify':
+    'Still broken without mods? Verify the game files in Steam, GOG Galaxy or the Epic Games Launcher.',
+  'overview.bisect.text':
+    "The game crashes or something behaves oddly, you suspect a mod causes it but you don't know which. The app switches half of your mods off per round; you launch the game and say whether the problem is still there.",
+  'overview.bisect.action': 'Find the mod',
+  'overview.logs.text':
+    'What CET, redscript and RED4ext wrote during your last launch, plus crash reports. Mod authors and the modding Discord ask for these first.',
+  'overview.logs.action': 'Open logs',
+  'overview.leftovers.text':
+    "Settings, logs and saved data that mods wrote into the game folder. Undeploying keeps them; review and delete what you don't need.",
+  'overview.leftovers.action': 'Review leftovers',
+  'overview.help': 'Help online',
+  'overview.link.guide': 'Troubleshooting guide',
+  'overview.link.guideText': 'Step-by-step help for crashes, launch failures and script errors.',
+  'overview.link.bisect': 'Bisecting by hand',
+  'overview.link.bisectText': 'The method the Find a broken mod tab automates.',
+  'overview.link.cet': 'Cyber Engine Tweaks troubleshooting',
+  'overview.link.cetText': "When the CET overlay doesn't open or CET mods don't load.",
+  'overview.link.discord': 'Cyberpunk 2077 Modding Community',
+  'overview.link.discordText': 'Ask for help in the #mod-troubleshooting channel.',
+
+  'bisect.intro':
+    'Switches half of your mods off at a time. You launch the game and say whether the problem is still there. After a few rounds the app names the mod causing it. This assumes a single mod causes the problem.',
+  'bisect.needTwo':
+    'Deploy at least two mods besides the core mods, then come back to find the one that breaks your game.',
+  'bisect.setupHint':
+    'Ticked mods get tested. Mods that other mods build on start as Always on; tick one to test it too. Core mods always stay on.',
+  'bisect.alwaysOn': 'Always on',
+  'bisect.neededBy': 'Needed by {names}',
+  'bisect.checkFirst': 'Start with every tested mod off',
+  'bisect.checkFirstHint': '(recommended: proves the problem comes from these mods at all)',
+  'bisect.tested': '{tested} of {total} mods tested',
+  'bisect.testedRounds': {
+    one: '{tested} of {total} mods tested, about {count} game launch',
+    other: '{tested} of {total} mods tested, about {count} game launches'
+  },
+  'bisect.start': 'Start Bisect',
+  'bisect.undo': 'Undo last answer',
+  'bisect.found': 'Found it: {name}',
+  'bisect.foundHint':
+    'The problem follows this mod. Check its Nexus page for a newer version or for requirements you might be missing.',
+  'bisect.allOn': 'Switch everything back on',
+  'bisect.keepOff': 'Keep it off, switch the rest on',
+  'bisect.notFound': 'The problem is not in the tested mods',
+  'bisect.notFoundHint':
+    'It was still there with every tested mod off, so it comes from a core mod, a mod you kept on, or the game itself.',
+  'bisect.round': 'Round {round}',
+  'bisect.roundsLeft': {
+    one: 'at most {count} launch to go',
+    other: 'at most {count} launches to go'
+  },
+  'bisect.notReady': "The mods don't match this round yet. The last switch didn't finish.",
+  'bisect.apply': 'Apply round',
+  'bisect.checking': { other: 'All {count} tested mods are switched off.' },
+  'bisect.off': {
+    one: '{count} of the {total} remaining suspects is switched off.',
+    other: '{count} of the {total} remaining suspects are switched off.'
+  },
+  'bisect.instructions':
+    'Launch the game and try to recreate the problem, then close the game or let it crash and answer.',
+  'bisect.switchedOff': 'Switched off',
+  'bisect.stillOn': 'Still suspected, on',
+  'bisect.stop': 'Stop and restore',
+  'bisect.broken': 'Still broken',
+  'bisect.works': 'Works now',
+  'bisect.busy.switching': 'Switching mods...',
+  'bisect.busy.restoring': 'Switching mods back on...',
+  'bisect.stopTitle': 'Stop the bisect?',
+  'bisect.stopBody': 'Every tested mod is switched back on, and your answers so far are dropped.',
+  'bisect.removedMod': 'A removed mod',
+
+  'logs.intro':
+    'The newest log of each framework and plugin, from your last game launch. Click one to open it. These are the files people ask for when you look for help.',
+  'logs.refresh': 'Refresh',
+  'logs.looking': 'Looking for logs...',
+  'logs.empty': 'No logs yet',
+  'logs.emptyHint':
+    'CET, redscript and RED4ext write their logs when the game starts. Launch the game with your mods, then come back.',
+  'logs.emptyFile': 'empty',
+  'logs.older': { other: '+{count} older' },
+  'logs.openFolder': 'Open folder',
+  'logs.openFolderLabel': 'Open the folder with all {title} logs',
+  'logs.noCrashes': 'No crash reports',
+  'logs.crashes': { one: '{count} crash report', other: '{count} crash reports' },
+  'logs.lastCrash': 'last {when}',
+  'logs.appLog': "Fixer's own log",
+  'logs.appLogHint': 'send this one when something in Fixer goes wrong',
+  'logs.open': 'Open',
+  'time.justNow': 'just now',
+  'time.dayAt': '{day} {time}',
+  'time.dateAt': '{date}, {time}',
+
+  'leftovers.intro':
+    'Settings, logs and saved mod data that mods wrote into folders the app created. Undeploying keeps them, so a redeployed mod keeps its settings.',
+  'leftovers.scan': 'Scan again',
+  'leftovers.scanning': 'Scanning...',
+  'leftovers.empty': 'No leftover files',
+  'leftovers.emptyHint': 'Folders the app created in your game hold only files from deployed mods.',
+  'leftovers.selectAll': 'Select all files in {folder}',
+  'leftovers.inUse': 'In use',
+  'leftovers.inUseTitle':
+    'A deployed mod still has files in this folder, so these may be its live settings.',
+  'leftovers.files': { one: '{count} file', other: '{count} files' },
+  'leftovers.changed': 'Changed',
+  'leftovers.changedTitle':
+    'A mod file that changed after it was deployed, for example saved mod data.',
+  'leftovers.locked':
+    'Finish the bisect first: mods switched off for a round keep their settings here.',
+  'leftovers.selected': {
+    one: '{selected} of {count} file selected ({size})',
+    other: '{selected} of {count} files selected ({size})'
+  },
+  'leftovers.trash': 'Move to Recycle Bin',
+  'leftovers.confirmTitle': {
+    one: 'Move {count} file to the Recycle Bin?',
+    other: 'Move {count} files to the Recycle Bin?'
+  },
+  'leftovers.confirmBody':
+    'Mods lose what these files hold, for example CET key binds or AMM appearances.',
+  'leftovers.confirmNote': 'You can restore them from the Recycle Bin.',
   'leftovers.moved': {
     one: 'Moved {count} leftover file to the Recycle Bin.',
     other: 'Moved {count} leftover files to the Recycle Bin.'

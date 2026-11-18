@@ -17,6 +17,8 @@ import {
   neededBy
 } from '@renderer/bisectView'
 import { toggleItems } from '@renderer/leftoversView'
+import { useT } from '@renderer/i18n/context'
+import { insert } from '@renderer/i18n/insert'
 import { ConfirmDialog } from './ConfirmDialog'
 import './BisectPanel.css'
 
@@ -67,6 +69,7 @@ export function BisectPanel(): React.JSX.Element {
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [confirmingStop, setConfirmingStop] = useState(false)
+  const t = useT()
 
   function apply(state: BisectState): void {
     const offered = bisectCandidates(state.mods, state.deployments)
@@ -103,46 +106,39 @@ export function BisectPanel(): React.JSX.Element {
 
   function start(): void {
     const ordered = candidates.filter((mod) => suspects.has(mod.id)).map((mod) => mod.id)
-    run('Switching mods...', () => window.api.startBisect(ordered, checkFirst))
+    run(t('bisect.busy.switching'), () => window.api.startBisect(ordered, checkFirst))
   }
 
   function answer(value: BisectAnswer): void {
-    run('Switching mods...', () => window.api.answerBisect(value))
+    run(t('bisect.busy.switching'), () => window.api.answerBisect(value))
   }
 
   function undo(): void {
-    run('Switching mods...', () => window.api.undoBisect())
+    run(t('bisect.busy.switching'), () => window.api.undoBisect())
   }
 
   function end(keepCulpritOff: boolean): void {
-    run('Switching mods back on...', () => window.api.endBisect(keepCulpritOff))
+    run(t('bisect.busy.restoring'), () => window.api.endBisect(keepCulpritOff))
   }
 
   const locked = busy !== null
 
   function keptTitle(mod: ModRecord): string | undefined {
     const users = neededBy(mod, candidates, nexus)
-    return users.length > 0 ? `Needed by ${users.join(', ')}` : undefined
+    return users.length > 0 ? t('bisect.neededBy', { names: users.join(', ') }) : undefined
   }
 
   function renderSetup(): React.ReactNode {
     if (candidates.length < 2) {
-      return (
-        <p className="muted">
-          Deploy at least two mods besides the core mods, then come back to find the one that breaks
-          your game.
-        </p>
-      )
+      return <p className="muted">{t('bisect.needTwo')}</p>
     }
 
     const rounds = roundCount(suspects.size, checkFirst)
+    const tested = { tested: suspects.size, total: candidates.length }
 
     return (
       <>
-        <p className="">
-          Ticked mods get tested. Mods that other mods build on start as Always on; tick one to test
-          it too. Core mods always stay on.
-        </p>
+        <p className="">{t('bisect.setupHint')}</p>
 
         <ul className="bisect-candidates">
           {candidates.map((mod) => (
@@ -158,7 +154,7 @@ export function BisectPanel(): React.JSX.Element {
                 <span className="bisect-mod-name">{mod.name}</span>
                 {!suspects.has(mod.id) && (
                   <span className="muted bisect-kept" title={keptTitle(mod)}>
-                    Always on
+                    {t('bisect.alwaysOn')}
                   </span>
                 )}
               </label>
@@ -172,17 +168,15 @@ export function BisectPanel(): React.JSX.Element {
             onChange={(event) => setCheckFirst(event.target.checked)}
           />
           <span>
-            Start with every tested mod off
-            <span className="muted">
-              {' '}
-              (recommended: proves the problem comes from these mods at all)
-            </span>
+            {t('bisect.checkFirst')}
+            <span className="muted"> {t('bisect.checkFirstHint')}</span>
           </span>
         </label>
         <div className="bisect-actions">
           <span className="muted">
-            {suspects.size} of {candidates.length} mods tested
-            {rounds > 0 && `, about ${rounds} game ${rounds === 1 ? 'launch' : 'launches'}`}
+            {rounds > 0
+              ? t('bisect.testedRounds', { ...tested, count: rounds })
+              : t('bisect.tested', tested)}
           </span>
           <button
             className="primary with-icon"
@@ -190,7 +184,7 @@ export function BisectPanel(): React.JSX.Element {
             onClick={start}
           >
             <Play size={16} aria-hidden="true" />
-            Start Bisect
+            {t('bisect.start')}
           </button>
         </div>
       </>
@@ -202,28 +196,27 @@ export function BisectPanel(): React.JSX.Element {
     const undoButton = (
       <button className="with-icon" disabled={session.answered === 0 || locked} onClick={undo}>
         <Undo2 size={16} aria-hidden="true" />
-        Undo last answer
+        {t('bisect.undo')}
       </button>
     )
 
     if (status.kind === 'found') {
+      const culprit = namesOf([status.culprit], mods, t)[0]
+
       return (
         <>
           <p className="bisect-result">
-            Found it: <strong>{namesOf([status.culprit], mods)[0]}</strong>
+            {insert(t('bisect.found'), { name: <strong>{culprit}</strong> })}
           </p>
-          <p className="muted">
-            The problem follows this mod. Check its Nexus page for a newer version or for
-            requirements you might be missing,
-          </p>
+          <p className="muted">{t('bisect.foundHint')}</p>
           <div className="bisect-actions">
             {undoButton}
             <div className="bisect-buttons">
               <button disabled={locked} onClick={() => end(false)}>
-                Switch everything back on
+                {t('bisect.allOn')}
               </button>
               <button className="primary" disabled={locked} onClick={() => end(true)}>
-                Keep it off, switch the rest on
+                {t('bisect.keepOff')}
               </button>
             </div>
           </div>
@@ -234,15 +227,12 @@ export function BisectPanel(): React.JSX.Element {
     if (status.kind === 'not-in-suspects') {
       return (
         <>
-          <p className="bisect-result">The problem is not in the tested mods</p>
-          <p className="muted">
-            It was still there with every tested mod off, so it comes from a core mod, a mod you
-            kept on, or the game itself.
-          </p>
+          <p className="bisect-result">{t('bisect.notFound')}</p>
+          <p className="muted">{t('bisect.notFoundHint')}</p>
           <div className="bisect-actions">
             {undoButton}
             <button className="primary" disabled={locked} onClick={() => end(false)}>
-              Switch everything back on
+              {t('bisect.allOn')}
             </button>
           </div>
         </>
@@ -254,40 +244,34 @@ export function BisectPanel(): React.JSX.Element {
     return (
       <>
         <p className="bisect-round">
-          Round {status.round}
-          <span className="muted">
-            {' '}
-            · at most {status.roundsLeft} {status.roundsLeft === 1 ? 'launch' : 'launches'} to go
-          </span>
+          {t('bisect.round', { round: status.round })}
+          <span className="muted"> · {t('bisect.roundsLeft', { count: status.roundsLeft })}</span>
         </p>
         {!session.ready && (
           <div className="bisect-warning" role="alert">
-            <span>
-              The mods don&apos;t match this round yet. The last switch didn&apos;t finish.
-            </span>
+            <span>{t('bisect.notReady')}</span>
             <button
               className="small"
               disabled={locked}
-              onClick={() => run('Switching mods...', () => window.api.applyBisect())}
+              onClick={() => run(t('bisect.busy.switching'), () => window.api.applyBisect())}
             >
-              Apply mod
+              {t('bisect.apply')}
             </button>
           </div>
         )}
         <p>
-          {roundSummary(status)} Launch the game and try to recreate the problem, then close the
-          game or let it crash and answer.
+          {roundSummary(status, t)} {t('bisect.instructions')}
         </p>
         <div className="bisect-lists">
-          <ModNames title="Switched off" names={namesOf(status.off, mods)} />
-          {on.length > 0 && <ModNames title="Still suspected, on" names={namesOf(on, mods)} />}
+          <ModNames title={t('bisect.switchedOff')} names={namesOf(status.off, mods, t)} />
+          {on.length > 0 && <ModNames title={t('bisect.stillOn')} names={namesOf(on, mods, t)} />}
         </div>
         <div className="bisect-actions">
           <div className="bisect-buttons">
             {undoButton}
             <button className="with-icon" disabled={locked} onClick={() => setConfirmingStop(true)}>
               <RotateCcw size={16} aria-hidden="true" />
-              Stop and restore
+              {t('bisect.stop')}
             </button>
           </div>
           <div className="bisect-buttons">
@@ -297,7 +281,7 @@ export function BisectPanel(): React.JSX.Element {
               onClick={() => answer('broken')}
             >
               <CircleX size={16} aria-hidden="true" />
-              Still broken
+              {t('bisect.broken')}
             </button>
             <button
               className="success with-icon"
@@ -305,7 +289,7 @@ export function BisectPanel(): React.JSX.Element {
               onClick={() => answer('works')}
             >
               <CircleCheck size={16} aria-hidden="true" />
-              Works now
+              {t('bisect.works')}
             </button>
           </div>
         </div>
@@ -317,12 +301,8 @@ export function BisectPanel(): React.JSX.Element {
     <section className="troubleshoot-panel" aria-labelledby="bisect-title">
       <header className="troubleshoot-panel-header">
         <div>
-          <h3 id="bisect-title">Find a broken mod</h3>
-          <p className="muted">
-            Switches half of your mods off at a time. You launch the game and say whether the
-            problem is still there. After a few rounds the app names the mod causing it. This
-            assumes a single mod causes the problem.
-          </p>
+          <h3 id="bisect-title">{t('troubleshoot.tab.bisect')}</h3>
+          <p className="muted">{t('bisect.intro')}</p>
         </div>
         <span className="bisect-busy" aria-live="polite">
           {busy}
@@ -333,18 +313,18 @@ export function BisectPanel(): React.JSX.Element {
           {error}
         </p>
       )}
-      {view === undefined && !error && <p className="muted">Loading...</p>}
+      {view === undefined && !error && <p className="muted">{t('app.loading')}</p>}
       {view === null && renderSetup()}
       {view && renderSession(view)}
       {confirmingStop && (
         <ConfirmDialog
-          title="Stop the bisect?"
-          confirmLabel="Stop and restore"
+          title={t('bisect.stopTitle')}
+          confirmLabel={t('bisect.stop')}
           tone="primary"
           onConfirm={() => end(false)}
           onClose={() => setConfirmingStop(false)}
         >
-          <p>Every tested mod is switched back on, and your answers so far are dropped.</p>
+          <p>{t('bisect.stopBody')}</p>
         </ConfirmDialog>
       )}
     </section>

@@ -2,6 +2,7 @@ import { TriangleAlert } from 'lucide-react'
 import type { MessageKey } from '@shared/i18n/en'
 import type { RequirementBadge, RequirementState } from '@renderer/requirementsView'
 import { useT } from '@renderer/i18n/context'
+import { insert } from '@renderer/i18n/insert'
 import './RequirementBadges.css'
 
 const MAX_VISIBLE = 2
@@ -20,6 +21,10 @@ function isWarning(badge: RequirementBadge): boolean {
   return badge.state !== 'met' && !badge.optional
 }
 
+function badgeClass(warning: boolean): string {
+  return warning ? 'badge requirement-badge badge-unmet' : 'badge requirement-badge'
+}
+
 export function RequirementBadges({ badges }: RequirementBadgesProp): React.JSX.Element {
   const t = useT()
   const shown = badges.slice(0, MAX_VISIBLE)
@@ -28,20 +33,20 @@ export function RequirementBadges({ badges }: RequirementBadgesProp): React.JSX.
 
   return (
     <>
-      {shown.map((badge) => (
-        <span
-          key={badge.key}
-          className={isWarning(badge) ? 'badge badge-unmet' : 'badge'}
-          title={badge.title}
-        >
-          {isWarning(badge) && <TriangleAlert size={12} aria-hidden="true" />}
-          {badge.optional ? t('requirements.optionalBadge', { label: badge.label }) : badge.label}
-          <span className="sr-only"> ({t(STATE_TEXT[badge.state])})</span>
-        </span>
-      ))}
+      {shown.map((badge) => {
+        const label = <span className="requirement-label">{badge.label}</span>
+
+        return (
+          <span key={badge.key} className={badgeClass(isWarning(badge))} title={badge.title}>
+            {isWarning(badge) && <TriangleAlert size={12} aria-hidden="true" />}
+            {badge.optional ? insert(t('requirements.optionalBadge'), { label }) : label}
+            <span className="sr-only"> ({t(STATE_TEXT[badge.state])})</span>
+          </span>
+        )
+      })}
       {hidden.length > 0 && (
         <span
-          className={hiddenUnmet ? 'badge badge-unmet' : 'badge'}
+          className={badgeClass(hiddenUnmet)}
           title={hidden.map((badge) => badge.title).join('\n')}
         >
           +{hidden.length}

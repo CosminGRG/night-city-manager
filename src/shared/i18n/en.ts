@@ -1,16 +1,49 @@
 import type { Message } from './messages'
 
-//The English text of every message
+// The English text of every message, grouped by screen.
 export const EN = {
+  // Shared
+  'common.cancel': 'Cancel',
+  'common.change': 'Change',
+  'app.loading': 'Loading...',
+
+  // Sidebar
   'nav.mods': 'Mod list',
   'nav.import': 'Import',
   'nav.troubleshoot': 'Troubleshoot',
   'nav.settings': 'Settings',
-  'mods.deployedInstead': '{name} is deployed in its place.',
-  'leftovers.moved': {
-    one: 'Moved {count} leftover file to the Recycle Bin.',
-    other: 'Moved {count} leftover files to the Recycle Bin.'
-  },
+  'launch.idle': 'Launch Cyberpunk 2077',
+  'launch.starting': 'Starting Cyberpunk 2077...',
+  'launch.compiling': 'Compiling REDmod mods...',
+  'launch.compilingHint': 'Compiling REDmod mods... This can take some time after you change them.',
+
+  // First start
+  'setup.title': 'Welcome to Fixer',
+  'setup.intro': 'First, select where Cyberpunk 2077 is installed.',
+  'setup.searching': 'Looking for your game...',
+  'setup.notFound': "We couldn't find it automatically.",
+  'setup.found': 'We found your game. Pick it to continue:',
+  'setup.useThis': 'Use this',
+  'setup.browse': 'Browse for the game folder',
+  'setup.browseOther': 'Use a different folder',
+
+  // Settings
+  'settings.gameFolder.title': 'Game folder',
+  'settings.gameFolder.hint':
+    'Each game folder keeps its own deployed mods. Switching back shows them again.',
+  'settings.modsFolder.title': 'Mods folder',
+  'settings.modsFolder.moving': 'Moving mods...',
+  'settings.modsFolder.sameDrive':
+    'Same drive as the game, deploys using hard links, which are instant and take no space.',
+  'settings.modsFolder.otherDrive':
+    "This folder is on a different drive than the game. The manager will work, but every deploy copies the files. Choose an empty folder on the game's drive for instant deploys.",
+  'settings.modsFolder.hint': 'Changing it moves all your mods there. Purge all mods first.',
+  'settings.deploying.title': 'Deploying',
+  'settings.deploying.autoRequirements': 'Deploy requirements automatically',
+  'settings.deploying.autoRequirementsHint':
+    'When you switch a mod on, the mods it needs that are in your library are deployed first. Optional requirements are left alone.',
+  'settings.nexus.lookup': 'Look up mod info on Nexus Mods',
+  'settings.nexus.lookupHint': 'Finds out what your mods need from their Nexus pages.',
   'settings.language.title': 'Language',
   'settings.language.option': '{name} · {percent}% · by {author}',
   'settings.language.optionNoAuthor': '{name} · {percent}%',
@@ -25,7 +58,24 @@ export const EN = {
     other: 'Added {count} languages: {names}.'
   },
   'settings.language.templateSaved':
-    'Saved the English template to {path}. Translate the texts, then share the file.'
+    'Saved the English template to {path}. Translate the texts, then share the file.',
+  'settings.about.title': 'About',
+  'settings.about.version': 'Fixer {version} by Cosmin G. · Electron {electron}',
+  'settings.about.dataFolder': 'Data folder:',
+  'settings.about.licenses':
+    'Fonts: Inter by The Inter Project Authors and Rajdhani by Indian Type Foundry, under the SIL Open Font License 1.1. Fixer is free software under the GNU GPL, version 3 or later.',
+
+  // Import
+  'import.dropHere': 'Drop to import',
+
+  // Mod list
+  'mods.deployedInstead': '{name} is deployed in its place.',
+
+  // Troubleshoot
+  'leftovers.moved': {
+    one: 'Moved {count} leftover file to the Recycle Bin.',
+    other: 'Moved {count} leftover files to the Recycle Bin.'
+  }
 } satisfies Record<string, Message>
 
 export type MessageKey = keyof typeof EN

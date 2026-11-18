@@ -1,4 +1,5 @@
 import type { Settings } from '@shared/types'
+import { useT } from '@renderer/i18n/context'
 import { SettingToggle } from './SettingToggle'
 
 interface NexusLookupOptionProps {
@@ -10,10 +11,12 @@ export function NexusLookupOption({
   enabled,
   onSettingsChange
 }: NexusLookupOptionProps): React.JSX.Element {
+  const t = useT()
+
   return (
     <SettingToggle
-      label="Look up mod info on Nexus Mods"
-      hint="Finds out what your mods need from their Nexus pages."
+      label={t('settings.nexus.lookup')}
+      hint={t('settings.nexus.lookupHint')}
       enabled={enabled}
       save={(next) => window.api.setNexusLookup(next)}
       onSettingsChange={onSettingsChange}

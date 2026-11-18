@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Gamepad2, LoaderCircle } from 'lucide-react'
+import type { MessageKey } from '@shared/i18n/en'
+import { useT } from '@renderer/i18n/context'
 import './LaunchButton.css'
 
 const MESSAGE_MS = 6000
@@ -7,10 +9,10 @@ const STARTING_MS = 8000
 
 type Stage = 'idle' | 'starting' | 'compiling'
 
-const LABELS: Record<Stage, string> = {
-  idle: 'Launch Cyberpunk 2077',
-  starting: 'Starting Cyberpunk 2077...',
-  compiling: 'Compiling REDmod mods...'
+const LABELS: Record<Stage, MessageKey> = {
+  idle: 'launch.idle',
+  starting: 'launch.starting',
+  compiling: 'launch.compiling'
 }
 
 interface LaunchButtonProps {
@@ -21,6 +23,7 @@ export function LaunchButton({ gamePath }: LaunchButtonProps): React.JSX.Element
   const [icon, setIcon] = useState<string | null>(null)
   const [stage, setStage] = useState<Stage>('idle')
   const [error, setError] = useState<string | null>(null)
+  const t = useT()
 
   useEffect(() => {
     window.api.getGameIcon().then(setIcon)
@@ -48,7 +51,7 @@ export function LaunchButton({ gamePath }: LaunchButtonProps): React.JSX.Element
     setTimeout(() => setStage('idle'), STARTING_MS)
   }
 
-  const label = LABELS[stage]
+  const label = t(LABELS[stage])
   const busy = stage !== 'idle'
 
   return (
@@ -70,9 +73,7 @@ export function LaunchButton({ gamePath }: LaunchButtonProps): React.JSX.Element
 
       <div aria-live="polite">
         {stage === 'compiling' && (
-          <p className="launch-bubble launch-status">
-            {label} This can take some time after you change them.
-          </p>
+          <p className="launch-bubble launch-status">{t('launch.compilingHint')}</p>
         )}
       </div>
 

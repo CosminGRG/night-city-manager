@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { PackagePlus } from 'lucide-react'
+import { useT } from '@renderer/i18n/context'
 import './DropOverlay.css'
 
 interface DropOverlayProps {
@@ -8,6 +9,7 @@ interface DropOverlayProps {
 
 export function DropOverlay({ onDrop }: DropOverlayProps): React.JSX.Element | null {
   const [visible, setVisible] = useState(false)
+  const t = useT()
 
   useEffect(() => {
     function show(event: DragEvent): void {
@@ -49,7 +51,7 @@ export function DropOverlay({ onDrop }: DropOverlayProps): React.JSX.Element | n
     >
       <div className="drop-overlay-panel">
         <PackagePlus size={40} aria-hidden="true" />
-        <p>Drop to import</p>
+        <p>{t('import.dropHere')}</p>
       </div>
     </div>
   )

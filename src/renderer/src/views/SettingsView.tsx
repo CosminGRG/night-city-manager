@@ -59,17 +59,15 @@ export function SettingsView({ settings, onSettingsChange }: SettingsViewProps):
 
   return (
     <section className="settings">
-      <h2>Settings</h2>
+      <h2>{t('nav.settings')}</h2>
 
       <div className="settings-group">
-        <h3>Game folder</h3>
+        {t('settings.gameFolder.title')}
         <div className="settings-row">
           <code className="settings-path">{settings.gamePath}</code>
-          <button onClick={handleChangeGame}>Change</button>
+          <button onClick={handleChangeGame}>{t('common.change')}</button>
         </div>
-        <p className="muted settings-hint">
-          Each game folder keeps its own deployed mods. Switching back shows them again.
-        </p>
+        <p className="muted settings-hint">{t('settings.gameFolder.hint')}</p>
         {error && (
           <p role="alert" className="error">
             {error}
@@ -78,28 +76,20 @@ export function SettingsView({ settings, onSettingsChange }: SettingsViewProps):
       </div>
 
       <div className="settings-group">
-        <h3>Mods folder</h3>
+        <h3>{t('settings.modsFolder.title')}</h3>
         <div className="settings-row">
           <code className="settings-path">{modsFolder?.path}</code>
           <button onClick={handleChangeMods} disabled={moving}>
-            {moving ? 'Moving mods...' : 'Change'}
+            {moving ? t('settings.modsFolder.moving') : t('common.change')}
           </button>
         </div>
         {modsFolder?.sameDriveAsGame === true && (
-          <p className="muted settings-hint">
-            Same drive as the game, deploys using hard links, which are instant and take no space.
-          </p>
+          <p className="muted settings-hint">{t('settings.modsFolder.sameDrive')}</p>
         )}
         {modsFolder?.sameDriveAsGame === false && (
-          <p className="warning settings-hint">
-            This folder is on a different drive than the game. The manager will work, but every
-            deploy copies the files. Choose an empty folder on the game&apos;s drive for instant
-            deploys.
-          </p>
+          <p className="warning settings-hint">{t('settings.modsFolder.otherDrive')}</p>
         )}
-        <p className="muted settings-hint">
-          Changing it moves all your mods there. Purge all mods first.
-        </p>
+        <p className="muted settings-hint">{t('settings.modsFolder.hint')}</p>
         {modsError && (
           <p role="alert" className="error">
             {modsError}
@@ -108,10 +98,10 @@ export function SettingsView({ settings, onSettingsChange }: SettingsViewProps):
       </div>
 
       <div className="settings-group">
-        <h3>Deploying</h3>
+        <h3>{t('settings.deploying.title')}</h3>
         <SettingToggle
-          label="Deploy requirements automatically"
-          hint="When you switch a mod on, the mods it needs that are in your library are deployed first. Optional requirements are left alone."
+          label={t('settings.deploying.autoRequirements')}
+          hint={t('settings.deploying.autoRequirementsHint')}
           enabled={settings.autoDeployRequirements}
           save={(next) => window.api.setAutoDeployRequirements(next)}
           onSettingsChange={onSettingsChange}
@@ -129,18 +119,18 @@ export function SettingsView({ settings, onSettingsChange }: SettingsViewProps):
       </div>
 
       <div className="settings-group">
-        <h3>About</h3>
+        <h3>{t('settings.about.title')}</h3>
         {info && (
           <p className="muted">
-            Fixer {info.version} by Cosmin G. · Electron {info.electronVersion}
+            {t('settings.about.version', {
+              version: info.version,
+              electron: info.electronVersion
+            })}
             <br />
-            Data folder: <code>{info.userDataPath}</code>
+            {t('settings.about.dataFolder')} <code>{info.userDataPath}</code>
           </p>
         )}
-        <p className="muted settings-hint">
-          Fonts: Inter by The Inter Project Authors and Rajdhani by Indian Type Foundry, under the
-          SIL Open Font License 1.1. Fixer is free software under the GNU GPL, version 3 or later.
-        </p>
+        <p className="muted settings-hint">{t('settings.about.licenses')}</p>
       </div>
     </section>
   )

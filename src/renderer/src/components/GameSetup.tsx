@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { FolderSearch, Gamepad2, ArrowRight } from 'lucide-react'
 import type { DetectedGame, GameStore, Result, Settings } from '@shared/types'
 import { NexusLookupOption } from './NexusLookupOption'
+import { useT } from '@renderer/i18n/context'
 import './GameSetup.css'
 
 const STORE_LABELS: Record<GameStore, string> = {
@@ -18,6 +19,7 @@ interface GameSetupProps {
 export function GameSetup({ settings, onSettingsChange }: GameSetupProps): React.JSX.Element {
   const [detected, setDetected] = useState<DetectedGame[] | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const t = useT()
 
   useEffect(() => {
     window.api.detectGames().then(setDetected)
@@ -38,18 +40,18 @@ export function GameSetup({ settings, onSettingsChange }: GameSetupProps): React
     <section className="setup">
       <div className="setup-card">
         <Gamepad2 size={40} className="setup-icon" aria-hidden="true" />
-        <h1>Welcome to Fixer</h1>
-        <p className="muted">First, select where Cyberpunk 2077 is installed.</p>
+        <h1>{t('setup.title')}</h1>
+        <p className="muted"> {t('setup.intro')}</p>
 
         {detected === null && (
           <p className="muted" role="status">
-            Looking for your game...
+            {t('setup.searching')}
           </p>
         )}
-        {nothingFound && <p className="muted">We couldn&apos;t find it automatically.</p>}
+        {nothingFound && <p className="muted">{t('setup.notFound')}</p>}
         {detected && detected.length > 0 && (
           <>
-            <p>We found your game. Pick it to continue:</p>
+            <p>{t('setup.found')}</p>
             <ul className="setup-list">
               {detected.map((game) => (
                 <li key={game.path}>
@@ -62,7 +64,7 @@ export function GameSetup({ settings, onSettingsChange }: GameSetupProps): React
                       <span className="setup-path">{game.path}</span>
                     </span>
                     <span className="setup-use">
-                      Use this
+                      {t('setup.useThis')}
                       <ArrowRight size={16} aria-hidden="true" />
                     </span>
                   </button>
@@ -77,7 +79,7 @@ export function GameSetup({ settings, onSettingsChange }: GameSetupProps): React
           onClick={() => window.api.browseGame().then(handleResult)}
         >
           <FolderSearch size={16} aria-hidden="true" />
-          {nothingFound ? 'Browse for the game folder' : 'Use a different folder'}
+          {nothingFound ? t('setup.browse') : t('setup.browseOther')}
         </button>
         {error && (
           <p role="alert" className="error">

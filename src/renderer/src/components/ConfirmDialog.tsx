@@ -1,4 +1,5 @@
 import * as AlertDialog from '@radix-ui/react-alert-dialog'
+import { useT } from '@renderer/i18n/context'
 import './ConfirmDialog.css'
 
 interface ConfirmDialogProps {
@@ -22,6 +23,8 @@ export function ConfirmDialog({
   onConfirm,
   onClose
 }: ConfirmDialogProps): React.JSX.Element {
+  const t = useT()
+
   return (
     <AlertDialog.Root
       open
@@ -45,7 +48,7 @@ export function ConfirmDialog({
           </AlertDialog.Description>
           <div className="dialog-actions">
             <AlertDialog.Cancel asChild>
-              <button>Cancel</button>
+              <button>{t('common.cancel')}</button>
             </AlertDialog.Cancel>
             <AlertDialog.Action asChild>
               <button className={tone} disabled={confirmDisabled} onClick={onConfirm}>

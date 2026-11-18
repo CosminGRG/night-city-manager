@@ -5,6 +5,7 @@ import { ModList } from './components/ModList'
 import { Sidebar, type View } from './components/Sidebar'
 import { DropOverlay } from './components/DropOverlay'
 import { useImportQueue } from './useImportQueue'
+import { useT } from './i18n/context'
 import { ImportView } from './views/ImportView'
 import { SettingsView } from './views/SettingsView'
 import { TroubleshootView, type TroubleshootTab } from './views/TroubleshootView'
@@ -15,6 +16,7 @@ function App(): React.JSX.Element {
   const [troubleshootTab, setTroubleshootTab] = useState<TroubleshootTab>('overview')
   const [settings, setSettings] = useState<Settings | null>(null)
   const queue = useImportQueue()
+  const t = useT()
 
   useEffect(() => {
     window.api.getSettings().then(setSettings)
@@ -36,7 +38,7 @@ function App(): React.JSX.Element {
   }
 
   function renderContent(): React.JSX.Element {
-    if (!settings) return <p className="muted">Loading...</p>
+    if (!settings) return <p className="muted">{t('app.loading')}</p>
     if (!settings.gamePath) return <GameSetup settings={settings} onSettingsChange={setSettings} />
 
     if (view === 'import') {

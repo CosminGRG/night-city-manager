@@ -3,6 +3,8 @@ import type { ModRecord } from '@shared/types'
 
 export type ImportStatus = 'queued' | 'importing' | 'done' | 'duplicate' | 'failed'
 
+export type VersionAnswer = { kind: 'separate' } | { kind: 'version'; of: string }
+
 export interface ImportItem {
   key: number
   name: string
@@ -10,7 +12,7 @@ export interface ImportItem {
   status: ImportStatus
   message: string | null
   mod: ModRecord | null
-  versionNote: string | null
+  answer: VersionAnswer | null
 }
 
 export interface ImportQueue {
@@ -18,7 +20,7 @@ export interface ImportQueue {
   imported: number
   add: (paths: string[]) => void
   clearFinished: () => void
-  noteVersion: (key: number, note: string) => void
+  noteVersion: (key: number, answer: VersionAnswer) => void
 }
 
 let nextKey = 1
@@ -50,8 +52,7 @@ export function useImportQueue(): ImportQueue {
         if (!result.ok) {
           update(item.key, { status: 'failed', message: result.error })
         } else if (result.value.kind === 'duplicate') {
-          const message = `Already in your library as "${result.value.mod.name}"`
-          update(item.key, { status: 'duplicate', message })
+          update(item.key, { status: 'duplicate', mod: result.value.mod })
         } else {
           update(item.key, { status: 'done', name: result.value.mod.name, mod: result.value.mod })
           setImported((count) => count + 1)
@@ -70,7 +71,7 @@ export function useImportQueue(): ImportQueue {
       status: 'queued',
       message: null,
       mod: null,
-      versionNote: null
+      answer: null
     }))
     setItems((current) => [...current, ...fresh])
     pending.current.push(...fresh)
@@ -81,8 +82,8 @@ export function useImportQueue(): ImportQueue {
     setItems((current) => current.filter((item) => !isFinished(item)))
   }
 
-  function noteVersion(key: number, note: string): void {
-    update(key, { versionNote: note })
+  function noteVersion(key: number, answer: VersionAnswer): void {
+    update(key, { answer })
   }
 
   return { items, imported, add, clearFinished, noteVersion }

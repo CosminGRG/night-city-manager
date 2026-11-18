@@ -5,6 +5,7 @@ export const EN = {
   // Shared
   'common.cancel': 'Cancel',
   'common.change': 'Change',
+  'common.save': 'Save',
   'app.loading': 'Loading...',
 
   // Sidebar
@@ -67,6 +68,33 @@ export const EN = {
 
   // Import
   'import.dropHere': 'Drop to import',
+  'import.title': 'Import mods',
+  'import.dropTitle': 'Drag mod archives anywhere into the window',
+  'import.choose': 'Choose archives',
+  'import.getMore': 'Get more mods on Nexus Mods',
+  'import.clearFinished': 'Clear finished',
+  'import.empty': 'Archives you import will show up here.',
+  'import.noneYet': 'No imports yet',
+  'import.progress': 'Importing {current} of {total}...',
+  'import.summary.imported': { other: '{count} imported' },
+  'import.summary.duplicate': { other: '{count} already in your library' },
+  'import.summary.failed': { other: '{count} failed' },
+  'import.status.queued': 'Waiting',
+  'import.status.importing': 'Importing',
+  'import.status.done': 'Imported',
+  'import.status.duplicate': 'Already in your library',
+  'import.status.failed': 'Failed',
+  'import.duplicateOf': 'Already in your library as "{name}"',
+  'import.question': "Its name doesn't say which mod it is. Is it a new version of a mod you have?",
+  'import.answer': 'Choose...',
+  'import.versionOf': 'Version of {name}',
+  'import.separate': 'Separate mod',
+  'versionLink.title': 'Is {name} a version of another mod?',
+  'versionLink.intro':
+    "Its archive name doesn't follow the Nexus Mods format, so Fixer can't tell. If it's a version of a mod you have, pick that mod.",
+  'versionLink.search': 'Search your mods',
+  'versionLink.legend': 'Version of',
+  'versionLink.separate': "It's a separate mod",
 
   // Mod list
   'mods.deployedInstead': '{name} is deployed in its place.',

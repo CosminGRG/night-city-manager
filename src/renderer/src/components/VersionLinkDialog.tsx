@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import type { ModRecord } from '@shared/types'
 import { currentLink, linkOptions, type LinkOption } from '@renderer/versionsView'
 import { ConfirmDialog } from './ConfirmDialog'
+import { useT } from '@renderer/i18n/context'
 import './VersionLinkDialog.css'
 
 interface VersionLinkDialogProps {
@@ -23,6 +24,7 @@ export function VersionLinkDialog({
   const [loaded, setLoaded] = useState<Loaded | null>(null)
   const [picked, setPicked] = useState<string | null | undefined>(undefined)
   const [query, setQuery] = useState('')
+  const t = useT()
 
   useEffect(() => {
     Promise.all([window.api.listMods(), window.api.getVersionGroups()]).then(([mods, groups]) => {
@@ -40,27 +42,24 @@ export function VersionLinkDialog({
 
   return (
     <ConfirmDialog
-      title={`Is ${mod.name} a version of another mod?`}
-      confirmLabel="Save"
+      title={t('versionLink.title', { name: mod.name })}
+      confirmLabel={t('common.save')}
       tone="primary"
       confirmDisabled={loaded === null}
       onConfirm={() => onSave(loaded?.options.find((option) => option.id === selected) ?? null)}
       onClose={onClose}
     >
-      <p>
-        The archive name is in a non standard format. If it&apos;s a version of a mod you, have pick
-        that mod
-      </p>
+      <p>{t('versionLink.intro')}</p>
       <input
         type="search"
         className="link-search"
-        placeholder="Search your mods"
-        aria-label="Search your mods"
+        placeholder={t('versionLink.search')}
+        aria-label={t('versionLink.search')}
         value={query}
         onChange={(event) => setQuery(event.target.value)}
       />
       <fieldset className="link-options">
-        <legend className="sr-only">Version of</legend>
+        <legend className="sr-only">{t('versionLink.legend')}</legend>
         <label className="link-option">
           <input
             type="radio"
@@ -68,7 +67,7 @@ export function VersionLinkDialog({
             checked={selected === null}
             onChange={() => setPicked(null)}
           />
-          It&apos;s a separate mod
+          {t('versionLink.separate')}
         </label>
         {visible.map((option) => (
           <label key={option.id} className="link-option" title={option.name}>

@@ -15,7 +15,10 @@ import {
   type ImportQueue,
   type ImportStatus
 } from '@renderer/useImportQueue'
+import type { MessageKey } from '@shared/i18n/en'
+import type { Translate } from '@shared/i18n/translate'
 import type { LinkOption } from '@renderer/versionsView'
+import { useI18n, useT } from '@renderer/i18n/context'
 import { VersionLinkDialog } from '@renderer/components/VersionLinkDialog'
 import './ImportView.css'
 
@@ -29,12 +32,12 @@ const STATUS_ICONS: Record<ImportStatus, LucideIcon> = {
   failed: CircleX
 }
 
-const STATUS_LABELS: Record<ImportStatus, string> = {
-  queued: 'Waiting',
-  importing: 'Importing',
-  done: 'Imported',
-  duplicate: 'Already in your library',
-  failed: 'Failed'
+const STATUS_LABELS: Record<ImportStatus, MessageKey> = {
+  queued: 'import.status.queued',
+  importing: 'import.status.importing',
+  done: 'import.status.done',
+  duplicate: 'import.status.duplicate',
+  failed: 'import.status.failed'
 }
 
 interface ImportViewProps {
@@ -47,20 +50,26 @@ interface ImportRowProps {
   onAskVersion: () => void
 }
 
-function summary(items: ImportItem[], finished: number): string {
-  if (items.length === 0) return 'No imports yet'
+function summary(items: ImportItem[], finished: number, t: Translate, language: string): string {
+  if (items.length === 0) {
+    return t('import.noneYet')
+  }
 
   if (finished < items.length) {
-    return `Importing ${finished + 1} of ${items.length}...`
+    return t('import.progress', { current: finished + 1, total: items.length })
   }
 
   const count = (status: ImportStatus): number =>
     items.filter((item) => item.status === status).length
-  const parts = [`${count('done')} imported`]
-  if (count('duplicate') > 0) parts.push(`${count('duplicate')} already in your library`)
-  if (count('failed') > 0) parts.push(`${count('failed')} failed`)
+  const parts = [t('import.summary.imported', { count: count('done') })]
+  if (count('duplicate') > 0) {
+    parts.push(t('import.summary.duplicate', { count: count('duplicate') }))
+  }
+  if (count('failed') > 0) {
+    parts.push(t('import.summary.failed', { count: count('failed') }))
+  }
 
-  return parts.join(', ')
+  return new Intl.ListFormat(language, { type: 'unit' }).format(parts)
 }
 
 export function ImportView({ queue, onPick }: ImportViewProps): React.JSX.Element {
@@ -68,6 +77,7 @@ export function ImportView({ queue, onPick }: ImportViewProps): React.JSX.Elemen
   const finished = items.filter(isFinished)
   const [linking, setLinking] = useState<ImportItem | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const { t, language } = useI18n()
 
   async function handleLink(item: ImportItem, target: LinkOption | null): Promise<void> {
     if (!item.mod) {
@@ -79,37 +89,37 @@ export function ImportView({ queue, onPick }: ImportViewProps): React.JSX.Elemen
     if (!result.ok) {
       setError(result.error)
     } else {
-      noteVersion(item.key, target ? `Version of ${target.name}` : `Separate mod`)
+      noteVersion(item.key, target ? { kind: 'version', of: target.name } : { kind: 'separate' })
     }
   }
 
   return (
     <section className="import">
-      <h2>Import mods</h2>
+      <h2>{t('import.title')}</h2>
 
       <div className="drop-zone">
         <PackagePlus size={36} aria-hidden="true" />
-        <p className="drop-zone-title">Drag mod archives anywhere into the window</p>
+        <p className="drop-zone-title">{t('import.dropTitle')}</p>
         <p className="muted">.zip, .7z, .rar</p>
         <button className="primary" onClick={onPick}>
-          Choose archives
+          {t('import.choose')}
         </button>
       </div>
 
       <a className="button-link nexus-button" href={NEXUS_URL} target="_blank" rel="noreferrer">
         <ExternalLink size={14} aria-hidden="true" />
-        Get more mods on Nexus Mods
+        {t('import.getMore')}
       </a>
 
       <div className="import-results">
         <header className="import-results-header">
-          <p aria-live="polite">{summary(items, finished.length)}</p>
+          <p aria-live="polite">{summary(items, finished.length, t, language)}</p>
           <button className="small" onClick={clearFinished} disabled={finished.length === 0}>
-            Clear finished
+            {t('import.clearFinished')}
           </button>
         </header>
         {items.length === 0 ? (
-          <p className="import-empty muted">Archives you import will show up here.</p>
+          <p className="import-empty muted">{t('import.empty')}</p>
         ) : (
           <ul>
             {items.map((item) => (
@@ -136,12 +146,13 @@ export function ImportView({ queue, onPick }: ImportViewProps): React.JSX.Elemen
 }
 
 function asksVersion(item: ImportItem): boolean {
-  return item.status === 'done' && item.mod?.nexusModId === null && item.versionNote === null
+  return item.status === 'done' && item.mod?.nexusModId === null && item.answer === null
 }
 
 function ImportRow({ item, onAskVersion }: ImportRowProps): React.JSX.Element {
+  const t = useT()
   const Icon = STATUS_ICONS[item.status]
-  const label = STATUS_LABELS[item.status]
+  const label = t(STATUS_LABELS[item.status])
 
   return (
     <li className={`import-row ${item.status}`}>
@@ -156,15 +167,24 @@ function ImportRow({ item, onAskVersion }: ImportRowProps): React.JSX.Element {
         {item.name}
       </span>
       {item.message && <span className="import-message">{item.message}</span>}
+      {item.status === 'duplicate' && item.mod && (
+        <span className="import-message">{t('import.duplicateOf', { name: item.mod.name })}</span>
+      )}
       {asksVersion(item) && (
         <span className="import-question">
-          Its name doesn&apos;t say which mod it is. Is it a new version of a mod you have?
+          {t('import.question')}
           <button className="small" onClick={onAskVersion}>
-            Choose...
+            {t('import.answer')}
           </button>
         </span>
       )}
-      {item.versionNote && <span className="import-message">{item.versionNote}</span>}
+      {item.answer && (
+        <span className="import-message">
+          {item.answer.kind === 'version'
+            ? t('import.versionOf', { name: item.answer.of })
+            : t('import.separate')}
+        </span>
+      )}
     </li>
   )
 }

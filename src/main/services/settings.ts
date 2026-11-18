@@ -21,6 +21,10 @@ export class SettingsStore {
         this.settings[key] = DEFAULT_SETTINGS[key]
       }
     }
+
+    if (typeof this.settings.language !== 'string') {
+      this.settings.language = DEFAULT_SETTINGS.language
+    }
   }
 
   get(): Settings {

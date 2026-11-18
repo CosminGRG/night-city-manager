@@ -7,6 +7,7 @@ export interface Settings {
   downloadsPath: string | null
   nexusLookup: boolean
   autoDeployRequirements: boolean
+  language: string | null
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -15,12 +16,22 @@ export const DEFAULT_SETTINGS: Settings = {
   modsPath: null,
   downloadsPath: null,
   nexusLookup: true,
-  autoDeployRequirements: true
+  autoDeployRequirements: true,
+  language: null
 }
 
 export interface DetectedGame {
   path: string
   store: GameStore
+}
+
+export interface LanguageInfo {
+  file: string
+  language: string
+  name: string
+  author: string
+  fixer: string
+  complete: number
 }
 
 export type Result<T> = { ok: true; value: T } | { ok: false; error: string }

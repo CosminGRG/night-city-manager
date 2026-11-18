@@ -55,7 +55,13 @@ const api: NightCityApi = {
   openLog: (path) => ipcRenderer.invoke(IpcChannels.openLog, path),
   openLogFolder: (path) => ipcRenderer.invoke(IpcChannels.openLogFolder, path),
   openCrashReports: () => ipcRenderer.invoke(IpcChannels.openCrashReports),
-  openAppLog: () => ipcRenderer.invoke(IpcChannels.openAppLog)
+  openAppLog: () => ipcRenderer.invoke(IpcChannels.openAppLog),
+  listLanguages: () => ipcRenderer.invoke(IpcChannels.openAppLog),
+  getLanguage: () => ipcRenderer.invoke(IpcChannels.getLanguage),
+  setLanguage: (file) => ipcRenderer.invoke(IpcChannels.setLanguage, file),
+  addLanguage: () => ipcRenderer.invoke(IpcChannels.addLanguage),
+  openLanguagesFolder: () => ipcRenderer.invoke(IpcChannels.openLanguagesFolder),
+  saveLanguageTemplate: () => ipcRenderer.invoke(IpcChannels.saveLanguageTemplate)
 }
 
 contextBridge.exposeInMainWorld('api', api)

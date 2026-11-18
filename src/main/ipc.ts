@@ -1,5 +1,5 @@
 import { app, ipcMain, BrowserWindow, dialog, shell } from 'electron'
-import { stat } from 'fs/promises'
+import { stat, writeFile, mkdir } from 'fs/promises'
 import { join, win32 } from 'path'
 import { IpcChannels, type AppInfo } from '@shared/ipc'
 import type {
@@ -19,8 +19,10 @@ import type {
   GameLogs,
   ModUpdate,
   ImportOutcome,
-  VersionGroup
+  VersionGroup,
+  LanguageInfo
 } from '@shared/types'
+import type { LanguagePack } from '@shared/i18n/pack'
 import { detectInstalled } from './services/frameworks'
 import type { SettingsStore } from './services/settings'
 import { detectGames, findGameRoot, gameExe, isGameFolder } from './services/gameDetector'
@@ -59,6 +61,13 @@ import { deployVersion, removeVersions } from './services/versionSwitch'
 import { checkVersionLink } from './services/versionLinks'
 import { prepareRedMods, redModFolders, runRedMod } from './services/redmod'
 import type { Logger } from './services/logger'
+import {
+  addLanguages,
+  checkLanguageFile,
+  englishTemplate,
+  listLanguages,
+  loadLanguage
+} from './services/languages'
 
 interface IpcDependencies {
   settings: SettingsStore
@@ -616,6 +625,86 @@ export function registerIpcHandlers({
 
   ipcMain.handle(IpcChannels.openAppLog, (): Promise<Result<null>> =>
     toResult(() => openInShell(paths.log))
+  )
+
+  ipcMain.handle(IpcChannels.listLanguages, (): Promise<LanguageInfo[]> =>
+    listLanguages(paths.languages, (file, error) =>
+      logger.warn(`Skipped the language file ${file}`, error)
+    )
+  )
+
+  ipcMain.handle(IpcChannels.getLanguage, async (): Promise<LanguagePack | null> => {
+    const { language } = settings.get()
+    if (language === null) return null
+
+    try {
+      return await loadLanguage(paths.languages, language)
+    } catch (error) {
+      logger.warn(`Could not load the language file ${language}, showing English`, error)
+      return null
+    }
+  })
+
+  ipcMain.handle(IpcChannels.setLanguage, (_event, file: unknown): Promise<Result<Settings>> =>
+    toResult(async () => {
+      if (file === null) {
+        return settings.update({ language: null })
+      }
+      const language = checkLanguageFile(file)
+      await loadLanguage(paths.languages, language)
+      return settings.update({ language })
+    })
+  )
+
+  ipcMain.handle(IpcChannels.addLanguage, async (event): Promise<Result<LanguageInfo[]> | null> => {
+    const window = BrowserWindow.fromWebContents(event.sender)
+    if (!window) return null
+
+    const { canceled, filePaths } = await dialog.showOpenDialog(window, {
+      title: 'Add a language',
+      properties: ['openFile'],
+      filters: [
+        {
+          name: 'Language files',
+          extensions: ['json', ...ARCHIVE_EXTENSIONS.map((ext) => ext.slice(1))]
+        }
+      ]
+    })
+    if (canceled) return null
+
+    return toResult(() => addLanguages(paths.languages, filePaths[0], paths.sevenZip))
+  })
+
+  ipcMain.handle(IpcChannels.openLanguagesFolder, (): Promise<Result<null>> =>
+    toResult(async () => {
+      await mkdir(paths.languages, { recursive: true })
+      return openInShell(paths.languages)
+    })
+  )
+
+  ipcMain.handle(
+    IpcChannels.saveLanguageTemplate,
+    async (event): Promise<Result<string> | null> => {
+      const window = BrowserWindow.fromWebContents(event.sender)
+      if (!window) {
+        return null
+      }
+
+      const version = app.getVersion()
+      const { canceled, filePath } = await dialog.showSaveDialog(window, {
+        title: 'Save the translation template',
+        defaultPath: join(app.getPath('documents'), `fixer-${version}-en.json`),
+        filters: [{ name: 'Language files', extensions: ['json'] }]
+      })
+      if (canceled || !filePath) {
+        return null
+      }
+
+      return toResult(async () => {
+        await writeFile(filePath, englishTemplate(version))
+        return filePath
+      })
+    }
   )
 }
 

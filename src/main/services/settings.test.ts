@@ -49,4 +49,12 @@ describe('SettingsStore', () => {
 
     expect(store.get().autoDeployRequirements).toBe(true)
   })
+
+  it('falls back to English when the language is not a file name', async () => {
+    await writeFile(file, JSON.stringify({ version: 1, language: 7 }))
+    const store = new SettingsStore(file)
+    await store.load()
+
+    expect(store.get().language).toBeNull()
+  })
 })

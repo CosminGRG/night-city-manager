@@ -8,6 +8,7 @@ export interface AppPaths {
   downloads: string
   sevenZip: string
   log: string
+  languages: string
 }
 
 export function resolveRoot(): string {
@@ -29,7 +30,8 @@ export function initPaths(): AppPaths {
     mods: join(root, 'mods'),
     downloads: join(root, 'downloads'),
     sevenZip: resolveSevenZip(),
-    log: join(data, 'logs', 'fixer.log')
+    log: join(data, 'logs', 'fixer.log'),
+    languages: join(root, 'languages')
   }
 
   app.setPath('userData', paths.data)

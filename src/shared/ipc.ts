@@ -16,9 +16,11 @@ import type {
   GameLogs,
   ModUpdate,
   ImportOutcome,
-  VersionGroup
+  VersionGroup,
+  LanguageInfo
 } from './types'
 import type { Dependency } from './requirements'
+import type { LanguagePack } from './i18n/pack'
 
 export const IpcChannels = {
   getAppInfo: 'app:get-info',
@@ -62,7 +64,13 @@ export const IpcChannels = {
   openLog: 'logs:open',
   openLogFolder: 'logs:open-folder',
   openCrashReports: 'logs:open-crash-reports',
-  openAppLog: 'logs:open-app-log'
+  openAppLog: 'logs:open-app-log',
+  listLanguages: 'languages:list',
+  getLanguage: 'languages:current',
+  setLanguage: 'settings:set-language',
+  addLanguage: 'languages:add',
+  openLanguagesFolder: 'languages:open-folder',
+  saveLanguageTemplate: 'languages:save-template'
 } as const
 
 export interface AppInfo {
@@ -119,4 +127,10 @@ export interface NightCityApi {
   openLogFolder(path: string): Promise<Result<null>>
   openCrashReports(): Promise<Result<null>>
   openAppLog(): Promise<Result<null>>
+  listLanguages(): Promise<LanguageInfo[]>
+  getLanguage(): Promise<LanguagePack | null>
+  setLanguage(file: string | null): Promise<Result<Settings>>
+  addLanguage(): Promise<Result<LanguageInfo[]> | null>
+  openLanguagesFolder(): Promise<Result<null>>
+  saveLanguageTemplate(): Promise<Result<string> | null>
 }

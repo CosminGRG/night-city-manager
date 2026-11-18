@@ -1,15 +1,10 @@
 import type { DeployStatus, Framework, ModRecord, ModUpdate } from '@shared/types'
+import type { Translate } from '@shared/i18n/translate'
 
 export interface CoreUpdate {
   mod: ModRecord
   update: ModUpdate
 }
-
-const dayFormat = new Intl.DateTimeFormat('en-GB', {
-  day: 'numeric',
-  month: 'short',
-  year: 'numeric'
-})
 
 export function coreUpdates(
   mods: ModRecord[],
@@ -32,7 +27,15 @@ export function coreUpdates(
   return result
 }
 
-export function updateTitle({ name, version, uploadedAt }: ModUpdate): string {
-  const day = dayFormat.format(new Date(uploadedAt))
-  return `Update available: ${version} ("${name}"), uploaded ${day}. Click to see its files on Nexus Mods.`
+export function updateTitle(
+  { name, version, uploadedAt }: ModUpdate,
+  t: Translate,
+  language: string
+): string {
+  const day = new Intl.DateTimeFormat(language, {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric'
+  }).format(new Date(uploadedAt))
+  return t('updates.title', { version, name, day })
 }

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { createTranslator } from '@shared/i18n/translate'
 import type { ModRecord, ModType, NexusRequirement } from '@shared/types'
 import {
   requirementBadges,
@@ -36,7 +37,14 @@ function mod(
 }
 
 function context(overrides: Partial<RequirementContext> = {}): RequirementContext {
-  return { library: [], installed: [], deployments: {}, nexus: {}, ...overrides }
+  return {
+    library: [],
+    installed: [],
+    deployments: {},
+    nexus: {},
+    t: createTranslator('en'),
+    ...overrides
+  }
 }
 
 function requires(nexusId: number, name: string, optional = false): NexusRequirement {

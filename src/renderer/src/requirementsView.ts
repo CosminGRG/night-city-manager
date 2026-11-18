@@ -6,6 +6,7 @@ import {
   provides,
   type Dependency
 } from '@shared/requirements'
+import type { Translate } from '@shared/i18n/translate'
 
 export type RequirementState = 'met' | 'not-deployed' | 'missing'
 
@@ -22,6 +23,7 @@ export interface RequirementContext {
   installed: Dependency[]
   deployments: Record<string, DeployStatus>
   nexus: Record<number, NexusRequirement[]>
+  t: Translate
 }
 
 export interface MissingRequirements {
@@ -44,8 +46,12 @@ function rank(badge: RequirementBadge): number {
   return badge.state === 'not-deployed' ? 1 : 2
 }
 
-function withTitle(badge: Omit<RequirementBadge, 'title'>, title: string): RequirementBadge {
-  return { ...badge, title: badge.optional ? `Optional: ${title}` : title }
+function withTitle(
+  badge: Omit<RequirementBadge, 'title'>,
+  title: string,
+  t: Translate
+): RequirementBadge {
+  return { ...badge, title: badge.optional ? t('requirements.optional', { title }) : title }
 }
 
 function knownBadge(
@@ -53,38 +59,43 @@ function knownBadge(
   optional: boolean,
   context: RequirementContext
 ): RequirementBadge | null {
+  const { t } = context
   const { label, nexusId } = KNOWN_DEPENDENCIES[dependency]
   const provider = context.library.find((other) => provides(other.plan).includes(dependency))
 
   if (context.installed.includes(dependency)) {
     if (isFramework(dependency)) return null
-    return withTitle({ key: dependency, label, state: 'met', optional }, `${label} is installed.`)
+    const title = t('requirements.installed', { label })
+    return withTitle({ key: dependency, label, state: 'met', optional }, title, t)
   }
   if (provider) {
-    const title = `${label} is in your library (${provider.name}) but not deployed.`
-    return withTitle({ key: dependency, label, state: 'not-deployed', optional }, title)
+    const title = t('requirements.inLibrary', { label, provider: provider.name })
+    return withTitle({ key: dependency, label, state: 'not-deployed', optional }, title, t)
   }
 
-  const where = nexusId === null ? 'It is free in your game store.' : 'Get it on Nexus Mods.'
-  const title = `${label} is not installed. ${where}`
-  return withTitle({ key: dependency, label, state: 'missing', optional }, title)
+  const title = t(nexusId === null ? 'requirements.missingStore' : 'requirements.missingNexus', {
+    label
+  })
+  return withTitle({ key: dependency, label, state: 'missing', optional }, title, t)
 }
 
 function nexusBadge(requirement: NexusRequirement, context: RequirementContext): RequirementBadge {
+  const { t } = context
   const { nexusId, name: label, optional } = requirement
   const key = `nexus-${nexusId}`
   const provider = context.library.find((other) => other.nexusModId === nexusId)
 
   if (provider && context.deployments[provider.id] === 'deployed') {
-    return withTitle({ key, label, state: 'met', optional }, `${label} is deployed.`)
+    const title = t('requirements.deployed', { label })
+    return withTitle({ key, label, state: 'met', optional }, title, t)
   }
   if (provider) {
-    const title = `${label} is in your library (${provider.name}) but not deployed.`
-    return withTitle({ key, label, state: 'not-deployed', optional }, title)
+    const title = t('requirements.inLibrary', { label, provider: provider.name })
+    return withTitle({ key, label, state: 'not-deployed', optional }, title, t)
   }
 
-  const title = `${label} is not in your library. Get it on Nexus Mods.`
-  return withTitle({ key, label, state: 'missing', optional }, title)
+  const title = t('requirements.notInLibrary', { label })
+  return withTitle({ key, label, state: 'missing', optional }, title, t)
 }
 
 export function requirementBadges(mod: ModRecord, context: RequirementContext): RequirementBadge[] {
@@ -135,15 +146,18 @@ export function missingForBulkDeploy(
 }
 
 export function deployNotice(mod: ModRecord, context: RequirementContext): string | null {
+  const { t } = context
   const unmet = unmetRequired(mod, context).map((badge) =>
-    badge.state === 'not-deployed' ? `${badge.label} (in your library, not deployed)` : badge.label
+    badge.state === 'not-deployed'
+      ? t('requirements.notDeployedLabel', { label: badge.label })
+      : badge.label
   )
 
   if (unmet.length === 0) {
     return null
   }
 
-  return `${mod.name} is deployed, but it still needs: ${unmet.join(', ')}.`
+  return t('requirements.stillNeeds', { name: mod.name, labels: unmet.join(', ') })
 }
 
 export function deployMessage(
@@ -153,7 +167,7 @@ export function deployMessage(
 ): DeployMessage | null {
   const also =
     alsoDeployed.length > 0
-      ? `Also deployed what ${mod.name} needs: ${alsoDeployed.join(', ')}.`
+      ? context.t('requirements.alsoDeployed', { name: mod.name, names: alsoDeployed.join(', ') })
       : null
 
   const warning = deployNotice(mod, context)
@@ -195,6 +209,9 @@ export function undeployWarning(removed: ModRecord, context: RequirementContext)
     return null
   }
 
-  const verb = names.length === 1 ? 'needs' : 'need'
-  return `${names.join(', ')} still ${verb} ${removed.name} and may not work without it.`
+  return context.t('requirements.brokenBy', {
+    count: names.length,
+    names: names.join(', '),
+    name: removed.name
+  })
 }

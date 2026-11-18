@@ -1,5 +1,6 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { pageNumbers } from '@renderer/modListView'
+import { useT } from '@renderer/i18n/context'
 import './Pagination.css'
 
 interface PaginationProps {
@@ -9,13 +10,15 @@ interface PaginationProps {
 }
 
 export function Pagination({ page, pageCount, onChange }: PaginationProps): React.JSX.Element {
+  const t = useT()
+
   return (
-    <nav className="pagination" aria-label="Pages">
+    <nav className="pagination" aria-label={t('mods.pages')}>
       <button
         className="page-button"
         onClick={() => onChange(page - 1)}
         disabled={page === 1}
-        aria-label="Previous page"
+        aria-label={t('mods.previousPage')}
       >
         <ChevronLeft size={16} aria-hidden="true" />
       </button>
@@ -39,7 +42,7 @@ export function Pagination({ page, pageCount, onChange }: PaginationProps): Reac
         className="page-button"
         onClick={() => onChange(page + 1)}
         disabled={page === pageCount}
-        aria-label="Next page"
+        aria-label={t('mods.nextPage')}
       >
         <ChevronRight size={16} aria-hidden="true" />
       </button>

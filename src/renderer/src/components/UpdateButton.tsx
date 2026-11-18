@@ -1,6 +1,7 @@
 import { CircleArrowUp } from 'lucide-react'
 import type { ModUpdate } from '@shared/types'
 import { updateTitle } from '@renderer/updatesView'
+import { useI18n } from '@renderer/i18n/context'
 import './UpdateButton.css'
 
 interface UpdateButtonProps {
@@ -10,7 +11,8 @@ interface UpdateButtonProps {
 }
 
 export function UpdateButton({ update, label, onClick }: UpdateButtonProps): React.JSX.Element {
-  const title = updateTitle(update)
+  const { t, language } = useI18n()
+  const title = updateTitle(update, t, language)
 
   return (
     <button

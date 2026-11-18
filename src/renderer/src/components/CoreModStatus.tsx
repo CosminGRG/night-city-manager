@@ -2,6 +2,7 @@ import { FRAMEWORKS, type Framework, type ModRecord } from '@shared/types'
 import type { Dependency } from '@shared/requirements'
 import { FRAMEWORK_LABELS } from '@renderer/modLabels'
 import type { CoreUpdate } from '@renderer/updatesView'
+import { useT } from '@renderer/i18n/context'
 import { UpdateButton } from './UpdateButton'
 import './CoreModStatus.css'
 
@@ -16,13 +17,13 @@ export function CoreModStatus({
   updates,
   onOpenFiles
 }: CoreModStatusProps): React.JSX.Element {
+  const t = useT()
+
   return (
-    <div className="core-status" aria-label="Core mods">
+    <div className="core-status" aria-label={t('mods.coreStrip')}>
       {FRAMEWORKS.map((framework) => {
         const isInstalled = installed.includes(framework)
-        const status = isInstalled
-          ? 'Installed in the game folder'
-          : 'Not installed in the game folder'
+        const status = isInstalled ? t('mods.coreInstalled') : t('mods.coreMissing')
         const coreUpdate = updates[framework]
 
         return (
@@ -35,7 +36,7 @@ export function CoreModStatus({
             {coreUpdate && (
               <UpdateButton
                 update={coreUpdate.update}
-                label="Update available"
+                label={t('updates.available')}
                 onClick={() => onOpenFiles(coreUpdate.mod)}
               />
             )}

@@ -8,8 +8,8 @@ export interface I18n {
 }
 
 export const I18nContext = createContext<I18n>({
-  language: 'en',
-  t: createTranslator('en'),
+  language: 'en-GB',
+  t: createTranslator('en-GB'),
   reload: async () => {}
 })
 

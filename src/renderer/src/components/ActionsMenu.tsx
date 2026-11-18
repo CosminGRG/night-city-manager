@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import type { BulkRequest } from '@shared/types'
 import type { BulkCounts } from '@renderer/modListView'
+import { useT } from '@renderer/i18n/context'
 import { MenuItem } from './MenuItem'
 import './ActionsMenu.css'
 
@@ -26,6 +27,8 @@ export function ActionsMenu({
   locked,
   onSelect
 }: ActionsMenuProps): React.JSX.Element {
+  const t = useT()
+
   return (
     <DropdownMenu.Root>
       <DropdownMenu.Trigger asChild>
@@ -35,7 +38,7 @@ export function ActionsMenu({
           ) : (
             <Layers size={16} aria-hidden="true" />
           )}
-          {busyLabel ?? 'Actions'}
+          {busyLabel ?? t('mods.actionsButton')}
           <ChevronDown size={14} aria-hidden="true" />
         </button>
       </DropdownMenu.Trigger>
@@ -46,14 +49,14 @@ export function ActionsMenu({
             disabled={counts.deploy.all === 0}
             onSelect={() => onSelect({ action: 'deploy', scope: 'all' })}
           >
-            Deploy all ({counts.deploy.all})
+            {t('mods.actions.deployAll', { count: counts.deploy.all })}
           </MenuItem>
           <MenuItem
             icon={ShieldCheck}
             disabled={counts.deploy.core === 0}
             onSelect={() => onSelect({ action: 'deploy', scope: 'core' })}
           >
-            Deploy core mods ({counts.deploy.core})
+            {t('mods.actions.deployCore', { count: counts.deploy.core })}
           </MenuItem>
 
           <DropdownMenu.Separator className="menu-separator" />
@@ -62,14 +65,14 @@ export function ActionsMenu({
             disabled={counts.purge.all === 0}
             onSelect={() => onSelect({ action: 'purge', scope: 'all' })}
           >
-            Purge all ({counts.purge.all})
+            {t('mods.actions.purgeAll', { count: counts.purge.all })}
           </MenuItem>
           <MenuItem
             icon={ShieldCheck}
             disabled={counts.purge['non-core'] === 0}
             onSelect={() => onSelect({ action: 'purge', scope: 'non-core' })}
           >
-            Purge all but core mods ({counts.purge['non-core']})
+            {t('mods.actions.purgeNonCore', { count: counts.purge['non-core'] })}
           </MenuItem>
           <DropdownMenu.Separator className="menu-separator" />
           <MenuItem
@@ -78,7 +81,7 @@ export function ActionsMenu({
             disabled={counts.remove.all === 0}
             onSelect={() => onSelect({ action: 'remove', scope: 'all' })}
           >
-            Remove all ({counts.remove.all})
+            {t('mods.actions.removeAll', { count: counts.remove.all })}
           </MenuItem>
           <MenuItem
             icon={Trash2}
@@ -86,7 +89,7 @@ export function ActionsMenu({
             disabled={counts.remove['non-core'] === 0}
             onSelect={() => onSelect({ action: 'remove', scope: 'non-core' })}
           >
-            Remove all but core mods ({counts.remove['non-core']})
+            {t('mods.actions.removeNonCore', { count: counts.remove['non-core'] })}
           </MenuItem>
         </DropdownMenu.Content>
       </DropdownMenu.Portal>

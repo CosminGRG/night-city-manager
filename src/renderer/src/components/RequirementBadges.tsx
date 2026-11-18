@@ -1,14 +1,16 @@
 import { TriangleAlert } from 'lucide-react'
-import type { RequirementBadge } from '@renderer/requirementsView'
+import type { MessageKey } from '@shared/i18n/en'
+import type { RequirementBadge, RequirementState } from '@renderer/requirementsView'
+import { useT } from '@renderer/i18n/context'
 import './RequirementBadges.css'
 
 const MAX_VISIBLE = 2
 
-const STATE_TEXT = {
-  met: 'installed',
-  'not-deployed': 'not deployed',
-  missing: 'not installed'
-} as const
+const STATE_TEXT: Record<RequirementState, MessageKey> = {
+  met: 'requirements.state.met',
+  'not-deployed': 'requirements.state.notDeployed',
+  missing: 'requirements.state.missing'
+}
 
 interface RequirementBadgesProp {
   badges: RequirementBadge[]
@@ -19,6 +21,7 @@ function isWarning(badge: RequirementBadge): boolean {
 }
 
 export function RequirementBadges({ badges }: RequirementBadgesProp): React.JSX.Element {
+  const t = useT()
   const shown = badges.slice(0, MAX_VISIBLE)
   const hidden = badges.slice(MAX_VISIBLE)
   const hiddenUnmet = hidden.some(isWarning)
@@ -32,9 +35,8 @@ export function RequirementBadges({ badges }: RequirementBadgesProp): React.JSX.
           title={badge.title}
         >
           {isWarning(badge) && <TriangleAlert size={12} aria-hidden="true" />}
-          {badge.label}
-          {badge.optional && ' (optional)'}
-          <span className="sr-only"> ({STATE_TEXT[badge.state]})</span>
+          {badge.optional ? t('requirements.optionalBadge', { label: badge.label }) : badge.label}
+          <span className="sr-only"> ({t(STATE_TEXT[badge.state])})</span>
         </span>
       ))}
       {hidden.length > 0 && (
@@ -43,7 +45,10 @@ export function RequirementBadges({ badges }: RequirementBadgesProp): React.JSX.
           title={hidden.map((badge) => badge.title).join('\n')}
         >
           +{hidden.length}
-          <span className="sr-only"> more: {hidden.map((badge) => badge.title).join(' ')}</span>
+          <span className="sr-only">
+            {' '}
+            {t('requirements.more', { titles: hidden.map((badge) => badge.title).join(' ') })}
+          </span>
         </span>
       )}
     </>

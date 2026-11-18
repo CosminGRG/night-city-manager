@@ -30,6 +30,8 @@ import {
 } from '@renderer/requirementsView'
 import { RequirementBadges } from './RequirementBadges'
 import { isCoreMod } from '@shared/mods'
+import type { MessageKey } from '@shared/i18n/en'
+import { useI18n, useT } from '@renderer/i18n/context'
 import { FRAMEWORK_LABELS, MOD_TYPE_LABELS } from '@renderer/modLabels'
 import { filterMods, paginate, sortMods, bulkCounts, bulkTargets } from '@renderer/modListView'
 import { cleanedMessage, cleanedAnything } from '@renderer/leftoversView'
@@ -46,9 +48,6 @@ import { BulkConfirmDialog } from './BulkConfirmDialog'
 import { EmptyState } from './EmptyState'
 import { VersionLinkDialog } from './VersionLinkDialog'
 import './ModList.css'
-
-const dateFormat = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' })
-const INTERRUPTED = 'The last deploy or undeploy was interrupted. Undeploy to clean up.'
 
 interface DeployState {
   deployments: Record<string, DeployStatus>
@@ -75,10 +74,10 @@ interface Notice {
   tone: 'info' | 'warning'
 }
 
-const BULK_BUSY: Record<BulkAction, string> = {
-  deploy: 'Deploying...',
-  purge: 'Purging...',
-  remove: 'Removing...'
+const BULK_BUSY: Record<BulkAction, MessageKey> = {
+  deploy: 'mods.busy.deploying',
+  purge: 'mods.busy.purging',
+  remove: 'mods.busy.removing'
 }
 
 const BULK_DONE: Record<BulkAction, string> = {
@@ -162,6 +161,7 @@ export function ModList({
   const [pendingBulk, setPendingBulk] = useState<BulkRequest | null>(null)
   const [bulkLabel, setBulkLabel] = useState<string | null>(null)
   const [bisecting, setBisecting] = useState(false)
+  const t = useT()
 
   function applyDeployState(state: DeployState): void {
     setDeployments(state.deployments)
@@ -206,7 +206,10 @@ export function ModList({
   }, [])
 
   async function handleDeploy(mod: ModRecord, rowId = mod.id): Promise<void> {
-    setBusy({ id: rowId, label: rowId === mod.id ? 'Deploying...' : 'Switching...' })
+    setBusy({
+      id: rowId,
+      label: rowId === mod.id ? t('mods.busy.deploying') : t('mods.busy.switching')
+    })
     setError(null)
     setNotice(null)
     try {
@@ -217,7 +220,7 @@ export function ModList({
       if (!result.ok) {
         setError(result.error)
       } else {
-        setNotice(deployMessage(mod, result.value, { ...state, library: mods ?? [] }))
+        setNotice(deployMessage(mod, result.value, { ...state, library: mods ?? [], t }))
       }
     } finally {
       setBusy(null)
@@ -225,7 +228,7 @@ export function ModList({
   }
 
   async function handleUndeploy(mod: ModRecord): Promise<void> {
-    setBusy({ id: mod.id, label: 'Undeploying...' })
+    setBusy({ id: mod.id, label: t('mods.busy.undeploying') })
     setError(null)
     setNotice(null)
     try {
@@ -237,7 +240,7 @@ export function ModList({
         setError(result.error)
       } else {
         const { kept } = result.value
-        const warning = undeployWarning(mod, { ...state, library: mods ?? [] })
+        const warning = undeployWarning(mod, { ...state, library: mods ?? [], t })
         setNotice(noticeOf(warning, kept.length > 0 ? [keptMessage(mod, kept)] : []))
       }
     } finally {
@@ -250,7 +253,7 @@ export function ModList({
     trashLeftover: boolean,
     allVersions: boolean
   ): Promise<void> {
-    setBusy({ id: mod.id, label: 'Removing...' })
+    setBusy({ id: mod.id, label: t('mods.busy.removing') })
     setError(null)
     setNotice(null)
     const wasDeployed = deployments[mod.id] === 'deployed'
@@ -277,7 +280,7 @@ export function ModList({
           info.push(cleanedMessage(cleaned))
         }
 
-        const warning = wasDeployed ? undeployWarning(mod, { ...state, library }) : null
+        const warning = wasDeployed ? undeployWarning(mod, { ...state, library, t }) : null
         setNotice(noticeOf(warning, info))
       }
     } finally {
@@ -286,7 +289,7 @@ export function ModList({
   }
 
   async function handleBulk(request: BulkRequest): Promise<void> {
-    setBulkLabel(BULK_BUSY[request.action])
+    setBulkLabel(t(BULK_BUSY[request.action]))
     setError(null)
     setNotice(null)
 
@@ -365,7 +368,8 @@ export function ModList({
     library: mods ?? [],
     installed,
     deployments,
-    nexus
+    nexus,
+    t
   }
 
   return (
@@ -379,28 +383,25 @@ export function ModList({
         <div className="mods-title">
           <div className="mods-heading">
             <h2>
-              Mods <span className="mods-count">{rows.length}</span>
+              {t('mods.title')} <span className="mods-count">{rows.length}</span>
             </h2>
             <span
               className={activeCount > 0 ? 'stat-chip' : 'stat-chip idle'}
-              title="Deployed to your game folder"
+              title={t('mods.activeTitle')}
             >
               <span className="stat-dot" aria-hidden="true" />
-              {activeCount} active
+              {t('mods.active', { count: activeCount })}
             </span>
             {interrupedCount > 0 && (
-              <span
-                className="stat-chip interrupted"
-                title="A deploy or undeploy was interrupted. Undeploy these mods to clean up."
-              >
+              <span className="stat-chip interrupted" title={t('mods.interruptedTitle')}>
                 <TriangleAlert size={12} aria-hidden="true" />
-                {interrupedCount} interrupted
+                {t('mods.interrupted', { count: interrupedCount })}
               </span>
             )}
           </div>
           <button className="with-icon" onClick={onImport} disabled={locked}>
             <Plus size={16} aria-hidden="true" />
-            Import archives
+            {t('mods.import')}
           </button>
           <ActionsMenu
             counts={counts}
@@ -415,11 +416,9 @@ export function ModList({
       {bisecting && (
         <div className="bisect-banner mods-message" role="status">
           <FlaskConical size={16} aria-hidden="true" />
-          <span>
-            A bisect is running, so mods can&apos;t be changed until you finish or stop it.
-          </span>
+          <span>{t('mods.bisecting')}</span>
           <button className="small" onClick={onTroubleshoot}>
-            Open Troubleshoot
+            {t('mods.openTroubleshoot')}
           </button>
         </div>
       )}
@@ -440,18 +439,18 @@ export function ModList({
           {notice.text}
         </p>
       )}
-      {mods === null && <p className="muted">Loading...</p>}
+      {mods === null && <p className="muted">{t('app.loading')}</p>}
       {mods?.length === 0 && (
-        <EmptyState icon={PackageOpen} title="No mods yet">
+        <EmptyState icon={PackageOpen} title={t('mods.empty')}>
           <p>Drag mod archives anywhere into the window, or pick them from your disk.</p>
           <button className="primary" onClick={onImport}>
-            Import archives
+            <p>{t('mods.emptyHint')}</p>
           </button>
         </EmptyState>
       )}
       {visible && mods && mods.length > 0 && visible.total === 0 && (
-        <EmptyState icon={SearchX} title={`No mods match "${query}"`}>
-          <button onClick={() => handleSearch('')}>Clear search</button>
+        <EmptyState icon={SearchX} title={t('mods.noMatch', { query })}>
+          <button onClick={() => handleSearch('')}>{t('mods.clearSearch')}</button>
         </EmptyState>
       )}
 
@@ -460,11 +459,11 @@ export function ModList({
           <div className="mod-table">
             <div className="mod-row mod-head" aria-hidden="true">
               <span />
-              <span>Name</span>
-              <span>Ver.</span>
-              <span>Type</span>
-              <span>Requires</span>
-              <span>Imported</span>
+              <span>{t('mods.column.name')}</span>
+              <span>{t('mods.column.version')}</span>
+              <span>{t('mods.column.type')}</span>
+              <span>{t('mods.column.requires')}</span>
+              <span>{t('mods.column.imported')}</span>
               <span />
             </div>
             <ul className="mod-list">
@@ -491,7 +490,7 @@ export function ModList({
           </div>
           <footer className="mods-footer">
             <span className="muted">
-              {visible.first}–{visible.last} of {visible.total}
+              {t('mods.range', { first: visible.first, last: visible.last, total: visible.total })}
             </span>
             {visible.pageCount > 1 && (
               <Pagination page={visible.page} pageCount={visible.pageCount} onChange={setPage} />
@@ -543,27 +542,27 @@ export function ModList({
 }
 
 function StatusIcon({ status }: { status: DeployStatus | undefined }): React.JSX.Element {
+  const t = useT()
+
   if (status === 'deployed') {
+    const label = t('mods.status.deployed')
     return (
-      <span className="status status-deployed" role="img" aria-label="Deployed" title="Deployed">
+      <span className="status status-deployed" role="img" aria-label={label} title={label}>
         <CircleCheck size={16} aria-hidden="true" />
       </span>
     )
   }
   if (status) {
+    const label = t('mods.status.interrupted')
     return (
-      <span
-        className="status status-interrupted"
-        role="img"
-        aria-label="Interrupted"
-        title="Interrupted"
-      >
+      <span className="status status-interrupted" role="img" aria-label={label} title={label}>
         <TriangleAlert size={16} aria-hidden="true" />
       </span>
     )
   }
+  const label = t('mods.status.idle')
   return (
-    <span className="status status-idle" role="img" aria-label="Not deployed" title="Not deployed">
+    <span className="status status-idle" role="img" aria-label={label} title={label}>
       <Circle size={16} aria-hidden="true" />
     </span>
   )
@@ -592,8 +591,12 @@ function ModRow({
   locked,
   actions
 }: ModRowProps): React.JSX.Element {
+  const { t, language } = useI18n()
   const interrupted = status === 'deploying' || status === 'undeploying'
-  const warnings = interrupted ? [INTERRUPTED, ...mod.plan.warnings] : mod.plan.warnings
+  const warnings = interrupted
+    ? [t('mods.interruptedWarning'), ...mod.plan.warnings]
+    : mod.plan.warnings
+  const frameworks = mod.plan.providers.map((framework) => FRAMEWORK_LABELS[framework])
 
   return (
     <li className={isCoreMod(mod) ? 'mod-row core' : 'mod-row'}>
@@ -634,9 +637,9 @@ function ModRow({
         {isCoreMod(mod) && (
           <span
             className="badge badge-core"
-            title={`Core mod: ${mod.plan.providers.map((framework) => FRAMEWORK_LABELS[framework]).join(', ')}`}
+            title={t('mods.coreTitle', { frameworks: frameworks.join(', ') })}
           >
-            Core
+            {t('mods.core')}
           </span>
         )}
         {mod.plan.types.map((type) => (
@@ -650,7 +653,9 @@ function ModRow({
         <RequirementBadges badges={requirements} />
       </span>
 
-      <span className="mod-cell mod-date">{dateFormat.format(new Date(mod.importedAt))}</span>
+      <span className="mod-cell mod-date">
+        {new Date(mod.importedAt).toLocaleDateString(language, { dateStyle: 'medium' })}
+      </span>
 
       <span className="mod-cell mod-actions">
         <ModControls

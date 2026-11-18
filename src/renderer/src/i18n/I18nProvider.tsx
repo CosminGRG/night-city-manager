@@ -14,7 +14,7 @@ export function I18nProvider({ children }: { children: React.ReactNode }): React
     loadPack().then(setPack)
   }, [])
 
-  const language = pack?.language ?? 'en'
+  const language = pack?.language ?? 'en-GB'
 
   useEffect(() => {
     document.documentElement.lang = language

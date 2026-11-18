@@ -1,6 +1,8 @@
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 import { ChevronDown, ExternalLink, FolderOpen, Files, Trash2, Link2 } from 'lucide-react'
 import type { DeployStatus, ModRecord } from '@shared/types'
+import type { MessageKey } from '@shared/i18n/en'
+import { useT } from '@renderer/i18n/context'
 import { MenuItem } from './MenuItem'
 import './ModControls.css'
 
@@ -22,11 +24,11 @@ interface ModControlsProps {
   actions: ModActions
 }
 
-function switchTitle(status: DeployStatus | undefined, nothingToDeploy: boolean): string {
-  if (status === 'deployed') return 'Deployed. Click to undeploy.'
-  if (status) return 'Interrupted. Click to clean up.'
-  if (nothingToDeploy) return 'This mod has no files that can be placed automatically'
-  return 'Not deployed. Click to deploy.'
+function switchTitle(status: DeployStatus | undefined, nothingToDeploy: boolean): MessageKey {
+  if (status === 'deployed') return 'mods.switch.deployed'
+  if (status) return 'mods.switch.interrupted'
+  if (nothingToDeploy) return 'mods.switch.nothing'
+  return 'mods.switch.idle'
 }
 
 export function ModControls({
@@ -38,6 +40,7 @@ export function ModControls({
 }: ModControlsProps): React.JSX.Element {
   const nothingToDeploy = mod.plan.files.length === 0
   const interrupted = status !== undefined && status !== 'deployed'
+  const t = useT()
 
   return (
     <div className="mod-controls">
@@ -50,8 +53,8 @@ export function ModControls({
           type="button"
           role="switch"
           aria-checked={status === 'deployed'}
-          aria-label={`Deploy ${mod.name}`}
-          title={switchTitle(status, nothingToDeploy)}
+          aria-label={t('mods.switchLabel', { name: mod.name })}
+          title={t(switchTitle(status, nothingToDeploy))}
           className="pill-switch"
           disabled={locked || (!status && nothingToDeploy)}
           onClick={() => (status ? actions.undeploy(mod) : actions.deploy(mod))}
@@ -63,21 +66,21 @@ export function ModControls({
 
         <DropdownMenu.Root>
           <DropdownMenu.Trigger asChild>
-            <button className="pill-menu" aria-label={`More actions for ${mod.name}`}>
+            <button className="pill-menu" aria-label={t('mods.moreActions', { name: mod.name })}>
               <ChevronDown size={14} aria-hidden="true" />
             </button>
           </DropdownMenu.Trigger>
           <DropdownMenu.Portal>
             <DropdownMenu.Content className="menu" align="end" sideOffset={4}>
               <MenuItem icon={FolderOpen} onSelect={() => actions.reveal(mod)}>
-                Reveal in Explorer
+                {t('mods.menu.reveal')}
               </MenuItem>
               <MenuItem
                 icon={ExternalLink}
                 disabled={mod.nexusModId === null}
                 onSelect={() => actions.openNexus(mod)}
               >
-                Open Nexus page
+                {t('mods.menu.nexusPage')}
               </MenuItem>
 
               <MenuItem
@@ -85,17 +88,17 @@ export function ModControls({
                 disabled={mod.nexusModId === null}
                 onSelect={() => actions.openNexusFiles(mod)}
               >
-                View files on Nexus
+                {t('mods.menu.nexusFiles')}
               </MenuItem>
               {mod.nexusModId === null && (
                 <MenuItem icon={Link2} disabled={locked} onSelect={() => actions.linkVersion(mod)}>
-                  Set as version of...
+                  {t('mods.menu.linkVersion')}
                 </MenuItem>
               )}
 
               <DropdownMenu.Separator className="menu-separator" />
               <MenuItem icon={Trash2} danger disabled={locked} onSelect={() => actions.remove(mod)}>
-                Remove
+                {t('mods.menu.remove')}
               </MenuItem>
             </DropdownMenu.Content>
           </DropdownMenu.Portal>

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { createTranslator } from '@shared/i18n/translate'
 import type { Framework, ModRecord, ModUpdate } from '@shared/types'
 import { coreUpdates, updateTitle } from './updatesView'
 
@@ -44,7 +45,7 @@ describe('coreUpdates', () => {
 
 describe('updateTitle', () => {
   it('names the new version, the Nexus file and its upload day', () => {
-    expect(updateTitle(UPDATE)).toBe(
+    expect(updateTitle(UPDATE, createTranslator('en'), 'en-GB')).toBe(
       'Update available: 1.38.1 ("CET 1.38.1 - Game version 2.5"), uploaded 26 Oct 2026. Click to see its files on Nexus Mods.'
     )
   })

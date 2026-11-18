@@ -2,6 +2,7 @@ import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 import { Check, ChevronDown, CircleArrowUp } from 'lucide-react'
 import type { ModRecord, ModUpdate } from '@shared/types'
 import { updateTitle } from '@renderer/updatesView'
+import { useI18n, useT } from '@renderer/i18n/context'
 import './Menu.css'
 import './VersionBadge.css'
 
@@ -34,6 +35,8 @@ function VersionMenu({
   locked,
   onPick
 }: VersionMenuProps): React.JSX.Element {
+  const t = useT()
+
   function pick(id: string): void {
     const version = versions.find((candidate) => candidate.id === id)
     if (version && version.id !== mod.id) onPick(version)
@@ -46,7 +49,11 @@ function VersionMenu({
           className="version-main"
           disabled={locked}
           title={labelOf(mod)}
-          aria-label={`Version ${labelOf(mod)} of ${mod.name}, ${versions.length} versions`}
+          aria-label={t('mods.version.label', {
+            version: labelOf(mod),
+            name: mod.name,
+            count: versions.length
+          })}
         >
           <span className="version-text">{labelOf(mod)}</span>
           <ChevronDown size={12} aria-hidden="true" />
@@ -55,7 +62,7 @@ function VersionMenu({
       <DropdownMenu.Portal>
         <DropdownMenu.Content className="menu" align="start" sideOffset={4}>
           <DropdownMenu.Label className="menu-label">
-            {deployed ? 'Switch to version' : 'version'}
+            {deployed ? t('mods.version.switchTo') : t('mods.version.show')}
           </DropdownMenu.Label>
           <DropdownMenu.RadioGroup value={mod.id} onValueChange={pick}>
             {versions.map((version, index) => (
@@ -71,7 +78,7 @@ function VersionMenu({
                   </DropdownMenu.ItemIndicator>
                 </span>
                 {labelOf(version)}
-                {index === 0 && <span className="version-tag">newest</span>}
+                {index === 0 && <span className="version-tag">{t('mods.version.newest')}</span>}
               </DropdownMenu.RadioItem>
             ))}
           </DropdownMenu.RadioGroup>
@@ -90,6 +97,8 @@ export function VersionBadge({
   onPick,
   onOpenFiles
 }: VersionBadgeProps): React.JSX.Element | null {
+  const { t, language } = useI18n()
+
   if (versions.length < 2 && !mod.version && !update) {
     return null
   }
@@ -112,8 +121,8 @@ export function VersionBadge({
       {update && (
         <button
           className="version-update"
-          title={updateTitle(update)}
-          aria-label={updateTitle(update)}
+          title={updateTitle(update, t, language)}
+          aria-label={updateTitle(update, t, language)}
           onClick={onOpenFiles}
         >
           <CircleArrowUp size={12} aria-hidden="true" />

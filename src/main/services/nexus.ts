@@ -1,4 +1,5 @@
 import type { NexusRequirement } from '@shared/types'
+import { isRecord } from '@shared/guards'
 
 export const NEXUS_GRAPHQL_URL = 'https://api.nexusmods.com/v2/graphql'
 export const APPLICATION_NAME = 'FixerCP2077'
@@ -44,10 +45,6 @@ export interface NexusFile {
 const FILE_FIELDS = 'fileId sqid groupId name version category date'
 
 export type Fetch = (url: string, init: RequestInit) => Promise<Response>
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
-}
 
 export function toNexusId(value: unknown): number | null {
   const id = typeof value === 'string' ? Number(value) : value

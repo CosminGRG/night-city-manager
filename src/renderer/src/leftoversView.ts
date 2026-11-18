@@ -1,4 +1,5 @@
 import type { CleanResult, LeftoverGroup } from '@shared/types'
+import type { Translate } from '@shared/i18n/translate'
 
 const UNITS = ['B', 'KB', 'MB', 'GB']
 
@@ -48,15 +49,12 @@ export function cleanedAnything({ trashed, failed }: CleanResult): boolean {
   return trashed > 0 || failed.length > 0
 }
 
-export function cleanedMessage({ trashed, failed }: CleanResult): string {
-  const parts = [
-    `Moved ${trashed} leftover ${trashed === 1 ? 'file' : 'files'} to the Recycle Bin.`
-  ]
+export function cleanedMessage({ trashed, failed }: CleanResult, t: Translate): string {
+  const parts = [t('leftovers.moved', { count: trashed })]
 
   if (failed.length > 0) {
-    parts.push(
-      `Could not move: ${failed.map(({ path, error }) => `${path} (${error})`).join(', ')}`
-    )
+    const files = failed.map(({ path, error }) => `${path} (${error})`).join(', ')
+    parts.push(t('leftovers.notMoved', { files }))
   }
 
   return parts.join(' ')

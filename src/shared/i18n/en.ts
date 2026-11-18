@@ -6,6 +6,7 @@ export const EN = {
   'common.cancel': 'Cancel',
   'common.change': 'Change',
   'common.save': 'Save',
+  'common.remove': 'Remove',
   'app.loading': 'Loading...',
 
   // Sidebar
@@ -179,12 +180,77 @@ export const EN = {
     other: '{names} still need {name} and may not work without it.'
   },
   'mods.deployedInstead': '{name} is deployed in its place.',
+  'mods.keptAll':
+    '{name}: none of its files could be verified, so all were left in place (was its folder in "mods" deleted?): {files}',
+  'mods.keptChanged': '{name}: left in place because they changed after deploy: {files}',
+  'mods.linked': '{name} is now a version of {target}.',
+  'mods.unlinked': '{name} is a separate mod.',
+  'mods.bulk.deployed': { one: 'Deployed {count} mod.', other: 'Deployed {count} mods.' },
+  'mods.bulk.purged': { one: 'Purged {count} mod.', other: 'Purged {count} mods.' },
+  'mods.bulk.removed': { one: 'Removed {count} mod.', other: 'Removed {count} mods.' },
+  'mods.bulk.skipped': {
+    other:
+      "Skipped {count} that can't be deployed automatically (nothing to place, or an interrupted deploy that needs an undeploy first)."
+  },
+  'mods.bulk.kept': 'Left in place because they changed after deploy: {files}',
+  'mods.bulk.failed': 'Failed: {mods}',
+  'bulk.scope.all': 'all mods',
+  'bulk.scope.core': 'core mods',
+  'bulk.scope.nonCore': 'all but core mods',
+  'bulk.deploy.title': 'Deploy {target}?',
+  'bulk.deploy.body': {
+    one: '{count} mod will be deployed to your game folder, core mods first.',
+    other: '{count} mods will be deployed to your game folder, core mods first.'
+  },
+  'bulk.deploy.note':
+    'If two mods want the same file, the first one keeps it and the other is reported.',
+  'bulk.deploy.confirm': 'Deploy',
+  'bulk.purge.title': 'Purge {target}?',
+  'bulk.purge.body': {
+    one: '{count} deployed mod will be taken out of your game folder.',
+    other: '{count} deployed mods will be taken out of your game folder.'
+  },
+  'bulk.purge.note': 'They stay in your mod list, so you can deploy them again anytime.',
+  'bulk.purge.confirm': 'Purge',
+  'bulk.remove.title': 'Remove {target}?',
+  'bulk.remove.body': {
+    one: '{count} mod will be undeployed and deleted from your mod list.',
+    other: '{count} mods will be undeployed and deleted from your mod list.'
+  },
+  'bulk.remove.note':
+    'Your downloaded archives stay where they are, but every mod has to be imported again.',
+  'bulk.missing': {
+    one: "{count} mod needs something that isn't installed",
+    other: "{count} mods need something that isn't installed"
+  },
+  'bulk.showMods': 'Show mods',
+  'bulk.missingNote': 'They will deploy but may not work until you add these.',
+  'bulk.trashHint':
+    'Logs, settings and saved data (like CET key bindings or AMM appearances) in folders the app created that no deployed mod still uses.',
+  'bulk.confirmWord': 'remove',
+  'bulk.typeToConfirm': 'Type {word} to confirm',
+  'remove.title': 'Remove {name}?',
+  'remove.titleAll': 'Remove all versions of {name}?',
+  'remove.body.one': 'It will be taken off your mod list.',
+  'remove.body.oneDeployed': 'It will be taken off your mod list and out of your game.',
+  'remove.body.all': 'They will be taken off your mod list.',
+  'remove.body.allDeployed': 'They will be taken off your mod list and out of your game.',
+  'remove.archiveNote':
+    'Your downloaded archive stays where it is, so you can import it again anytime.',
+  'remove.otherVersions': {
+    one: 'Also remove the other version',
+    other: 'Also remove the other versions'
+  },
+  'remove.trashHint':
+    'Settings, logs and saved mod data written into the folders it created in the game.',
 
   // Troubleshoot
   'leftovers.moved': {
     one: 'Moved {count} leftover file to the Recycle Bin.',
     other: 'Moved {count} leftover files to the Recycle Bin.'
-  }
+  },
+  'leftovers.notMoved': 'Could not move: {files}',
+  'leftovers.trashOption': 'Also move leftover files to the Recycle Bin'
 } satisfies Record<string, Message>
 
 export type MessageKey = keyof typeof EN

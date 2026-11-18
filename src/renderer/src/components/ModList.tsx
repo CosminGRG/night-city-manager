@@ -31,6 +31,7 @@ import {
 import { RequirementBadges } from './RequirementBadges'
 import { isCoreMod } from '@shared/mods'
 import type { MessageKey } from '@shared/i18n/en'
+import type { Translate } from '@shared/i18n/translate'
 import { useI18n, useT } from '@renderer/i18n/context'
 import { FRAMEWORK_LABELS, MOD_TYPE_LABELS } from '@renderer/modLabels'
 import { filterMods, paginate, sortMods, bulkCounts, bulkTargets } from '@renderer/modListView'
@@ -80,10 +81,10 @@ const BULK_BUSY: Record<BulkAction, MessageKey> = {
   remove: 'mods.busy.removing'
 }
 
-const BULK_DONE: Record<BulkAction, string> = {
-  deploy: 'Deployed',
-  purge: 'Purged',
-  remove: 'Removed'
+const BULK_DONE: Record<BulkAction, MessageKey> = {
+  deploy: 'mods.bulk.deployed',
+  purge: 'mods.bulk.purged',
+  remove: 'mods.bulk.removed'
 }
 
 async function loadDeployState(): Promise<DeployState> {
@@ -111,29 +112,31 @@ function noticeOf(warning: string | null, info: string[]): Notice | null {
   return { text: parts.join(' '), tone: warning ? 'warning' : 'info' }
 }
 
-function keptMessage(mod: ModRecord, kept: string[]): string {
-  const files = kept.join(', ')
+function keptMessage(mod: ModRecord, kept: string[], t: Translate): string {
+  const values = { name: mod.name, files: kept.join(', ') }
   if (kept.length === mod.plan.files.length) {
-    return `${mod.name}: none of its files could be verified, so all were left in place (was its folder in "mods" deleted?): ${files}`
+    return t('mods.keptAll', values)
   }
-  return `${mod.name}: left in place because they changed after deploy: ${files}`
+  return t('mods.keptChanged', values)
 }
 
-function bulkMessage(action: BulkAction, { done, skipped, kept, cleaned }: BulkResult): string {
-  const parts = [`${BULK_DONE[action]} ${done} ${done === 1 ? 'mod' : 'mods'}.`]
+function bulkMessage(
+  action: BulkAction,
+  { done, skipped, kept, cleaned }: BulkResult,
+  t: Translate
+): string {
+  const parts = [t(BULK_DONE[action], { count: done })]
 
   if (skipped > 0) {
-    parts.push(
-      `Skipped ${skipped} that can't be deployed automatically (nothing to place, or an interrupted deploy that needs an undeploy first).`
-    )
+    parts.push(t('mods.bulk.skipped', { count: skipped }))
   }
   if (kept.length > 0) {
     const files = kept.map(({ name, files }) => `${name}: ${files.join(', ')}`).join(', ')
-    parts.push(`Left in place because they changed after deploy: ${files}`)
+    parts.push(t('mods.bulk.kept', { files }))
   }
 
   if (cleaned && cleanedAnything(cleaned)) {
-    parts.push(cleanedMessage(cleaned))
+    parts.push(cleanedMessage(cleaned, t))
   }
 
   return parts.join(' ')
@@ -241,7 +244,7 @@ export function ModList({
       } else {
         const { kept } = result.value
         const warning = undeployWarning(mod, { ...state, library: mods ?? [], t })
-        setNotice(noticeOf(warning, kept.length > 0 ? [keptMessage(mod, kept)] : []))
+        setNotice(noticeOf(warning, kept.length > 0 ? [keptMessage(mod, kept, t)] : []))
       }
     } finally {
       setBusy(null)
@@ -271,13 +274,13 @@ export function ModList({
         const info: string[] = []
 
         if (deployedInstead) {
-          info.push(`${deployedInstead} is deployed in its place.`)
+          info.push(t('mods.deployedInstead', { name: deployedInstead }))
         }
         if (kept.length > 0) {
-          info.push(keptMessage(mod, kept))
+          info.push(keptMessage(mod, kept, t))
         }
         if (cleaned && cleanedAnything(cleaned)) {
-          info.push(cleanedMessage(cleaned))
+          info.push(cleanedMessage(cleaned, t))
         }
 
         const warning = wasDeployed ? undeployWarning(mod, { ...state, library, t }) : null
@@ -302,9 +305,10 @@ export function ModList({
 
       const { failed } = result.value
       if (failed.length > 0) {
-        setError(`Failed ${failed.map(({ name, error }) => `${name} (${error})`).join(', ')}`)
+        const list = failed.map(({ name, error }) => `${name} (${error})`).join(', ')
+        setError(t('mods.bulk.failed', { mods: list }))
       }
-      setNotice({ text: bulkMessage(request.action, result.value), tone: 'info' })
+      setNotice({ text: bulkMessage(request.action, result.value, t), tone: 'info' })
     } finally {
       setMods(await window.api.listMods())
       await refresh()
@@ -331,8 +335,8 @@ export function ModList({
       setError(result.error)
     } else {
       const text = target
-        ? `${mod.name} is now a version of ${target.name}`
-        : `${mod.name} is a separate mod.`
+        ? t('mods.linked', { name: mod.name, target: target.name })
+        : t('mods.unlinked', { name: mod.name })
 
       setNotice({ text, tone: 'info' })
     }

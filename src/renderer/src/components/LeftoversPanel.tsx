@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { RefreshCw, Sparkles, Trash2 } from 'lucide-react'
 import type { LeftoverGroup, Result } from '@shared/types'
+import { useT } from '@renderer/i18n/context'
 import { ConfirmDialog } from './ConfirmDialog'
 import { EmptyState } from './EmptyState'
 import {
@@ -85,6 +86,7 @@ export function LeftoversPanel(): React.JSX.Element {
   const [confirming, setConfirming] = useState(false)
   const [cleaning, setCleaning] = useState(false)
   const [locked, setLocked] = useState(false)
+  const t = useT()
 
   function applyScan(result: Result<LeftoverGroup[]>): void {
     if (result.ok) {
@@ -119,7 +121,7 @@ export function LeftoversPanel(): React.JSX.Element {
     try {
       const result = await window.api.cleanLeftovers([...selected])
       if (result.ok) {
-        setNotice(cleanedMessage(result.value))
+        setNotice(cleanedMessage(result.value, t))
       } else {
         setError(result.error)
       }

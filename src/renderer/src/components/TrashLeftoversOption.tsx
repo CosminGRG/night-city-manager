@@ -1,3 +1,4 @@
+import { useT } from '@renderer/i18n/context'
 import './TrashLeftoversOption.css'
 
 interface TrashLeftoverOptionProps {
@@ -11,6 +12,8 @@ export function TrashLeftoversOption({
   hint,
   onChange
 }: TrashLeftoverOptionProps): React.JSX.Element {
+  const t = useT()
+
   return (
     <label className="confirm-option">
       <input
@@ -19,7 +22,7 @@ export function TrashLeftoversOption({
         onChange={(event) => onChange(event.target.checked)}
       />
       <span>
-        Also move leftover files to the Recycle Bin
+        {t('leftovers.trashOption')}
         <span className="muted">{hint}</span>
       </span>
     </label>

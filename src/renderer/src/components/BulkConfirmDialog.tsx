@@ -1,55 +1,45 @@
 import { useRef, useState } from 'react'
 import { TriangleAlert } from 'lucide-react'
-import type { BulkRequest, BulkScope } from '@shared/types'
+import type { BulkAction, BulkRequest, BulkScope } from '@shared/types'
+import type { MessageKey } from '@shared/i18n/en'
+import { useT } from '@renderer/i18n/context'
+import { insert } from '@renderer/i18n/insert'
 import { ConfirmDialog } from './ConfirmDialog'
 import { TrashLeftoversOption } from './TrashLeftoversOption'
 import type { MissingRequirements } from '@renderer/requirementsView'
 import './BulkConfirmDialog.css'
 
-const CONFIRM_WORD = 'remove'
-
-interface DialogText {
-  title: string
-  body: string
-  note: string
-  confirmLabel: string
+interface DialogKeys {
+  title: MessageKey
+  body: MessageKey
+  note: MessageKey
+  confirm: MessageKey
 }
 
-const SCOPE_LABELS: Record<BulkScope, string> = {
-  all: 'all mods',
-  core: 'core mods',
-  'non-core': 'all but core mods'
+const SCOPE_LABELS: Record<BulkScope, MessageKey> = {
+  all: 'bulk.scope.all',
+  core: 'bulk.scope.core',
+  'non-core': 'bulk.scope.nonCore'
 }
 
-function mods(count: number, kind = ''): string {
-  return `${count} ${kind}${count === 1 ? 'mod' : 'mods'}`
-}
-
-function dialogText({ action, scope }: BulkRequest, count: number): DialogText {
-  const target = SCOPE_LABELS[scope]
-
-  switch (action) {
-    case 'deploy':
-      return {
-        title: `Deploy ${target}?`,
-        body: `${mods(count)} will be deployed to your game folder, core mods first.`,
-        note: 'If two mods want the same file, the first one keeps it and the other is reported.',
-        confirmLabel: 'Deploy'
-      }
-    case 'purge':
-      return {
-        title: `Purge ${target}?`,
-        body: `${mods(count, 'deployed ')} will be taken out of your game folder.`,
-        note: 'They stay in your mod list, so you can deploy them again anytime.',
-        confirmLabel: 'Purge'
-      }
-    case 'remove':
-      return {
-        title: `Remove ${target}?`,
-        body: `${mods(count)} will be undeployed and deleted from your mod list.`,
-        note: 'Your downloaded archives stay where they are, but every mod has to be imported again.',
-        confirmLabel: 'Remove'
-      }
+const DIALOG_KEYS: Record<BulkAction, DialogKeys> = {
+  deploy: {
+    title: 'bulk.deploy.title',
+    body: 'bulk.deploy.body',
+    note: 'bulk.deploy.note',
+    confirm: 'bulk.deploy.confirm'
+  },
+  purge: {
+    title: 'bulk.purge.title',
+    body: 'bulk.purge.body',
+    note: 'bulk.purge.note',
+    confirm: 'bulk.purge.confirm'
+  },
+  remove: {
+    title: 'bulk.remove.title',
+    body: 'bulk.remove.body',
+    note: 'bulk.remove.note',
+    confirm: 'common.remove'
   }
 }
 
@@ -70,32 +60,33 @@ export function BulkConfirmDialog({
 }: BulkConfirmDialogProps): React.JSX.Element {
   const [typed, setTyped] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
-  const needsWord = request.action === 'remove'
-  const text = dialogText(request, count)
   const [trashLeftovers, setTrashLeftovers] = useState(false)
+  const t = useT()
+  const keys = DIALOG_KEYS[request.action]
+  const confirmWord = t('bulk.confirmWord')
+  const needsWord = request.action === 'remove'
   const canTrash = request.action !== 'deploy'
 
   return (
     <ConfirmDialog
-      title={text.title}
-      confirmLabel={text.confirmLabel}
+      title={t(keys.title, { target: t(SCOPE_LABELS[request.scope]) })}
+      confirmLabel={t(keys.confirm)}
       tone={request.action === 'deploy' ? 'primary' : 'danger'}
-      confirmDisabled={needsWord && typed.trim().toLowerCase() !== CONFIRM_WORD}
+      confirmDisabled={needsWord && typed.trim().toLowerCase() !== confirmWord.toLowerCase()}
       initialFocus={needsWord ? inputRef : undefined}
       onConfirm={() => onConfirm(trashLeftovers)}
       onClose={onClose}
     >
-      <p>{text.body}</p>
-      <p className="muted">{text.note}</p>
+      <p>{t(keys.body, { count })}</p>
+      <p className="muted">{t(keys.note)}</p>
       {missing.length > 0 && (
         <div className="bulk-missing">
           <p className="with-icon">
             <TriangleAlert size={16} aria-hidden="true" />
-            {missing.length === 1 ? '1 mod needs' : `${missing.length} mods need`} something that
-            isn&apos;t installed
+            {t('bulk.missing', { count: missing.length })}
           </p>
           <details>
-            <summary>Show mods</summary>
+            <summary>{t('bulk.showMods')}</summary>
             <ul>
               {missing.map((entry) => (
                 <li key={entry.mod.id}>
@@ -104,22 +95,20 @@ export function BulkConfirmDialog({
               ))}
             </ul>
           </details>
-          <p className="muted">They will deploy but may not work until you add these.</p>
+          <p className="muted">{t('bulk.missingNote')}</p>
         </div>
       )}
       {canTrash && (
         <TrashLeftoversOption
           checked={trashLeftovers}
           onChange={setTrashLeftovers}
-          hint="Logs, settings and saved data (like CET key bindings or AMM appearances) in folders the app created that no deployed mod still uses."
+          hint={t('bulk.trashHint')}
         />
       )}
 
       {needsWord && (
         <label className="confirm-word">
-          <span>
-            Type <strong>{CONFIRM_WORD}</strong> to confirm
-          </span>
+          <span>{insert(t('bulk.typeToConfirm'), { word: <strong>{confirmWord}</strong> })}</span>
           <input
             ref={inputRef}
             value={typed}

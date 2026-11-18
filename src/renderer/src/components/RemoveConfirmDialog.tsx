@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import type { ModRecord } from '@shared/types'
+import type { MessageKey } from '@shared/i18n/en'
+import { useT } from '@renderer/i18n/context'
 import { ConfirmDialog } from './ConfirmDialog'
 import { TrashLeftoversOption } from './TrashLeftoversOption'
 
@@ -11,6 +13,11 @@ interface RemoveConfirmDialogProps {
   onClose: () => void
 }
 
+function bodyKey(allVersions: boolean, deployed: boolean): MessageKey {
+  if (allVersions) return deployed ? 'remove.body.allDeployed' : 'remove.body.all'
+  return deployed ? 'remove.body.oneDeployed' : 'remove.body.one'
+}
+
 export function RemoveConfirmDialog({
   mod,
   otherVersions,
@@ -20,22 +27,18 @@ export function RemoveConfirmDialog({
 }: RemoveConfirmDialogProps): React.JSX.Element {
   const [trashLeftovers, setTrashLeftovers] = useState(false)
   const [allVersions, setAllVersions] = useState(false)
+  const t = useT()
   const versionList = otherVersions.map((version) => version.version ?? version.name).join(', ')
 
   return (
     <ConfirmDialog
-      title={allVersions ? `Remove all versions of ${mod.name}?` : `Remove ${mod.name}?`}
-      confirmLabel="Remove"
+      title={t(allVersions ? 'remove.titleAll' : 'remove.title', { name: mod.name })}
+      confirmLabel={t('common.remove')}
       onConfirm={() => onConfirm(deployed && trashLeftovers, allVersions)}
       onClose={onClose}
     >
-      <p>
-        {allVersions ? 'They' : 'It'} will be taken off your mod list
-        {deployed ? ' and out of your game' : ''}.
-      </p>
-      <p className="muted">
-        Your downloaded archive stays where it is, so you can import it again anytime.
-      </p>
+      <p>{t(bodyKey(allVersions, deployed))}</p>
+      <p className="muted">{t('remove.archiveNote')}</p>
 
       {otherVersions.length > 0 && (
         <label className="confirm-option">
@@ -45,7 +48,7 @@ export function RemoveConfirmDialog({
             onChange={(event) => setAllVersions(event.target.checked)}
           />
           <span>
-            Also remove the other {otherVersions.length === 1 ? 'version' : 'versions'}
+            {t('remove.otherVersions', { count: otherVersions.length })}
             <span className="muted">{versionList}</span>
           </span>
         </label>
@@ -55,7 +58,7 @@ export function RemoveConfirmDialog({
         <TrashLeftoversOption
           checked={trashLeftovers}
           onChange={setTrashLeftovers}
-          hint="Settings, logs and saved mod data wrote into the folders it created in the game."
+          hint={t('remove.trashHint')}
         />
       )}
     </ConfirmDialog>

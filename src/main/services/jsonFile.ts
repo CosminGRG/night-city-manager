@@ -32,9 +32,26 @@ export function writeJsonFile(filePath: string, data: unknown): Promise<void> {
   return next
 }
 
+const LOCKED = new Set(['EPERM', 'EACCES', 'EBUSY'])
+const RETRY_DELAYS_MS = [50, 100, 200, 400, 800]
+
+async function replaceFile(from: string, to: string): Promise<void> {
+  for (const delay of RETRY_DELAYS_MS) {
+    try {
+      await rename(from, to)
+      return
+    } catch (error) {
+      if (!LOCKED.has((error as NodeJS.ErrnoException).code ?? '')) throw error
+      await new Promise((resolve) => setTimeout(resolve, delay))
+    }
+  }
+
+  await rename(from, to)
+}
+
 async function writeNow(filePath: string, data: unknown): Promise<void> {
   await mkdir(dirname(filePath), { recursive: true })
   const tempPath = `${filePath}.tmp`
   await writeFile(tempPath, JSON.stringify(data, null, 2), 'utf8')
-  await rename(tempPath, filePath)
+  await replaceFile(tempPath, filePath)
 }

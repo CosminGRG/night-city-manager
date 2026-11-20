@@ -1,8 +1,17 @@
-import { mkdtemp, readdir, readFile, rm, writeFile } from 'fs/promises'
+import { mkdtemp, readdir, readFile, rename, rm, writeFile } from 'fs/promises'
 import { tmpdir } from 'os'
 import { join } from 'path'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { readJsonFile, writeJsonFile } from './jsonFile'
+
+vi.mock('fs/promises', async (importOriginal) => {
+  const real = await importOriginal<typeof import('fs/promises')>()
+  return { ...real, rename: vi.fn(real.rename) }
+})
+
+function locked(code: string): NodeJS.ErrnoException {
+  return Object.assign(new Error(`${code}: operation not permitted, rename`), { code })
+}
 
 let dir: string
 let file: string
@@ -36,5 +45,19 @@ describe('jsonFile', () => {
     await writeFile(file, '{ not json')
     expect(await readJsonFile(file)).toBeNull()
     expect(await readdir(join(dir, 'data'))).toEqual(['test.json.corrupt'])
+  })
+
+  it('waits and tries again while Windows has the file locked', async () => {
+    vi.mocked(rename).mockRejectedValueOnce(locked('EPERM')).mockRejectedValueOnce(locked('EBUSY'))
+
+    await writeJsonFile(file, { a: 1 })
+
+    expect(await readJsonFile(file)).toEqual({ a: 1 })
+  })
+
+  it('gives up on other errors at once', async () => {
+    vi.mocked(rename).mockRejectedValueOnce(locked('ENOSPC'))
+
+    await expect(writeJsonFile(file, { a: 1 })).rejects.toThrow('ENOSPC')
   })
 })

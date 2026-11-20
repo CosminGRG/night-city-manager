@@ -1,0 +1,17 @@
+.type-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: var(--space-1);
+}
+
+/* A filter is on: tint the button so it's clear the list is narrowed. */
+.type-filter.active {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
+.menu-check {
+  display: inline-flex;
+  width: 14px;
+}

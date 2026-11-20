@@ -6,6 +6,15 @@
   margin: var(--space-6) 0 var(--space-3);
 }
 
+.mods-views {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-3);
+  border-bottom: 1px solid var(--border);
+}
+
 .mods-heading {
   display: flex;
   align-items: center;
@@ -125,12 +134,6 @@
   font-size: 12px;
 }
 
-.mod-warning {
-  display: inline-flex;
-  flex-shrink: 0;
-  color: var(--warning);
-}
-
 .mod-badges {
   flex-wrap: wrap;
   row-gap: var(--space-1);
@@ -209,36 +212,6 @@
 .badge-core {
   color: var(--on-primary);
   background: var(--primary);
-}
-
-.stat-chip {
-  --chip: var(--success);
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 2px 10px;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 600;
-  white-space: nowrap;
-  color: var(--chip);
-  background: color-mix(in srgb, var(--chip) 12%, transparent);
-}
-
-.stat-chip.idle {
-  --chip: var(--text-muted);
-}
-
-.stat-chip.interrupted {
-  --chip: var(--warning);
-}
-
-.stat-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: currentColor;
-  box-shadow: 0 0 6px currentColor;
 }
 
 .bisect-banner {

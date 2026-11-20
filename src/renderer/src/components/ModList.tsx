@@ -34,7 +34,16 @@ import type { MessageKey } from '@shared/i18n/en'
 import type { Translate } from '@shared/i18n/translate'
 import { useI18n, useT } from '@renderer/i18n/context'
 import { FRAMEWORK_LABELS, MOD_TYPE_LABELS } from '@renderer/modLabels'
-import { filterMods, paginate, sortRows, bulkCounts, bulkTargets } from '@renderer/modListView'
+import { listRows, paginate, bulkCounts, bulkTargets } from '@renderer/modListView'
+import {
+  DEFAULT_LIST_OPTIONS,
+  isInterrupted,
+  modFacts,
+  nextSort,
+  type ListOptions,
+  type ModFacts,
+  type SortColumn
+} from '@renderer/modFilters'
 import { useFitRows } from '@renderer/useFitRows'
 import { cleanedMessage, cleanedAnything } from '@renderer/leftoversView'
 import { coreUpdates } from '@renderer/updatesView'
@@ -49,6 +58,9 @@ import { ActionsMenu } from './ActionsMenu'
 import { BulkConfirmDialog } from './BulkConfirmDialog'
 import { EmptyState } from './EmptyState'
 import { VersionLinkDialog } from './VersionLinkDialog'
+import { ModViewTabs } from './ModViewTabs'
+import { TypeFilterMenu } from './TypeFilterMenu'
+import { SortHeader } from './SortHeader'
 import './ModList.css'
 
 interface DeployState {
@@ -68,6 +80,8 @@ interface Busy {
 interface ModListProps {
   importedCount: number
   newestFirst: boolean
+  options: ListOptions
+  onOptionsChange: (options: ListOptions) => void
   onImport: () => void
   onTroubleshoot: () => void
 }
@@ -147,6 +161,8 @@ function bulkMessage(
 export function ModList({
   importedCount,
   newestFirst,
+  options,
+  onOptionsChange,
   onImport,
   onTroubleshoot
 }: ModListProps): React.JSX.Element {
@@ -186,6 +202,20 @@ export function ModList({
   function handleSearch(value: string): void {
     setQuery(value)
     setPage(1)
+  }
+
+  function changeOptions(next: Partial<ListOptions>): void {
+    onOptionsChange({ ...options, ...next })
+    setPage(1)
+  }
+
+  function handleSort(column: SortColumn): void {
+    changeOptions({ sort: nextSort(options.sort, column) })
+  }
+
+  function clearFilters(): void {
+    setQuery('')
+    changeOptions({ view: DEFAULT_LIST_OPTIONS.view, types: DEFAULT_LIST_OPTIONS.types })
   }
 
   useEffect(() => {
@@ -361,18 +391,6 @@ export function ModList({
     linkVersion: setPendingLink
   }
 
-  const { rows, skip } = versionRows(mods ?? [], groups, deployments, picked)
-  const rowOf = new Map(rows.map((row) => [row.mod.id, row]))
-  const sorted = sortRows(rows, newestFirst).map((row) => row.mod)
-  const visible = mods && paginate(filterMods(sorted, query), page, pageSize)
-  const locked = busy !== null || bulkLabel !== null
-  const changesLocked = locked || bisecting
-  const counts = bulkCounts(mods ?? [], deployments, skip)
-  const statuses = (mods ?? []).map((mod) => deployments[mod.id])
-  const activeCount = statuses.filter((status) => status === 'deployed').length
-  const interrupedCount = statuses.filter(
-    (status) => status === 'deploying' || status === 'undeploying'
-  ).length
   const requirementContext: RequirementContext = {
     library: mods ?? [],
     installed,
@@ -380,6 +398,25 @@ export function ModList({
     nexus,
     t
   }
+
+  const { rows, skip } = versionRows(mods ?? [], groups, deployments, picked)
+  const rowOf = new Map(rows.map((row) => [row.mod.id, row]))
+  const badgesOf = new Map(
+    rows.map((row) => [row.mod.id, requirementBadges(row.mod, requirementContext)])
+  )
+  const facts = new Map<string, ModFacts>(
+    rows.map(({ mod }) => [
+      mod.id,
+      modFacts(mod, deployments[mod.id], badgesOf.get(mod.id) ?? [], mod.id in updates)
+    ])
+  )
+  const listed = listRows(rows, options, query, { newestFirst, sort: options.sort, facts })
+  const listedMods = listed.rows.map((row) => row.mod)
+  const visible = mods && paginate(listedMods, page, pageSize)
+  const filtered = query !== '' || options.view !== 'all' || options.types.length > 0
+  const locked = busy !== null || bulkLabel !== null
+  const changesLocked = locked || bisecting
+  const counts = bulkCounts(mods ?? [], deployments, skip)
 
   return (
     <section className="mods">
@@ -394,19 +431,6 @@ export function ModList({
             <h2>
               {t('mods.title')} <span className="mods-count">{rows.length}</span>
             </h2>
-            <span
-              className={activeCount > 0 ? 'stat-chip' : 'stat-chip idle'}
-              title={t('mods.activeTitle')}
-            >
-              <span className="stat-dot" aria-hidden="true" />
-              {t('mods.active', { count: activeCount })}
-            </span>
-            {interrupedCount > 0 && (
-              <span className="stat-chip interrupted" title={t('mods.interruptedTitle')}>
-                <TriangleAlert size={12} aria-hidden="true" />
-                {t('mods.interrupted', { count: interrupedCount })}
-              </span>
-            )}
           </div>
           <button className="with-icon" onClick={onImport} disabled={locked}>
             <Plus size={16} aria-hidden="true" />
@@ -421,6 +445,17 @@ export function ModList({
         </div>
         <SearchBox value={query} onChange={handleSearch} />
       </header>
+
+      {mods && mods.length > 0 && (
+        <div className="mods-views">
+          <ModViewTabs
+            view={options.view}
+            counts={listed.counts}
+            onChange={(view) => changeOptions({ view })}
+          />
+          <TypeFilterMenu types={options.types} onChange={(types) => changeOptions({ types })} />
+        </div>
+      )}
 
       {bisecting && (
         <div className="bisect-banner mods-message" role="status">
@@ -458,30 +493,63 @@ export function ModList({
         </EmptyState>
       )}
       {visible && mods && mods.length > 0 && visible.total === 0 && (
-        <EmptyState icon={SearchX} title={t('mods.noMatch', { query })}>
-          <button onClick={() => handleSearch('')}>{t('mods.clearSearch')}</button>
+        <EmptyState
+          icon={SearchX}
+          title={query === '' ? t('mods.emptyView') : t('mods.noMatch', { query })}
+        >
+          {filtered && <button onClick={clearFilters}>{t('mods.clearFilters')}</button>}
         </EmptyState>
       )}
 
       {visible && visible.total > 0 && (
         <>
           <div className="mod-table">
-            <div className="mod-row mod-head" aria-hidden="true">
-              <span />
-              <span>{t('mods.column.name')}</span>
+            <div className="mod-row mod-head">
+              <span className="mod-cell mod-status">
+                <SortHeader
+                  column="status"
+                  label={t('mods.column.status')}
+                  icon={<CircleCheck size={14} aria-hidden="true" />}
+                  sort={options.sort}
+                  onSort={handleSort}
+                />
+              </span>
+              <span>
+                <SortHeader
+                  column="name"
+                  label={t('mods.column.name')}
+                  sort={options.sort}
+                  onSort={handleSort}
+                />
+              </span>
               <span>{t('mods.column.version')}</span>
-              <span>{t('mods.column.type')}</span>
+              <span>
+                <SortHeader
+                  column="type"
+                  label={t('mods.column.type')}
+                  sort={options.sort}
+                  onSort={handleSort}
+                />
+              </span>
               <span>{t('mods.column.requires')}</span>
-              <span>{t('mods.column.imported')}</span>
+              <span>
+                <SortHeader
+                  column="imported"
+                  label={t('mods.column.imported')}
+                  sort={options.sort}
+                  onSort={handleSort}
+                />
+              </span>
               <span />
             </div>
+
             <ul className="mod-list" ref={setListElement}>
               {visible.items.map((mod) => (
                 <ModRow
                   key={mod.id}
                   mod={mod}
                   status={deployments[mod.id]}
-                  requirements={requirementBadges(mod, requirementContext)}
+                  requirements={badgesOf.get(mod.id) ?? []}
                   update={updates[mod.id]}
                   versions={rowOf.get(mod.id)?.versions ?? [mod]}
                   onPickVersion={(version) => {
@@ -550,22 +618,32 @@ export function ModList({
   )
 }
 
-function StatusIcon({ status }: { status: DeployStatus | undefined }): React.JSX.Element {
+interface StatusIconProps {
+  status: DeployStatus | undefined
+  warnings: string[]
+}
+
+function StatusIcon({ status, warnings }: StatusIconProps): React.JSX.Element {
   const t = useT()
 
+  // Warnings (an interrupted deploy, or a problem with the archive) win over the state.
+  if (warnings.length > 0) {
+    return (
+      <span
+        className="status status-interrupted"
+        role="img"
+        aria-label={warnings.join(' ')}
+        title={warnings.join('\n')}
+      >
+        <TriangleAlert size={16} aria-hidden="true" />
+      </span>
+    )
+  }
   if (status === 'deployed') {
     const label = t('mods.status.deployed')
     return (
       <span className="status status-deployed" role="img" aria-label={label} title={label}>
         <CircleCheck size={16} aria-hidden="true" />
-      </span>
-    )
-  }
-  if (status) {
-    const label = t('mods.status.interrupted')
-    return (
-      <span className="status status-interrupted" role="img" aria-label={label} title={label}>
-        <TriangleAlert size={16} aria-hidden="true" />
       </span>
     )
   }
@@ -601,8 +679,7 @@ function ModRow({
   actions
 }: ModRowProps): React.JSX.Element {
   const { t, language } = useI18n()
-  const interrupted = status === 'deploying' || status === 'undeploying'
-  const warnings = interrupted
+  const warnings = isInterrupted(status)
     ? [t('mods.interruptedWarning'), ...mod.plan.warnings]
     : mod.plan.warnings
   const frameworks = mod.plan.providers.map((framework) => FRAMEWORK_LABELS[framework])
@@ -610,24 +687,13 @@ function ModRow({
   return (
     <li className={isCoreMod(mod) ? 'mod-row core' : 'mod-row'}>
       <span className="mod-cell mod-status">
-        <StatusIcon status={status} />
+        <StatusIcon status={status} warnings={warnings} />
       </span>
 
       <span className="mod-cell">
         <span className="mod-name" title={mod.name}>
           {mod.name}
         </span>
-
-        {warnings.length > 0 && (
-          <span
-            className="mod-warning"
-            role="img"
-            aria-label={warnings.join(' ')}
-            title={warnings.join('\n')}
-          >
-            <TriangleAlert size={14} aria-hidden="true" />
-          </span>
-        )}
       </span>
 
       <span className="mod-cell">

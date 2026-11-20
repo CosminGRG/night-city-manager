@@ -6,6 +6,7 @@ import { Sidebar, type View } from './components/Sidebar'
 import { DropOverlay } from './components/DropOverlay'
 import { useImportQueue } from './useImportQueue'
 import { useT } from './i18n/context'
+import { DEFAULT_LIST_OPTIONS, type ListOptions } from './modFilters'
 import { ImportView } from './views/ImportView'
 import { SettingsView } from './views/SettingsView'
 import { TroubleshootView, type TroubleshootTab } from './views/TroubleshootView'
@@ -15,6 +16,7 @@ function App(): React.JSX.Element {
   const [view, setView] = useState<View>('mods')
   const [troubleshootTab, setTroubleshootTab] = useState<TroubleshootTab>('overview')
   const [settings, setSettings] = useState<Settings | null>(null)
+  const [listOptions, setListOptions] = useState<ListOptions>(DEFAULT_LIST_OPTIONS)
   const queue = useImportQueue()
   const t = useT()
 
@@ -55,6 +57,8 @@ function App(): React.JSX.Element {
       <ModList
         importedCount={queue.imported}
         newestFirst={settings.newestFirst}
+        options={listOptions}
+        onOptionsChange={setListOptions}
         onImport={pickArchives}
         onTroubleshoot={openBisect}
       />

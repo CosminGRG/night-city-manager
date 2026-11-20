@@ -16,6 +16,6 @@
   text-overflow: ellipsis;
 }
 
-.badge-unmet {
+.badge.badge-unmet {
   --badge: var(--warning);
 }

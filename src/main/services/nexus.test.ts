@@ -6,6 +6,7 @@ import {
   filesQuery,
   parseFiles,
   parseRequirements,
+  isOptionalNote,
   type Fetch
 } from './nexus'
 
@@ -53,6 +54,30 @@ describe('parseRequirements', () => {
         ]
       ])
     )
+  })
+
+  it('reads optional, suggested and conditional notes as optional', () => {
+    for (const notes of [
+      '(Optional)',
+      'Strongly Suggested',
+      'Recommended',
+      'Not mandatory but recommanded',
+      'SOFT REQ - only if u want seperate player textures',
+      'Only If you have the DLC !',
+      'If you want to spawn clothes with codes.'
+    ]) {
+      expect(isOptionalNote(notes), notes).toBe(true)
+    }
+    for (const notes of [
+      '',
+      'Required',
+      'OBLIGATORY',
+      'Mandatory requirement',
+      'Min version 1.28.8',
+      '1.20+'
+    ]) {
+      expect(isOptionalNote(notes), notes).toBe(false)
+    }
   })
 
   it('returns null for an answer it does not understand', () => {

@@ -446,9 +446,9 @@ export function ModList({
       {mods === null && <p className="muted">{t('app.loading')}</p>}
       {mods?.length === 0 && (
         <EmptyState icon={PackageOpen} title={t('mods.empty')}>
-          <p>Drag mod archives anywhere into the window, or pick them from your disk.</p>
+          <p>{t('mods.emptyHint')}</p>
           <button className="primary" onClick={onImport}>
-            <p>{t('mods.emptyHint')}</p>
+            {t('mods.import')}
           </button>
         </EmptyState>
       )}

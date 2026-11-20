@@ -7,6 +7,13 @@ export const CYBERPUNK_GAME_ID = 3333
 export const BATCH_SIZE = 50
 const TIMEOUT_MS = 15_000
 
+const OPTIONAL_NOTE =
+  /optional|suggest|recomm?[ae]nd|not (mandatory|required|needed|necessary)|soft req|only if|if (you|u) want|no need/i
+
+export function isOptionalNote(notes: string): boolean {
+  return OPTIONAL_NOTE.test(notes)
+}
+
 const QUERY = `query Requirements($ids: [CompositeIdInput!]!, $count: Int) {
   legacyMods(ids: $ids, count: $count) {
     nodes {
@@ -66,7 +73,7 @@ function parseRequirement(value: unknown): NexusRequirement | null {
   }
 
   const notes = typeof value.notes === 'string' ? value.notes : ''
-  return { nexusId, name: value.modName, optional: /optional/i.test(notes) }
+  return { nexusId, name: value.modName, optional: isOptionalNote(notes) }
 }
 
 export function parseRequirements(json: unknown): Map<number, NexusRequirement[]> | null {

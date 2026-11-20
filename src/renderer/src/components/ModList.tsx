@@ -1,13 +1,5 @@
-import { useEffect, useState } from 'react'
-import {
-  Circle,
-  CircleCheck,
-  TriangleAlert,
-  PackageOpen,
-  SearchX,
-  Plus,
-  FlaskConical
-} from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { TriangleAlert, PackageOpen, SearchX, Plus, FlaskConical } from 'lucide-react'
 import type {
   DeployStatus,
   ModRecord,
@@ -61,6 +53,11 @@ import { VersionLinkDialog } from './VersionLinkDialog'
 import { ModViewTabs } from './ModViewTabs'
 import { TypeFilterMenu } from './TypeFilterMenu'
 import { SortHeader } from './SortHeader'
+import { RoundCheck } from './RoundCheck'
+import { SelectionBar } from './SelectionBar'
+import { SelectionRemoveDialog } from './SelectionRemoveDialog'
+import { checkState, selectedMods, selectionCounts, toggleAll } from '@renderer/selection'
+import { toggleItems } from '@renderer/leftoversView'
 import './ModList.css'
 
 interface DeployState {
@@ -184,6 +181,9 @@ export function ModList({
   const [pendingBulk, setPendingBulk] = useState<BulkRequest | null>(null)
   const [bulkLabel, setBulkLabel] = useState<string | null>(null)
   const [bisecting, setBisecting] = useState(false)
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [removingSelected, setRemovingSelected] = useState(false)
+
   const t = useT()
 
   function applyDeployState(state: DeployState): void {
@@ -202,11 +202,15 @@ export function ModList({
   function handleSearch(value: string): void {
     setQuery(value)
     setPage(1)
+    setSelected(new Set())
   }
 
   function changeOptions(next: Partial<ListOptions>): void {
     onOptionsChange({ ...options, ...next })
     setPage(1)
+    if (next.view !== undefined || next.types !== undefined) {
+      setSelected(new Set())
+    }
   }
 
   function handleSort(column: SortColumn): void {
@@ -325,13 +329,18 @@ export function ModList({
     }
   }
 
-  async function handleBulk(request: BulkRequest): Promise<void> {
-    setBulkLabel(t(BULK_BUSY[request.action]))
+  //Shared by the Actions menu and the selection bar.
+  async function runBulkAction(
+    action: BulkAction,
+    run: () => Promise<Result<BulkResult>>
+  ): Promise<void> {
+    setBulkLabel(t(BULK_BUSY[action]))
     setError(null)
     setNotice(null)
 
     try {
-      const result = await window.api.runBulk(request)
+      const result = await run()
+
       if (!result.ok) {
         setError(result.error)
         return
@@ -342,12 +351,22 @@ export function ModList({
         const list = failed.map(({ name, error }) => `${name} (${error})`).join(', ')
         setError(t('mods.bulk.failed', { mods: list }))
       }
-      setNotice({ text: bulkMessage(request.action, result.value, t), tone: 'info' })
+      setNotice({ text: bulkMessage(action, result.value, t), tone: 'info' })
+      setSelected(new Set())
     } finally {
       setMods(await window.api.listMods())
       await refresh()
       setBulkLabel(null)
     }
+  }
+
+  function handleBulk(request: BulkRequest): Promise<void> {
+    return runBulkAction(request.action, () => window.api.runBulk(request))
+  }
+
+  function handleSelected(action: BulkAction, trashLeftovers = false): Promise<void> {
+    const ids = selection.map((mod) => mod.id)
+    return runBulkAction(action, () => window.api.runBulkSelected({ action, ids, trashLeftovers }))
   }
 
   function handlePickVersion(row: VersionRow, version: ModRecord): void {
@@ -414,6 +433,9 @@ export function ModList({
   const listedMods = listed.rows.map((row) => row.mod)
   const visible = mods && paginate(listedMods, page, pageSize)
   const filtered = query !== '' || options.view !== 'all' || options.types.length > 0
+  const listedIds = listedMods.map((mod) => mod.id)
+  const selection = selectedMods(listedMods, selected)
+  const selectionState = checkState(selected, listedIds)
   const locked = busy !== null || bulkLabel !== null
   const changesLocked = locked || bisecting
   const counts = bulkCounts(mods ?? [], deployments, skip)
@@ -446,7 +468,21 @@ export function ModList({
         <SearchBox value={query} onChange={handleSearch} />
       </header>
 
-      {mods && mods.length > 0 && (
+      {mods && mods.length > 0 && selection.length > 0 && (
+        <SelectionBar
+          selected={selection.length}
+          state={selectionState}
+          counts={selectionCounts(selection, deployments)}
+          locked={changesLocked}
+          onToggleAll={() => setSelected(toggleAll(selected, listedIds))}
+          onAction={(action) =>
+            action === 'remove' ? setRemovingSelected(true) : handleSelected(action)
+          }
+          onClear={() => setSelected(new Set())}
+        />
+      )}
+
+      {mods && mods.length > 0 && selection.length === 0 && (
         <div className="mods-views">
           <ModViewTabs
             view={options.view}
@@ -506,14 +542,13 @@ export function ModList({
           <div className="mod-table">
             <div className="mod-row mod-head">
               <span className="mod-cell mod-status">
-                <SortHeader
-                  column="status"
-                  label={t('mods.column.status')}
-                  icon={<CircleCheck size={14} aria-hidden="true" />}
-                  sort={options.sort}
-                  onSort={handleSort}
+                <RoundCheck
+                  state={selectionState}
+                  label={t('mods.selectAll')}
+                  onToggle={() => setSelected(toggleAll(selected, listedIds))}
                 />
               </span>
+
               <span>
                 <SortHeader
                   column="name"
@@ -549,6 +584,8 @@ export function ModList({
                   key={mod.id}
                   mod={mod}
                   status={deployments[mod.id]}
+                  selected={selected.has(mod.id)}
+                  onSelect={(on) => setSelected((current) => toggleItems(current, [mod.id], on))}
                   requirements={badgesOf.get(mod.id) ?? []}
                   update={updates[mod.id]}
                   versions={rowOf.get(mod.id)?.versions ?? [mod]}
@@ -598,6 +635,15 @@ export function ModList({
         />
       )}
 
+      {removingSelected && (
+        <SelectionRemoveDialog
+          count={selection.length}
+          anyDeployed={selection.some((mod) => deployments[mod.id] !== undefined)}
+          onConfirm={(trashLeftovers) => handleSelected('remove', trashLeftovers)}
+          onClose={() => setRemovingSelected(false)}
+        />
+      )}
+
       {pendingBulk && (
         <BulkConfirmDialog
           request={pendingBulk}
@@ -618,46 +664,15 @@ export function ModList({
   )
 }
 
-interface StatusIconProps {
-  status: DeployStatus | undefined
-  warnings: string[]
-}
-
-function StatusIcon({ status, warnings }: StatusIconProps): React.JSX.Element {
-  const t = useT()
-
-  // Warnings (an interrupted deploy, or a problem with the archive) win over the state.
-  if (warnings.length > 0) {
-    return (
-      <span
-        className="status status-interrupted"
-        role="img"
-        aria-label={warnings.join(' ')}
-        title={warnings.join('\n')}
-      >
-        <TriangleAlert size={16} aria-hidden="true" />
-      </span>
-    )
-  }
-  if (status === 'deployed') {
-    const label = t('mods.status.deployed')
-    return (
-      <span className="status status-deployed" role="img" aria-label={label} title={label}>
-        <CircleCheck size={16} aria-hidden="true" />
-      </span>
-    )
-  }
-  const label = t('mods.status.idle')
-  return (
-    <span className="status status-idle" role="img" aria-label={label} title={label}>
-      <Circle size={16} aria-hidden="true" />
-    </span>
-  )
+function rowClass(core: boolean, selected: boolean): string {
+  return ['mod-row', core && 'core', selected && 'selected'].filter(Boolean).join(' ')
 }
 
 interface ModRowProps {
   mod: ModRecord
   status: DeployStatus | undefined
+  selected: boolean
+  onSelect: (on: boolean) => void
   requirements: RequirementBadge[]
   update: ModUpdate | undefined
   versions: ModRecord[]
@@ -670,6 +685,8 @@ interface ModRowProps {
 function ModRow({
   mod,
   status,
+  selected,
+  onSelect,
   requirements,
   update,
   versions,
@@ -685,12 +702,26 @@ function ModRow({
   const frameworks = mod.plan.providers.map((framework) => FRAMEWORK_LABELS[framework])
 
   return (
-    <li className={isCoreMod(mod) ? 'mod-row core' : 'mod-row'}>
+    <li className={rowClass(isCoreMod(mod), selected)}>
       <span className="mod-cell mod-status">
-        <StatusIcon status={status} warnings={warnings} />
+        <RoundCheck
+          state={selected ? 'all' : 'none'}
+          label={t('mods.select', { name: mod.name })}
+          onToggle={() => onSelect(!selected)}
+        />
       </span>
 
       <span className="mod-cell">
+        {warnings.length > 0 && (
+          <span
+            className="mod-warning"
+            role="img"
+            aria-label={warnings.join(' ')}
+            title={warnings.join('\n')}
+          >
+            <TriangleAlert size={14} aria-hidden="true" />
+          </span>
+        )}
         <span className="mod-name" title={mod.name}>
           {mod.name}
         </span>

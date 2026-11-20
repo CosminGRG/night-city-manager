@@ -101,6 +101,10 @@
   background: var(--surface-2);
 }
 
+.mod-list .mod-row.selected {
+  background: color-mix(in srgb, var(--primary) 7%, var(--surface-1));
+}
+
 .mod-list .mod-row:hover {
   background: var(--surface-3);
 }
@@ -118,6 +122,12 @@
 
 .mod-status {
   justify-content: center;
+}
+
+.mod-warning {
+  display: inline-flex;
+  flex-shrink: 0;
+  color: var(--warning);
 }
 
 .mod-name {

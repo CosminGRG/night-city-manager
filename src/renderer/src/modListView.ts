@@ -6,7 +6,6 @@ import type { VersionRow } from './versionsView'
 import {
   inView,
   matchesTypes,
-  statusRank,
   viewCounts,
   type ListOptions,
   type ModFacts,
@@ -46,15 +45,8 @@ function typeText(mod: ModRecord): string {
     .join(' ')
 }
 
-function compareBy(
-  column: SortColumn,
-  a: VersionRow,
-  b: VersionRow,
-  facts: ReadonlyMap<string, ModFacts>
-): number {
+function compareBy(column: SortColumn, a: VersionRow, b: VersionRow): number {
   switch (column) {
-    case 'status':
-      return statusRank(facts.get(a.mod.id)) - statusRank(facts.get(b.mod.id))
     case 'name':
       return a.mod.name.localeCompare(b.mod.name, undefined, { numeric: true })
     case 'type':
@@ -65,14 +57,14 @@ function compareBy(
 }
 
 //Core mods first, the rest by chosen column or in import order or newest import first
-export function sortRows(rows: VersionRow[], { newestFirst, sort, facts }: RowOrder): VersionRow[] {
+export function sortRows(rows: VersionRow[], { newestFirst, sort }: RowOrder): VersionRow[] {
   return [...rows].sort((a, b) => {
     const core = Number(isCoreMod(b.mod)) - Number(isCoreMod(a.mod))
     if (core !== 0 || isCoreMod(a.mod)) {
       return core
     }
     if (sort) {
-      const order = compareBy(sort.column, a, b, facts)
+      const order = compareBy(sort.column, a, b)
       return sort.descending ? -order : order
     }
 

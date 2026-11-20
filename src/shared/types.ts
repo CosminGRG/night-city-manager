@@ -103,6 +103,12 @@ export interface BulkRequest {
   trashLeftovers?: boolean
 }
 
+export interface SelectionRequest {
+  action: BulkAction
+  ids: string[]
+  trashLeftovers?: boolean
+}
+
 export interface BulkResult {
   done: number
   skipped: number

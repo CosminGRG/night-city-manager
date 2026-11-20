@@ -71,9 +71,6 @@ describe('sortRows', () => {
 
     const byNameDown = order(true, { column: 'name', descending: true })
     expect(shown(sortRows(rows, byNameDown))).toEqual(['CET', 'RED4ext', 'B', 'A'])
-
-    const byStatus = order(false, { column: 'status', descending: false })
-    expect(shown(sortRows(rows, byStatus))).toEqual(['CET', 'RED4ext', 'B', 'A'])
   })
 
   it('sorts names with numbers the way people read them', () => {

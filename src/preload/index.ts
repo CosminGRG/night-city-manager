@@ -41,6 +41,7 @@ const api: NightCityApi = {
   setVersionOf: (modId, targetId) => ipcRenderer.invoke(IpcChannels.setVersionOf, modId, targetId),
   openNexusPage: (modId) => ipcRenderer.invoke(IpcChannels.openNexusPage, modId),
   runBulk: (request) => ipcRenderer.invoke(IpcChannels.runBulk, request),
+  runBulkSelected: (request) => ipcRenderer.invoke(IpcChannels.runBulkSelected, request),
   getModsFolder: () => ipcRenderer.invoke(IpcChannels.getModsFolder),
   changeModsFolder: () => ipcRenderer.invoke(IpcChannels.changeModsFolder),
   scanLeftovers: () => ipcRenderer.invoke(IpcChannels.scanLeftovers),

@@ -9,8 +9,10 @@ import type {
   ModRecord,
   DeployStatus,
   UndeployResult,
+  BulkAction,
   BulkRequest,
   BulkResult,
+  SelectionRequest,
   ModsFolderInfo,
   LeftoverGroup,
   CleanResult,
@@ -35,7 +37,7 @@ import { createQueue } from './services/queue'
 import { type DeployContext, undeployMod } from './services/deployer'
 import { ARCHIVE_EXTENSIONS, checkArchivePath } from './services/archivePath'
 import { stagingFolderFor } from './services/staging'
-import { deployAll, purgeAll, removeAll, deployStatuses } from './services/bulk'
+import { deployAll, purgeAll, removeAll, deployStatuses, type BulkTargets } from './services/bulk'
 import type { RemoveContext } from './services/removal'
 import { isGameRunning, launchExe, readLaunchEnvironment } from './services/gameProcess'
 import { checkNewModsFolder, moveMods, sameDrive } from './services/modsFolder'
@@ -459,35 +461,56 @@ export function registerIpcHandlers({
       )
   )
 
+  // Shared by the Actions menu (a scope) and the selection bar (mod ids).
+  async function runBulkAction(
+    action: BulkAction,
+    targets: BulkTargets,
+    trashLeftovers = false
+  ): Promise<BulkResult> {
+    await refuseWhileGameRuns()
+    const gamePath = currentGame()
+    await refuseWhileBisecting(gamePath)
+
+    const context = deployContext(gamePath)
+    if (action === 'deploy') {
+      return deployAll(context, gamePath, targets, versionGroups(library.list(), nexus.files()))
+    }
+
+    const result =
+      action === 'purge' ? await purgeAll(context, targets) : await removeAll(context, targets)
+    if (!trashLeftovers) {
+      return result
+    }
+
+    const cleaned = await cleanUnusedLeftovers(context.manifests, gamePath, (file) =>
+      shell.trashItem(file)
+    )
+
+    return { ...result, cleaned }
+  }
+
   ipcMain.handle(IpcChannels.runBulk, (_event, request: unknown): Promise<Result<BulkResult>> =>
     runExclusive(() =>
       toResult(async () => {
-        await refuseWhileGameRuns()
-        if (!isBulkRequest(request)) throw new Error('Unknown bulk action.')
-
-        const gamePath = currentGame()
-        await refuseWhileBisecting(gamePath)
-
-        const context = deployContext(gamePath)
-
-        const { action, scope, trashLeftovers } = request
-        if (action === 'deploy') {
-          return deployAll(context, gamePath, scope, versionGroups(library.list(), nexus.files()))
+        if (!isBulkRequest(request)) {
+          throw new Error('Unknown bulk action.')
         }
-
-        const result =
-          action === 'purge' ? await purgeAll(context, scope) : await removeAll(context, scope)
-        if (!trashLeftovers) {
-          return result
-        }
-
-        const cleaned = await cleanUnusedLeftovers(context.manifests, gamePath, (file) =>
-          shell.trashItem(file)
-        )
-
-        return { ...result, cleaned }
+        return runBulkAction(request.action, request.scope, request.trashLeftovers)
       })
     )
+  )
+
+  ipcMain.handle(
+    IpcChannels.runBulkSelected,
+    (_event, request: unknown): Promise<Result<BulkResult>> =>
+      runExclusive(() =>
+        toResult(async () => {
+          if (!isSelectionRequest(request)) {
+            throw new Error('Unknown bulk action.')
+          }
+          return runBulkAction(request.action, request.ids, request.trashLeftovers)
+        })
+      )
   )
 
   ipcMain.handle(IpcChannels.getModsFolder, (): ModsFolderInfo => {
@@ -719,14 +742,36 @@ export function registerIpcHandlers({
   )
 }
 
+function isBulkAction(value: unknown): value is BulkAction {
+  return value === 'deploy' || value === 'purge' || value === 'remove'
+}
+
 function isBulkRequest(value: unknown): value is BulkRequest {
-  if (typeof value !== 'object' || value === null) return false
+  if (typeof value !== 'object' || value === null) {
+    return false
+  }
+
   const { action, scope, trashLeftovers } = value as Record<string, unknown>
 
   return (
-    (action === 'deploy' || action === 'purge' || action === 'remove') &&
-    (scope === 'all' || scope === 'core' || scope === 'non-core') &&
-    (trashLeftovers === undefined || typeof trashLeftovers === 'boolean')
+    isBulkAction(action) &&
+    (scope === 'all' ||
+      scope === 'core' ||
+      (scope === 'non-core' &&
+        (trashLeftovers === undefined || typeof trashLeftovers === 'boolean')))
+  )
+}
+
+function isSelectionRequest(value: unknown): value is SelectionRequest {
+  if (typeof value !== 'object' || value === null) {
+    return false
+  }
+  const { action, ids, trasheftovers } = value as Record<string, unknown>
+
+  return (
+    isBulkAction(action) &&
+    isStringArray(ids) &&
+    (trasheftovers === undefined || typeof trasheftovers === 'boolean')
   )
 }
 

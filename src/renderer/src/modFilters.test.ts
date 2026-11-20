@@ -1,15 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { Framework, ModRecord, ModType } from '@shared/types'
 import type { RequirementBadge } from './requirementsView'
-import {
-  inView,
-  matchesTypes,
-  modFacts,
-  nextSort,
-  statusRank,
-  viewCounts,
-  type ModFacts
-} from './modFilters'
+import { inView, matchesTypes, modFacts, nextSort, viewCounts, type ModFacts } from './modFilters'
 
 function mod(
   types: ModType[] = [],
@@ -81,14 +73,5 @@ describe('nextSort', () => {
 
     expect(nextSort(descending, 'name')).toBeNull()
     expect(nextSort(descending, 'imported')).toEqual({ column: 'imported', descending: false })
-  })
-})
-
-describe('statusRank', () => {
-  it('puts problems first, then deployed, then the rest', () => {
-    expect(statusRank(facts(true, true))).toBe(0)
-    expect(statusRank(facts(true))).toBe(1)
-    expect(statusRank(facts(false))).toBe(2)
-    expect(statusRank(undefined)).toBe(2)
   })
 })

@@ -2,7 +2,9 @@ import type { BulkResult, BulkScope, DeployStatus, ModRecord, VersionGroup } fro
 import { isCoreMod } from '@shared/mods'
 import { deployMod, undeployMod, type DeployContext } from './deployer'
 import { undeployAndRemove, type RemoveContext } from './removal'
-import { versionsToSkip } from './versions'
+import { versionsToSkip, deployedSiblings } from './versions'
+
+export type BulkTargets = BulkScope | readonly string[]
 
 type Task = (mod: ModRecord) => Promise<string[]>
 
@@ -23,9 +25,42 @@ async function runEach(mods: ModRecord[], skipped: number, task: Task): Promise<
   return result
 }
 
-function inScope(mod: ModRecord, scope: BulkScope): boolean {
-  if (scope === 'all') return true
-  return isCoreMod(mod) === (scope === 'core')
+function inTargets(mod: ModRecord, targets: BulkTargets): boolean {
+  if (typeof targets !== 'string') {
+    return targets.includes(mod.id)
+  }
+  if (targets === 'all') {
+    return true
+  }
+
+  return isCoreMod(mod) === (targets === 'core')
+}
+
+// The user picked these exact versions, so the "newest version" rule doesn't apply.
+// Still one version per mod in the game: skip a pick whose other version is deployed,
+// and a second pick from the same mod.
+function pickedTwice(
+  ids: readonly string[],
+  groups: VersionGroup[],
+  statuses: Map<string, DeployStatus>
+): Set<string> {
+  const skip = new Set<string>()
+  const seen = new Set<string>()
+
+  for (const id of ids) {
+    const group = groups.find(({ modIds }) => modIds.includes(id))
+    if (!group) {
+      continue
+    }
+
+    if (seen.has(group.key) || deployedSiblings(id, groups, statuses).length > 0) {
+      skip.add(id)
+    }
+
+    seen.add(group.key)
+  }
+
+  return skip
 }
 
 export async function deployStatuses(context: DeployContext): Promise<Map<string, DeployStatus>> {
@@ -36,36 +71,39 @@ export async function deployStatuses(context: DeployContext): Promise<Map<string
 export async function deployAll(
   context: DeployContext,
   gamePath: string,
-  scope: BulkScope,
+  targets: BulkTargets,
   groups: VersionGroup[]
 ): Promise<BulkResult> {
   const statuses = await deployStatuses(context)
   const library = context.library.list()
-  const skip = versionsToSkip(groups, library, statuses)
-  const mods = library.filter((mod) => inScope(mod, scope) && !skip.has(mod.id))
+  const skip =
+    typeof targets === 'string'
+      ? versionsToSkip(groups, library, statuses)
+      : pickedTwice(targets, groups, statuses)
+  const mods = library.filter((mod) => inTargets(mod, targets) && !skip.has(mod.id))
   const ordered = [...mods.filter(isCoreMod), ...mods.filter((mod) => !isCoreMod(mod))]
   const pending = ordered.filter((mod) => statuses.get(mod.id) !== 'deployed')
-  const targets = pending.filter((mod) => !statuses.has(mod.id) && mod.plan.files.length > 0)
+  const deployable = pending.filter((mod) => !statuses.has(mod.id) && mod.plan.files.length > 0)
 
-  return runEach(targets, pending.length - targets.length, async (mod) => {
+  return runEach(deployable, pending.length - deployable.length, async (mod) => {
     await deployMod(context, gamePath, mod)
     return []
   })
 }
 
-export async function purgeAll(context: DeployContext, scope: BulkScope): Promise<BulkResult> {
+export async function purgeAll(context: DeployContext, targets: BulkTargets): Promise<BulkResult> {
   const statuses = await deployStatuses(context)
-  const targets = context.library
+  const mods = context.library
     .list()
-    .filter((mod) => inScope(mod, scope) && statuses.has(mod.id))
+    .filter((mod) => inTargets(mod, targets) && statuses.has(mod.id))
 
-  return runEach(targets, 0, async (mod) => (await undeployMod(context, mod)).kept)
+  return runEach(mods, 0, async (mod) => (await undeployMod(context, mod)).kept)
 }
 
 export async function removeAll(
   context: DeployContext & RemoveContext,
-  scope: BulkScope
+  targets: BulkTargets
 ): Promise<BulkResult> {
-  const targets = context.library.list().filter((mod) => inScope(mod, scope))
-  return runEach(targets, 0, async (mod) => (await undeployAndRemove(context, mod)).kept)
+  const mods = context.library.list().filter((mod) => inTargets(mod, targets))
+  return runEach(mods, 0, async (mod) => (await undeployAndRemove(context, mod)).kept)
 }

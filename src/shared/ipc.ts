@@ -7,6 +7,7 @@ import type {
   UndeployResult,
   BulkResult,
   BulkRequest,
+  SelectionRequest,
   ModsFolderInfo,
   LeftoverGroup,
   CleanResult,
@@ -51,6 +52,7 @@ export const IpcChannels = {
   openNexusPage: 'mod:open-nexus',
   pickArchives: 'mod:pick-archives',
   runBulk: 'mod:bulk',
+  runBulkSelected: 'mod:bulk-selected',
   getModsFolder: 'mods-folder:get',
   changeModsFolder: 'mods-folder:change',
   scanLeftovers: 'leftovers:scan',
@@ -114,6 +116,7 @@ export interface NightCityApi {
   openNexusFiles(modId: string): Promise<Result<null>>
   setVersionOf(modId: string, targetId: string | null): Promise<Result<null>>
   runBulk(request: BulkRequest): Promise<Result<BulkResult>>
+  runBulkSelected(request: SelectionRequest): Promise<Result<BulkResult>>
   getModsFolder(): Promise<ModsFolderInfo>
   changeModsFolder(): Promise<Result<Settings> | null>
   scanLeftovers(): Promise<Result<LeftoverGroup[]>>

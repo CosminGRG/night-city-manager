@@ -207,6 +207,48 @@ describe('removeAll', () => {
   })
 })
 
+describe('selected mods', () => {
+  it('deploys only the selected mods', async () => {
+    const picked = await staged('Picked', ['archive/pc/mod/a.archive'])
+    await staged('Not Picked', ['archive/pc/mod/b.archive'])
+
+    expect(await deployAll(context, gamePath, [picked.id], [])).toMatchObject({ done: 1 })
+    expect(await deployedIds()).toEqual([picked.id])
+  })
+
+  it('purges and removes only the selected mods', async () => {
+    const one = await deployed('One', 'archive/pc/mod/a.archive')
+    const two = await deployed('Two', 'archive/pc/mod/b.archive')
+
+    expect(await purgeAll(context, [one.id])).toMatchObject({ done: 1 })
+    expect(await deployedIds()).toEqual([two.id])
+
+    expect(await removeAll(context, [one.id])).toMatchObject({ done: 1 })
+    expect(names(context.library.list())).toEqual(['Two'])
+  })
+
+  it('deploys the version the user picked, never two versions of one mod', async () => {
+    const newer = await staged('Mod 2.0', ['archive/pc/mod/a.archive'])
+    const older = await staged('Mod 1.0', ['archive/pc/mod/a.archive'])
+    const groups = [{ key: 'nexus:1', modIds: [newer.id, older.id] }]
+
+    expect(await deployAll(context, gamePath, [older.id, newer.id], groups)).toMatchObject({
+      done: 1,
+      failed: []
+    })
+    expect(await deployedIds()).toEqual([older.id])
+  })
+
+  it('leaves a picked version alone when another version is already deployed', async () => {
+    const newer = await staged('Mod 2.0', ['archive/pc/mod/a.archive'])
+    const older = await deployed('Mod 1.0', 'archive/pc/mod/a.archive')
+    const groups = [{ key: 'nexus:1', modIds: [newer.id, older.id] }]
+
+    expect(await deployAll(context, gamePath, [newer.id], groups)).toMatchObject({ done: 0 })
+    expect(await deployedIds()).toEqual([older.id])
+  })
+})
+
 describe('deployAll with versions', () => {
   it('deploys one version per group, keeping the one already deployed', async () => {
     const newer = await staged('Mod 2.0', ['archive/pc/mod/a.archive'])

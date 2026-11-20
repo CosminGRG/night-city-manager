@@ -7,7 +7,7 @@ export type ModView = (typeof MOD_VIEWS)[number]
 
 export type TypeFilter = ModType | 'core'
 
-export type SortColumn = 'status' | 'name' | 'type' | 'imported'
+export type SortColumn = 'name' | 'type' | 'imported'
 
 export interface Sort {
   column: SortColumn
@@ -89,12 +89,4 @@ export function nextSort(current: Sort | null, column: SortColumn): Sort | null 
   }
 
   return current.descending ? null : { column, descending: true }
-}
-
-export function statusRank(facts: ModFacts | undefined): number {
-  if (facts?.attention) {
-    return 0
-  }
-
-  return facts?.deployed ? 1 : 2
 }

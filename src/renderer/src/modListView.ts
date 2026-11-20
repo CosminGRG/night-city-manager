@@ -2,13 +2,36 @@ import { isCoreMod } from '@shared/mods'
 import { BulkAction, BulkScope, DeployStatus, ModRecord } from '@shared/types'
 import { KNOWN_DEPENDENCIES, needs } from '@shared/requirements'
 import { FRAMEWORK_LABELS, MOD_TYPE_LABELS } from './modLabels'
+import type { VersionRow } from './versionsView'
 
 export type BulkCounts = Record<BulkAction, Record<BulkScope, number>>
 
 export const PAGE_SIZE = 13
 
-export function sortMods(mods: ModRecord[]): ModRecord[] {
-  return [...mods].sort((a, b) => Number(isCoreMod(b)) - Number(isCoreMod(a)))
+const MIN_ROWS = 5
+const ROW_HEIGHT = 40
+
+export function fitRows(space: number): number {
+  return Math.max(MIN_ROWS, Math.floor(space / ROW_HEIGHT))
+}
+
+function lastImport(row: VersionRow): string {
+  return row.versions.reduce(
+    (latest, version) => (version.importedAt > latest ? version.importedAt : latest),
+    row.mod.importedAt
+  )
+}
+
+//Core mods first, the rest in import order or newest import first
+export function sortRows(rows: VersionRow[], newestFirst: boolean): VersionRow[] {
+  return [...rows].sort((a, b) => {
+    const core = Number(isCoreMod(b.mod)) - Number(isCoreMod(a.mod))
+    if (core !== 0 || !newestFirst || isCoreMod(a.mod)) {
+      return core
+    }
+
+    return lastImport(b).localeCompare(lastImport(a))
+  })
 }
 
 function searchText(mod: ModRecord): string {

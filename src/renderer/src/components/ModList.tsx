@@ -34,7 +34,8 @@ import type { MessageKey } from '@shared/i18n/en'
 import type { Translate } from '@shared/i18n/translate'
 import { useI18n, useT } from '@renderer/i18n/context'
 import { FRAMEWORK_LABELS, MOD_TYPE_LABELS } from '@renderer/modLabels'
-import { filterMods, paginate, sortMods, bulkCounts, bulkTargets } from '@renderer/modListView'
+import { filterMods, paginate, sortRows, bulkCounts, bulkTargets } from '@renderer/modListView'
+import { useFitRows } from '@renderer/useFitRows'
 import { cleanedMessage, cleanedAnything } from '@renderer/leftoversView'
 import { coreUpdates } from '@renderer/updatesView'
 import { versionRows, type VersionRow, type LinkOption } from '@renderer/versionsView'
@@ -66,6 +67,7 @@ interface Busy {
 
 interface ModListProps {
   importedCount: number
+  newestFirst: boolean
   onImport: () => void
   onTroubleshoot: () => void
 }
@@ -144,6 +146,7 @@ function bulkMessage(
 
 export function ModList({
   importedCount,
+  newestFirst,
   onImport,
   onTroubleshoot
 }: ModListProps): React.JSX.Element {
@@ -158,6 +161,7 @@ export function ModList({
   const [notice, setNotice] = useState<Notice | null>(null)
   const [query, setQuery] = useState('')
   const [page, setPage] = useState(1)
+  const [pageSize, setListElement] = useFitRows()
   const [pendingRemoval, setPendingRemoval] = useState<ModRecord | null>(null)
   const [pendingLink, setPendingLink] = useState<ModRecord | null>(null)
   const [busy, setBusy] = useState<Busy | null>(null)
@@ -359,7 +363,8 @@ export function ModList({
 
   const { rows, skip } = versionRows(mods ?? [], groups, deployments, picked)
   const rowOf = new Map(rows.map((row) => [row.mod.id, row]))
-  const visible = mods && paginate(filterMods(sortMods(rows.map((row) => row.mod)), query), page)
+  const sorted = sortRows(rows, newestFirst).map((row) => row.mod)
+  const visible = mods && paginate(filterMods(sorted, query), page, pageSize)
   const locked = busy !== null || bulkLabel !== null
   const changesLocked = locked || bisecting
   const counts = bulkCounts(mods ?? [], deployments, skip)
@@ -470,7 +475,7 @@ export function ModList({
               <span>{t('mods.column.imported')}</span>
               <span />
             </div>
-            <ul className="mod-list">
+            <ul className="mod-list" ref={setListElement}>
               {visible.items.map((mod) => (
                 <ModRow
                   key={mod.id}

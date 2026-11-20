@@ -98,6 +98,17 @@ export function SettingsView({ settings, onSettingsChange }: SettingsViewProps):
       </div>
 
       <div className="settings-group">
+        <h3>{t('settings.modList.title')}</h3>
+        <SettingToggle
+          label={t('settings.modList.newestFirst')}
+          hint={t('settings.modList.newestFirstHint')}
+          enabled={settings.newestFirst}
+          save={(next) => window.api.setNewestFirst(next)}
+          onSettingsChange={onSettingsChange}
+        />
+      </div>
+
+      <div className="settings-group">
         <h3>{t('settings.deploying.title')}</h3>
         <SettingToggle
           label={t('settings.deploying.autoRequirements')}

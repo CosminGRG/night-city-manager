@@ -207,6 +207,17 @@ export function registerIpcHandlers({
     }
   )
 
+  ipcMain.handle(
+    IpcChannels.setNewestFirst,
+    (_event, enabled: unknown): Promise<Result<Settings>> => {
+      if (typeof enabled !== 'boolean') {
+        throw new Error('setNewestFirst: enabled must be a boolean')
+      }
+
+      return toResult(() => settings.update({ newestFirst: enabled }))
+    }
+  )
+
   ipcMain.handle(IpcChannels.getGameIcon, async (): Promise<string | null> => {
     const { gamePath } = settings.get()
     if (!gamePath) {

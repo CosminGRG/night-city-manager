@@ -7,6 +7,7 @@ export interface Settings {
   downloadsPath: string | null
   nexusLookup: boolean
   autoDeployRequirements: boolean
+  newestFirst: boolean
   language: string | null
 }
 
@@ -17,6 +18,7 @@ export const DEFAULT_SETTINGS: Settings = {
   downloadsPath: null,
   nexusLookup: true,
   autoDeployRequirements: true,
+  newestFirst: true,
   language: null
 }
 

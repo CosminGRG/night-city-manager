@@ -52,7 +52,12 @@ function App(): React.JSX.Element {
     }
 
     return (
-      <ModList importedCount={queue.imported} onImport={pickArchives} onTroubleshoot={openBisect} />
+      <ModList
+        importedCount={queue.imported}
+        newestFirst={settings.newestFirst}
+        onImport={pickArchives}
+        onTroubleshoot={openBisect}
+      />
     )
   }
 

@@ -1,6 +1,15 @@
 import { describe, expect, it } from 'vitest'
 import type { ModRecord, ModType, Framework, DeployStatus } from '@shared/types'
-import { filterMods, pageNumbers, paginate, sortMods, bulkCounts, bulkTargets } from './modListView'
+import {
+  filterMods,
+  fitRows,
+  pageNumbers,
+  paginate,
+  sortRows,
+  bulkCounts,
+  bulkTargets
+} from './modListView'
+import type { VersionRow } from './versionsView'
 
 function mod(name: string, types: ModType[] = [], providers: Framework[] = []): ModRecord {
   return {
@@ -17,10 +26,44 @@ function mod(name: string, types: ModType[] = [], providers: Framework[] = []): 
 
 const names = (mods: ModRecord[]): string[] => mods.map((m) => m.name)
 
-describe('sortMods', () => {
+describe('sortRows', () => {
+  const imported = (record: ModRecord, day: number): ModRecord => ({
+    ...record,
+    importedAt: `2026-11-${String(day).padStart(2, '0')}T00:00:00.000Z`
+  })
+  const row = (shown: ModRecord, versions: ModRecord[] = [shown]): VersionRow => ({
+    key: shown.id,
+    mod: shown,
+    versions
+  })
+  const shown = (rows: VersionRow[]): string[] => rows.map((r) => r.mod.name)
+
+  const cet = imported(mod('CET', [], ['cet']), 3)
+  const red4ext = imported(mod('RED4ext', [], ['red4ext']), 1)
+  const a = imported(mod('A'), 2)
+  const b = imported(mod('B'), 4)
+  const rows = [row(a), row(cet), row(b), row(red4ext)]
+
   it('puts core mods first and keeps the import order otherwise', () => {
-    const mods = [mod('A'), mod('CET', [], ['cet']), mod('B'), mod('RED4ext', [], ['red4ext'])]
-    expect(names(sortMods(mods))).toEqual(['CET', 'RED4ext', 'A', 'B'])
+    expect(shown(sortRows(rows, false))).toEqual(['CET', 'RED4ext', 'A', 'B'])
+  })
+
+  it('puts the newest imports first under the core mods, which keep their order', () => {
+    expect(shown(sortRows(rows, true))).toEqual(['CET', 'RED4ext', 'B', 'A'])
+  })
+
+  it('moves a mod up when a newer version of it was imported', () => {
+    const update = imported(mod('A 2.0'), 5)
+    expect(shown(sortRows([row(a, [update, a]), row(b)], true))).toEqual(['A', 'B'])
+  })
+})
+
+describe('fitRows', () => {
+  it('fits whole 40px rows and never goes below 5', () => {
+    expect(fitRows(400)).toBe(10)
+    expect(fitRows(439)).toBe(10)
+    expect(fitRows(100)).toBe(5)
+    expect(fitRows(-20)).toBe(5)
   })
 })
 

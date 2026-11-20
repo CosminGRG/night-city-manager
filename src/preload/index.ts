@@ -17,6 +17,7 @@ const api: NightCityApi = {
   setNexusLookup: (enabled) => ipcRenderer.invoke(IpcChannels.setNexusLookup, enabled),
   setAutoDeployRequirements: (enabled) =>
     ipcRenderer.invoke(IpcChannels.setAutoDeployRequirements, enabled),
+  setNewestFirst: (enabled) => ipcRenderer.invoke(IpcChannels.setNewestFirst, enabled),
   listMods: () => ipcRenderer.invoke(IpcChannels.listMods),
   pickArchives: () => ipcRenderer.invoke(IpcChannels.pickArchives),
   importMod: (path) => ipcRenderer.invoke(IpcChannels.importMod, path),

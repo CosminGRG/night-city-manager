@@ -45,6 +45,10 @@ export const EN = {
   'settings.deploying.autoRequirements': 'Deploy requirements automatically',
   'settings.deploying.autoRequirementsHint':
     'When you switch a mod on, the mods it needs that are in your library are deployed first. Optional requirements are left alone.',
+  'settings.modList.title': 'Mod list',
+  'settings.modList.newestFirst': 'Show newly imported mods first',
+  'settings.modList.newestFirstHint':
+    'Core mods always stay on top. Below them, the mods you imported last come first.',
   'settings.nexus.lookup': 'Look up mod info on Nexus Mods',
   'settings.nexus.lookupHint': 'Finds out what your mods need from their Nexus pages.',
   'settings.language.title': 'Language',

@@ -3,12 +3,15 @@ import type { ModRecord, ModType, Framework, DeployStatus } from '@shared/types'
 import {
   filterMods,
   fitRows,
+  listRows,
   pageNumbers,
   paginate,
   sortRows,
   bulkCounts,
-  bulkTargets
+  bulkTargets,
+  type RowOrder
 } from './modListView'
+import { DEFAULT_LIST_OPTIONS, type ModFacts } from './modFilters'
 import type { VersionRow } from './versionsView'
 
 function mod(name: string, types: ModType[] = [], providers: Framework[] = []): ModRecord {
@@ -40,21 +43,77 @@ describe('sortRows', () => {
 
   const cet = imported(mod('CET', [], ['cet']), 3)
   const red4ext = imported(mod('RED4ext', [], ['red4ext']), 1)
-  const a = imported(mod('A'), 2)
-  const b = imported(mod('B'), 4)
+  const a = imported(mod('A', ['redmod']), 2)
+  const b = imported(mod('B', ['archive']), 4)
   const rows = [row(a), row(cet), row(b), row(red4ext)]
+  const order = (newestFirst: boolean, sort: RowOrder['sort'] = null): RowOrder => ({
+    newestFirst,
+    sort,
+    facts: new Map<string, ModFacts>([['B', { deployed: true, attention: false, update: false }]])
+  })
 
   it('puts core mods first and keeps the import order otherwise', () => {
-    expect(shown(sortRows(rows, false))).toEqual(['CET', 'RED4ext', 'A', 'B'])
+    expect(shown(sortRows(rows, order(false)))).toEqual(['CET', 'RED4ext', 'A', 'B'])
   })
 
   it('puts the newest imports first under the core mods, which keep their order', () => {
-    expect(shown(sortRows(rows, true))).toEqual(['CET', 'RED4ext', 'B', 'A'])
+    expect(shown(sortRows(rows, order(true)))).toEqual(['CET', 'RED4ext', 'B', 'A'])
   })
 
   it('moves a mod up when a newer version of it was imported', () => {
     const update = imported(mod('A 2.0'), 5)
-    expect(shown(sortRows([row(a, [update, a]), row(b)], true))).toEqual(['A', 'B'])
+    expect(shown(sortRows([row(a, [update, a]), row(b)], order(true)))).toEqual(['A', 'B'])
+  })
+
+  it('sorts by a column under the pinned core mods, in both directions', () => {
+    const byType = order(true, { column: 'type', descending: false })
+    expect(shown(sortRows(rows, byType))).toEqual(['CET', 'RED4ext', 'B', 'A'])
+
+    const byNameDown = order(true, { column: 'name', descending: true })
+    expect(shown(sortRows(rows, byNameDown))).toEqual(['CET', 'RED4ext', 'B', 'A'])
+
+    const byStatus = order(false, { column: 'status', descending: false })
+    expect(shown(sortRows(rows, byStatus))).toEqual(['CET', 'RED4ext', 'B', 'A'])
+  })
+
+  it('sorts names with numbers the way people read them', () => {
+    const mods = [row(mod('Mod 10')), row(mod('Mod 9'))]
+    const byName = order(false, { column: 'name', descending: false })
+    expect(shown(sortRows(mods, byName))).toEqual(['Mod 9', 'Mod 10'])
+  })
+})
+
+describe('listRows', () => {
+  const row = (shown: ModRecord): VersionRow => ({ key: shown.id, mod: shown, versions: [shown] })
+  const rows = [
+    row(mod('Eyes', ['archive'])),
+    row(mod('Radio', ['cet'])),
+    row(mod('Hair', ['archive']))
+  ]
+  const order: RowOrder = {
+    newestFirst: false,
+    sort: null,
+    facts: new Map<string, ModFacts>([
+      ['Eyes', { deployed: false, attention: true, update: false }],
+      ['Radio', { deployed: true, attention: false, update: true }]
+    ])
+  }
+  const listedNames = (listed: { rows: VersionRow[] }): string[] =>
+    listed.rows.map((r) => r.mod.name)
+
+  it('shows the chosen tab and counts every tab', () => {
+    const listed = listRows(rows, { ...DEFAULT_LIST_OPTIONS, view: 'inactive' }, '', order)
+
+    expect(listedNames(listed)).toEqual(['Eyes', 'Hair'])
+    expect(listed.counts).toEqual({ all: 3, active: 1, inactive: 2, attention: 1, updates: 1 })
+  })
+
+  it('counts only what the type filter and the search let through', () => {
+    const archives = { ...DEFAULT_LIST_OPTIONS, types: ['archive' as const] }
+    const listed = listRows(rows, archives, 'hair', order)
+
+    expect(listedNames(listed)).toEqual(['Hair'])
+    expect(listed.counts).toEqual({ all: 1, active: 0, inactive: 1, attention: 0, updates: 0 })
   })
 })
 

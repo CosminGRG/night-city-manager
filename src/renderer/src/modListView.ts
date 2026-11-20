@@ -3,6 +3,17 @@ import { BulkAction, BulkScope, DeployStatus, ModRecord } from '@shared/types'
 import { KNOWN_DEPENDENCIES, needs } from '@shared/requirements'
 import { FRAMEWORK_LABELS, MOD_TYPE_LABELS } from './modLabels'
 import type { VersionRow } from './versionsView'
+import {
+  inView,
+  matchesTypes,
+  statusRank,
+  viewCounts,
+  type ListOptions,
+  type ModFacts,
+  type ModView,
+  type Sort,
+  type SortColumn
+} from './modFilters'
 
 export type BulkCounts = Record<BulkAction, Record<BulkScope, number>>
 
@@ -10,6 +21,12 @@ export const PAGE_SIZE = 13
 
 const MIN_ROWS = 5
 const ROW_HEIGHT = 40
+
+export interface RowOrder {
+  newestFirst: boolean
+  sort: Sort | null
+  facts: ReadonlyMap<string, ModFacts>
+}
 
 export function fitRows(space: number): number {
   return Math.max(MIN_ROWS, Math.floor(space / ROW_HEIGHT))
@@ -22,15 +39,44 @@ function lastImport(row: VersionRow): string {
   )
 }
 
-//Core mods first, the rest in import order or newest import first
-export function sortRows(rows: VersionRow[], newestFirst: boolean): VersionRow[] {
+function typeText(mod: ModRecord): string {
+  return mod.plan.types
+    .map((type) => MOD_TYPE_LABELS[type])
+    .sort()
+    .join(' ')
+}
+
+function compareBy(
+  column: SortColumn,
+  a: VersionRow,
+  b: VersionRow,
+  facts: ReadonlyMap<string, ModFacts>
+): number {
+  switch (column) {
+    case 'status':
+      return statusRank(facts.get(a.mod.id)) - statusRank(facts.get(b.mod.id))
+    case 'name':
+      return a.mod.name.localeCompare(b.mod.name, undefined, { numeric: true })
+    case 'type':
+      return typeText(a.mod).localeCompare(typeText(b.mod))
+    case 'imported':
+      return lastImport(a).localeCompare(lastImport(b))
+  }
+}
+
+//Core mods first, the rest by chosen column or in import order or newest import first
+export function sortRows(rows: VersionRow[], { newestFirst, sort, facts }: RowOrder): VersionRow[] {
   return [...rows].sort((a, b) => {
     const core = Number(isCoreMod(b.mod)) - Number(isCoreMod(a.mod))
-    if (core !== 0 || !newestFirst || isCoreMod(a.mod)) {
+    if (core !== 0 || isCoreMod(a.mod)) {
       return core
     }
+    if (sort) {
+      const order = compareBy(sort.column, a, b, facts)
+      return sort.descending ? -order : order
+    }
 
-    return lastImport(b).localeCompare(lastImport(a))
+    return newestFirst ? lastImport(b).localeCompare(lastImport(a)) : 0
   })
 }
 
@@ -54,6 +100,30 @@ export function filterMods(mods: ModRecord[], query: string): ModRecord[] {
     const text = searchText(mod)
     return words.every((word) => text.includes(word))
   })
+}
+
+export interface ListedRows {
+  rows: VersionRow[]
+  counts: Record<ModView, number>
+}
+
+export function listRows(
+  rows: VersionRow[],
+  options: ListOptions,
+  query: string,
+  order: RowOrder
+): ListedRows {
+  const mods = rows.map((row) => row.mod)
+  const searched = new Set(filterMods(mods, query))
+  const narrowed = rows.filter(
+    (row) => matchesTypes(row.mod, options.types) && searched.has(row.mod)
+  )
+
+  const factsOf = (row: VersionRow): ModFacts =>
+    order.facts.get(row.mod.id) ?? { deployed: false, attention: false, update: false }
+  const shown = narrowed.filter((row) => inView(options.view, factsOf(row)))
+
+  return { rows: sortRows(shown, order), counts: viewCounts(narrowed.map(factsOf)) }
 }
 
 export interface Page<T> {

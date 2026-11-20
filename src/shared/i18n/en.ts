@@ -49,6 +49,9 @@ export const EN = {
   'settings.modList.newestFirst': 'Show newly imported mods first',
   'settings.modList.newestFirstHint':
     'Core mods always stay on top. Below them, the mods you imported last come first.',
+  'settings.modList.confirmDependents': 'Ask before switching off mods that others need',
+  'settings.modList.confirmDependentsHint':
+    'Lists the deployed mods that would stop working, so you can cancel or switch them off too.',
   'settings.nexus.lookup': 'Look up mod info on Nexus Mods',
   'settings.nexus.lookupHint': 'Finds out what your mods need from their Nexus pages.',
   'settings.language.title': 'Language',
@@ -125,6 +128,19 @@ export const EN = {
   'selection.deploy': 'Deploy',
   'selection.undeploy': 'Undeploy',
   'selection.clear': 'Clear',
+  'off.title': { one: 'Other mods need {name}', other: 'Other mods need these {count} mods' },
+  'off.body': {
+    one: '{count} deployed mod may stop working:',
+    other: '{count} deployed mods may stop working:'
+  },
+  'off.anyway': 'Switch off anyway',
+  'off.also': { one: 'Switch it off too', other: 'Switch them off too' },
+  'off.alsoOption': {
+    one: 'Also switch off the mod that needs it',
+    other: 'Also switch off the mods that need it'
+  },
+  'off.stopAsking': "Don't ask again",
+  'off.stopAskingHint': 'You can turn this back on in Settings → Mod list.',
   'selection.removeTitle': { one: 'Remove {count} mod?', other: 'Remove {count} mods?' },
   'mods.active': { other: '{count} active' },
   'mods.activeTitle': 'Deployed to your game folder',

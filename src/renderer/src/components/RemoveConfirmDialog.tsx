@@ -4,12 +4,14 @@ import type { MessageKey } from '@shared/i18n/en'
 import { useT } from '@renderer/i18n/context'
 import { ConfirmDialog } from './ConfirmDialog'
 import { TrashLeftoversOption } from './TrashLeftoversOption'
+import { DependentsWarning } from './DependentsWarning'
 
 interface RemoveConfirmDialogProps {
   mod: ModRecord
   otherVersions: ModRecord[]
   deployed: boolean
-  onConfirm: (trashLeftovers: boolean, allVersions: boolean) => void
+  dependentsFor: (allVersions: boolean) => ModRecord[]
+  onConfirm: (trashLeftovers: boolean, allVersions: boolean, alsoOff: ModRecord[]) => void
   onClose: () => void
 }
 
@@ -22,19 +24,24 @@ export function RemoveConfirmDialog({
   mod,
   otherVersions,
   deployed,
+  dependentsFor,
   onConfirm,
   onClose
 }: RemoveConfirmDialogProps): React.JSX.Element {
   const [trashLeftovers, setTrashLeftovers] = useState(false)
   const [allVersions, setAllVersions] = useState(false)
-  const t = useT()
   const versionList = otherVersions.map((version) => version.version ?? version.name).join(', ')
+  const [alsoOff, setAlsoOff] = useState(false)
+  const t = useT()
+  const dependents = dependentsFor(allVersions)
 
   return (
     <ConfirmDialog
       title={t(allVersions ? 'remove.titleAll' : 'remove.title', { name: mod.name })}
       confirmLabel={t('common.remove')}
-      onConfirm={() => onConfirm(deployed && trashLeftovers, allVersions)}
+      onConfirm={() =>
+        onConfirm(deployed && trashLeftovers, allVersions, alsoOff ? dependents : [])
+      }
       onClose={onClose}
     >
       <p>{t(bodyKey(allVersions, deployed))}</p>
@@ -53,6 +60,8 @@ export function RemoveConfirmDialog({
           </span>
         </label>
       )}
+
+      <DependentsWarning dependents={dependents} alsoOff={alsoOff} onAlsoOffChange={setAlsoOff} />
 
       {deployed && (
         <TrashLeftoversOption

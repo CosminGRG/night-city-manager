@@ -18,6 +18,7 @@ const api: NightCityApi = {
   setAutoDeployRequirements: (enabled) =>
     ipcRenderer.invoke(IpcChannels.setAutoDeployRequirements, enabled),
   setNewestFirst: (enabled) => ipcRenderer.invoke(IpcChannels.setNewestFirst, enabled),
+  setConfirmDependents: (enabled) => ipcRenderer.invoke(IpcChannels.setConfirmDependents, enabled),
   listMods: () => ipcRenderer.invoke(IpcChannels.listMods),
   pickArchives: () => ipcRenderer.invoke(IpcChannels.pickArchives),
   importMod: (path) => ipcRenderer.invoke(IpcChannels.importMod, path),

@@ -195,6 +195,58 @@ function keysOf(mod: ModRecord): Set<string> {
   return keys
 }
 
+function without(gone: ReadonlySet<string>, context: RequirementContext): RequirementContext {
+  const deployed = context.library.filter((mod) => context.deployments[mod.id] === 'deployed')
+  const lost = new Set(
+    deployed.filter((mod) => gone.has(mod.id)).flatMap((mod) => provides(mod.plan))
+  )
+  const kept = new Set(
+    deployed.filter((mod) => !gone.has(mod.id)).flatMap((mod) => provides(mod.plan))
+  )
+
+  return {
+    ...context,
+    deployments: Object.fromEntries(
+      Object.entries(context.deployments).filter(([id]) => !gone.has(id))
+    ),
+    installed: context.installed.filter(
+      (dependency) => !lost.has(dependency) || kept.has(dependency)
+    )
+  }
+}
+
+function newlyUnmet(
+  mod: ModRecord,
+  before: RequirementContext,
+  after: RequirementContext
+): boolean {
+  const unmet = new Set(unmetRequired(mod, before).map((badge) => badge.key))
+  return unmetRequired(mod, after).some((badge) => !unmet.has(badge.key))
+}
+
+export function dependentsOf(ids: readonly string[], context: RequirementContext): ModRecord[] {
+  const gone = new Set(ids)
+  const found: ModRecord[] = []
+
+  for (;;) {
+    const after = without(gone, context)
+    const next = context.library.filter(
+      (mod) =>
+        context.deployments[mod.id] === 'deployed' &&
+        !gone.has(mod.id) &&
+        newlyUnmet(mod, context, after)
+    )
+    if (next.length === 0) {
+      return found
+    }
+
+    for (const mod of next) {
+      gone.add(mod.id)
+      found.push(mod)
+    }
+  }
+}
+
 export function brokenBy(removed: ModRecord, context: RequirementContext): string[] {
   const keys = keysOf(removed)
   return context.library

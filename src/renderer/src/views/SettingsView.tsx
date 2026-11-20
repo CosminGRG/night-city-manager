@@ -106,6 +106,13 @@ export function SettingsView({ settings, onSettingsChange }: SettingsViewProps):
           save={(next) => window.api.setNewestFirst(next)}
           onSettingsChange={onSettingsChange}
         />
+        <SettingToggle
+          label={t('settings.modList.confirmDependents')}
+          hint={t('settings.modList.confirmDependentsHint')}
+          enabled={settings.confirmDependents}
+          save={(next) => window.api.setConfirmDependents(next)}
+          onSettingsChange={onSettingsChange}
+        />
       </div>
 
       <div className="settings-group">

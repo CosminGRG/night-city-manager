@@ -1,7 +1,12 @@
 import { DEFAULT_SETTINGS, type Settings } from '@shared/types'
 import { readJsonFile, writeJsonFile } from './jsonFile'
 
-const BOOLEAN_SETTINGS = ['nexusLookup', 'autoDeployRequirements', 'newestFirst'] as const
+const BOOLEAN_SETTINGS = [
+  'nexusLookup',
+  'autoDeployRequirements',
+  'newestFirst',
+  'confirmDependents'
+] as const
 
 export class SettingsStore {
   private readonly filePath: string

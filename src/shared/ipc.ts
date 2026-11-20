@@ -35,6 +35,7 @@ export const IpcChannels = {
   setNexusLookup: 'settings:set-nexus-lookup',
   setAutoDeployRequirements: 'settings:set-auto-deploy-requirements',
   setNewestFirst: 'settings:set-newest-first',
+  setConfirmDependents: 'settings:set-confirm-dependents',
   listMods: 'mod:list',
   importMod: 'mod:import',
   getInstalledDependencies: 'dependencies:installed',
@@ -94,6 +95,7 @@ export interface NightCityApi {
   setNexusLookup(enabled: boolean): Promise<Result<Settings>>
   setAutoDeployRequirements(enabled: boolean): Promise<Result<Settings>>
   setNewestFirst(enabled: boolean): Promise<Result<Settings>>
+  setConfirmDependents(enabled: boolean): Promise<Result<Settings>>
   listMods(): Promise<ModRecord[]>
   pickArchives(): Promise<string[] | null>
   importMod(path: string): Promise<Result<ImportOutcome>>

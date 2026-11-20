@@ -9,13 +9,15 @@ import type {
   BulkResult,
   NexusRequirement,
   ModUpdate,
-  VersionGroup
+  VersionGroup,
+  Settings
 } from '@shared/types'
 import type { Dependency } from '@shared/requirements'
 import {
   requirementBadges,
   deployMessage,
   undeployWarning,
+  dependentsOf,
   missingForBulkDeploy,
   type RequirementBadge,
   type RequirementContext
@@ -56,6 +58,7 @@ import { SortHeader } from './SortHeader'
 import { RoundCheck } from './RoundCheck'
 import { SelectionBar } from './SelectionBar'
 import { SelectionRemoveDialog } from './SelectionRemoveDialog'
+import { DependentsDialog } from './DependentsDialog'
 import { checkState, selectedMods, selectionCounts, toggleAll } from '@renderer/selection'
 import { toggleItems } from '@renderer/leftoversView'
 import './ModList.css'
@@ -77,10 +80,23 @@ interface Busy {
 interface ModListProps {
   importedCount: number
   newestFirst: boolean
+  confirmDependents: boolean
+  onSettingsChange: (settings: Settings) => void
   options: ListOptions
   onOptionsChange: (options: ListOptions) => void
   onImport: () => void
   onTroubleshoot: () => void
+}
+
+interface PendingOff {
+  mods: ModRecord[]
+  dependents: ModRecord[]
+  fromSelection: boolean
+}
+
+interface BulkStep {
+  action: BulkAction
+  run: () => Promise<Result<BulkResult>>
 }
 
 interface Notice {
@@ -158,6 +174,8 @@ function bulkMessage(
 export function ModList({
   importedCount,
   newestFirst,
+  confirmDependents,
+  onSettingsChange,
   options,
   onOptionsChange,
   onImport,
@@ -183,6 +201,7 @@ export function ModList({
   const [bisecting, setBisecting] = useState(false)
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [removingSelected, setRemovingSelected] = useState(false)
+  const [pendingOff, setPendingOff] = useState<PendingOff | null>(null)
 
   const t = useT()
 
@@ -292,13 +311,25 @@ export function ModList({
   async function handleRemove(
     mod: ModRecord,
     trashLeftover: boolean,
-    allVersions: boolean
+    allVersions: boolean,
+    alsoOff: ModRecord[]
   ): Promise<void> {
     setBusy({ id: mod.id, label: t('mods.busy.removing') })
     setError(null)
     setNotice(null)
     const wasDeployed = deployments[mod.id] === 'deployed'
+    const info: string[] = []
     try {
+      // Switch off the mods that need it first, so nothing is left half-working.
+      if (alsoOff.length > 0) {
+        const ids = alsoOff.map((other) => other.id)
+        const off = await window.api.runBulkSelected({ action: 'purge', ids })
+        if (!off.ok) {
+          setError(off.error)
+          return
+        }
+        info.push(bulkMessage('purge', off.value, t))
+      }
       const result = await window.api.removeMod(mod.id, trashLeftover, allVersions)
       const library = await window.api.listMods()
       setMods(library)
@@ -309,7 +340,6 @@ export function ModList({
         setError(result.error)
       } else {
         const { kept, cleaned, deployedInstead } = result.value
-        const info: string[] = []
 
         if (deployedInstead) {
           info.push(t('mods.deployedInstead', { name: deployedInstead }))
@@ -329,35 +359,77 @@ export function ModList({
     }
   }
 
-  //Shared by the Actions menu and the selection bar.
-  async function runBulkAction(
-    action: BulkAction,
-    run: () => Promise<Result<BulkResult>>
-  ): Promise<void> {
-    setBulkLabel(t(BULK_BUSY[action]))
+  //Shared by the Actions menu and the selection bar. Several steps run one after the
+  //other (e.g. switch off what needs the selection, then remove it); one notice at the end.
+  async function runBulkSteps(steps: BulkStep[]): Promise<void> {
     setError(null)
     setNotice(null)
+    const messages: string[] = []
+    const failed: BulkResult['failed'] = []
 
     try {
-      const result = await run()
+      for (const { action, run } of steps) {
+        setBulkLabel(t(BULK_BUSY[action]))
+        const result = await run()
+        if (!result.ok) {
+          setError(result.error)
+          return
+        }
 
-      if (!result.ok) {
-        setError(result.error)
-        return
+        failed.push(...result.value.failed)
+        messages.push(bulkMessage(action, result.value, t))
       }
 
-      const { failed } = result.value
       if (failed.length > 0) {
         const list = failed.map(({ name, error }) => `${name} (${error})`).join(', ')
         setError(t('mods.bulk.failed', { mods: list }))
       }
-      setNotice({ text: bulkMessage(action, result.value, t), tone: 'info' })
+      setNotice({ text: messages.join(' '), tone: 'info' })
       setSelected(new Set())
     } finally {
       setMods(await window.api.listMods())
       await refresh()
       setBulkLabel(null)
     }
+  }
+
+  function runBulkAction(action: BulkAction, run: BulkStep['run']): Promise<void> {
+    return runBulkSteps([{ action, run }])
+  }
+
+  function removeSelected(trashLeftovers: boolean, alsoOff: ModRecord[]): Promise<void> {
+    const ids = selection.map((mod) => mod.id)
+    const offIds = alsoOff.map((mod) => mod.id)
+    const off: BulkStep[] =
+      offIds.length > 0
+        ? [
+            {
+              action: 'purge',
+              run: () => window.api.runBulkSelected({ action: 'purge', ids: offIds })
+            }
+          ]
+        : []
+
+    return runBulkSteps([
+      ...off,
+      {
+        action: 'remove',
+        run: () => window.api.runBulkSelected({ action: 'remove', ids, trashLeftovers })
+      }
+    ])
+  }
+
+  //Removing the deployed version puts the newest other version in its place so nothing breaks unless every version goes or there is no other to deploy.
+  function removalDependents(
+    mod: ModRecord,
+    others: ModRecord[],
+    allVersions: boolean
+  ): ModRecord[] {
+    if (deployments[mod.id] !== 'deployed') return []
+    if (!allVersions && others.some((other) => other.plan.files.length > 0)) return []
+
+    const ids = [mod, ...(allVersions ? others : [])].map((version) => version.id)
+    return dependentsOf(ids, requirementContext)
   }
 
   function handleBulk(request: BulkRequest): Promise<void> {
@@ -367,6 +439,45 @@ export function ModList({
   function handleSelected(action: BulkAction, trashLeftovers = false): Promise<void> {
     const ids = selection.map((mod) => mod.id)
     return runBulkAction(action, () => window.api.runBulkSelected({ action, ids, trashLeftovers }))
+  }
+
+  function switchOff(mods: ModRecord[], fromSelection: boolean): void {
+    if (fromSelection) {
+      handleSelected('purge')
+    } else {
+      handleUndeploy(mods[0])
+    }
+  }
+
+  function requestOff(mods: ModRecord[], fromSelection: boolean): void {
+    const ids = mods.map((mod) => mod.id)
+    const dependents = confirmDependents ? dependentsOf(ids, requirementContext) : []
+
+    if (dependents.length === 0) {
+      switchOff(mods, fromSelection)
+    } else {
+      setPendingOff({ mods, dependents, fromSelection })
+    }
+  }
+
+  async function stopAskingAboutDependents(): Promise<void> {
+    const result = await window.api.setConfirmDependents(false)
+    if (result.ok) {
+      onSettingsChange(result.value)
+    }
+  }
+
+  function confirmOff(off: PendingOff, alsoDependents: boolean, stopAsking: boolean): void {
+    if (stopAsking) {
+      stopAskingAboutDependents()
+    }
+    if (!alsoDependents) {
+      switchOff(off.mods, off.fromSelection)
+      return
+    }
+
+    const ids = [...off.mods, ...off.dependents].map((mod) => mod.id)
+    runBulkAction('purge', () => window.api.runBulkSelected({ action: 'purge', ids }))
   }
 
   function handlePickVersion(row: VersionRow, version: ModRecord): void {
@@ -402,7 +513,7 @@ export function ModList({
 
   const actions: ModActions = {
     deploy: handleDeploy,
-    undeploy: handleUndeploy,
+    undeploy: (mod) => requestOff([mod], false),
     remove: setPendingRemoval,
     reveal: (mod) => showFailure(window.api.revealMod(mod.id)),
     openNexus: (mod) => showFailure(window.api.openNexusPage(mod.id)),
@@ -432,6 +543,8 @@ export function ModList({
   const listed = listRows(rows, options, query, { newestFirst, sort: options.sort, facts })
   const listedMods = listed.rows.map((row) => row.mod)
   const visible = mods && paginate(listedMods, page, pageSize)
+  const otherVersionsOf = (mod: ModRecord): ModRecord[] =>
+    (rowOf.get(mod.id)?.versions ?? []).filter((version) => version.id !== mod.id)
   const filtered = query !== '' || options.view !== 'all' || options.types.length > 0
   const listedIds = listedMods.map((mod) => mod.id)
   const selection = selectedMods(listedMods, selected)
@@ -475,9 +588,16 @@ export function ModList({
           counts={selectionCounts(selection, deployments)}
           locked={changesLocked}
           onToggleAll={() => setSelected(toggleAll(selected, listedIds))}
-          onAction={(action) =>
-            action === 'remove' ? setRemovingSelected(true) : handleSelected(action)
-          }
+          onAction={(action) => {
+            if (action === 'remove') {
+              setRemovingSelected(true)
+            } else if (action === 'purge') {
+              requestOff(selection, true)
+            } else {
+              handleSelected(action)
+            }
+          }}
+
           onClear={() => setSelected(new Set())}
         />
       )}
@@ -616,12 +736,13 @@ export function ModList({
       {pendingRemoval && (
         <RemoveConfirmDialog
           mod={pendingRemoval}
-          otherVersions={(rowOf.get(pendingRemoval.id)?.versions ?? []).filter(
-            (version) => version.id !== pendingRemoval.id
-          )}
+          otherVersions={otherVersionsOf(pendingRemoval)}
           deployed={deployments[pendingRemoval.id] !== undefined}
-          onConfirm={(trashLeftovers, allVersions) =>
-            handleRemove(pendingRemoval, trashLeftovers, allVersions)
+          dependentsFor={(allVersions) =>
+            removalDependents(pendingRemoval, otherVersionsOf(pendingRemoval), allVersions)
+          }
+          onConfirm={(trashLeftovers, allVersions, alsoOff) =>
+            handleRemove(pendingRemoval, trashLeftovers, allVersions, alsoOff)
           }
           onClose={() => setPendingRemoval(null)}
         />
@@ -635,11 +756,25 @@ export function ModList({
         />
       )}
 
+      {pendingOff && (
+        <DependentsDialog
+          mods={pendingOff.mods}
+          dependents={pendingOff.dependents}
+          onAnyway={(stopAsking) => confirmOff(pendingOff, false, stopAsking)}
+          onAlso={(stopAsking) => confirmOff(pendingOff, true, stopAsking)}
+          onClose={() => setPendingOff(null)}
+        />
+      )}
+
       {removingSelected && (
         <SelectionRemoveDialog
           count={selection.length}
           anyDeployed={selection.some((mod) => deployments[mod.id] !== undefined)}
-          onConfirm={(trashLeftovers) => handleSelected('remove', trashLeftovers)}
+          dependents={dependentsOf(
+            selection.map((mod) => mod.id),
+            requirementContext
+          )}
+          onConfirm={removeSelected}
           onClose={() => setRemovingSelected(false)}
         />
       )}

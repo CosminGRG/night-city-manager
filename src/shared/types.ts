@@ -8,6 +8,7 @@ export interface Settings {
   nexusLookup: boolean
   autoDeployRequirements: boolean
   newestFirst: boolean
+  confirmDependents: boolean
   language: string | null
 }
 
@@ -19,6 +20,7 @@ export const DEFAULT_SETTINGS: Settings = {
   nexusLookup: true,
   autoDeployRequirements: true,
   newestFirst: true,
+  confirmDependents: true,
   language: null
 }
 

@@ -57,6 +57,8 @@ function App(): React.JSX.Element {
       <ModList
         importedCount={queue.imported}
         newestFirst={settings.newestFirst}
+        confirmDependents={settings.confirmDependents}
+        onSettingsChange={setSettings}
         options={listOptions}
         onOptionsChange={setListOptions}
         onImport={pickArchives}

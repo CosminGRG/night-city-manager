@@ -8,6 +8,7 @@ import {
   deployMessage,
   brokenBy,
   undeployWarning,
+  dependentsOf,
   type RequirementContext
 } from './requirementsView'
 
@@ -320,5 +321,59 @@ describe('undeployWarning', () => {
 
     expect(brokenBy(blurBegone, afterRemove)).toEqual(['ReFRACT'])
     expect(brokenBy(radioExt, afterRemove)).toEqual([])
+  })
+})
+
+describe('dependentsOf', () => {
+  const both = { 'Outrun Waves': 'deployed', 'RadioExt 2.92': 'deployed' } as const
+
+  it('names deployed mods that would lose something they need', () => {
+    const ready = context({
+      library: [radioPack, radioExt],
+      installed: ['cet', 'radioext'],
+      deployments: both
+    })
+
+    expect(dependentsOf([radioExt.id], ready)).toEqual([radioPack])
+    expect(dependentsOf([radioPack.id], ready)).toEqual([])
+  })
+
+  it('ignores a dependency that stays installed', () => {
+    const copy = { ...radioExt, id: 'RadioExt copy', name: 'RadioExt copy' }
+    const twice = context({
+      library: [radioPack, radioExt, copy],
+      installed: ['cet', 'radioext'],
+      deployments: { ...both, 'RadioExt copy': 'deployed' }
+    })
+    expect(dependentsOf([radioExt.id], twice)).toEqual([])
+
+    // RadioExt installed by hand: the library copy isn't deployed, so switching it off changes nothing
+    const byHand = context({
+      library: [radioPack, radioExt],
+      installed: ['cet', 'radioext'],
+      deployments: { 'Outrun Waves': 'deployed' }
+    })
+    expect(dependentsOf([radioExt.id], byHand)).toEqual([])
+  })
+
+  it('follows Nexus requirements, and the mods that need those in turn', () => {
+    const addon = mod('ReFRACT Addon', [], [], 777)
+    const nexus = { 34858: [requires(12345, 'Blur Begone')], 777: [requires(34858, 'ReFRACT')] }
+    const all = context({
+      library: [blurBegone, refract, addon],
+      nexus,
+      deployments: { 'Blur Begone': 'deployed', ReFRACT: 'deployed', 'ReFRACT Addon': 'deployed' }
+    })
+
+    expect(dependentsOf([blurBegone.id], all)).toEqual([refract, addon])
+  })
+
+  it('does not count mods that are switched off together', () => {
+    const ready = context({
+      library: [radioPack, radioExt],
+      installed: ['cet', 'radioext'],
+      deployments: both
+    })
+    expect(dependentsOf([radioExt.id, radioPack.id], ready)).toEqual([])
   })
 })

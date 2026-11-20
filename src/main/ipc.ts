@@ -220,6 +220,17 @@ export function registerIpcHandlers({
     }
   )
 
+  ipcMain.handle(
+    IpcChannels.setConfirmDependents,
+    (_event, enabled: unknown): Promise<Result<Settings>> => {
+      if (typeof enabled !== 'boolean') {
+        throw new Error('setConfirmDependents: enabled must be a boolean')
+      }
+
+      return toResult(() => settings.update({ confirmDependents: enabled }))
+    }
+  )
+
   ipcMain.handle(IpcChannels.getGameIcon, async (): Promise<string | null> => {
     const { gamePath } = settings.get()
     if (!gamePath) {

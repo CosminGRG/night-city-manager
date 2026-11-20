@@ -1,0 +1,32 @@
+.dependents-dialog {
+}
+
+.dependents-warning {
+  color: var(--warning);
+}
+
+.dependents-warning svg {
+  flex-shrink: 0;
+}
+
+.dependents-list {
+  max-height: 180px;
+  margin-top: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  overflow-y: auto;
+  background: var(--surface-2);
+  border-radius: var(--radius);
+  font-size: 13px;
+}
+
+.dependents-list li + li {
+  margin-top: 2px;
+}
+
+.dependents-block {
+  margin-top: var(--space-4);
+}
+
+.dependents-dialog .confirm-option {
+  margin-top: var(--space-3);
+}
